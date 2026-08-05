@@ -14,6 +14,20 @@ def test_health_endpoints() -> None:
     assert ready_response.json()["status"] == "ready"
 
 
+def test_local_frontend_cors_preflight() -> None:
+    with TestClient(app) as client:
+        response = client.options(
+            "/api/products",
+            headers={
+                "Origin": "http://127.0.0.1:5173",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
+
+
 def test_catalogue_returns_server_priced_products() -> None:
     with TestClient(app) as client:
         response = client.get("/api/products")
@@ -23,6 +37,7 @@ def test_catalogue_returns_server_priced_products() -> None:
     assert len(products) == 4
     assert products[0]["id"] == "field-pack-28"
     assert products[0]["price_cents"] == 14800
+    assert all(product["image_url"].startswith("/products/") for product in products)
 
 
 def test_discount_codes_are_normalized_and_thresholded() -> None:

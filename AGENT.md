@@ -15,6 +15,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   └── stages/
 │       ├── 01-preflight.md
 │       ├── 02-application.md
+│       ├── 03-local-review.md
 │       └── README.md
 ├── scripts/
 │   └── preflight.sh
@@ -33,6 +34,11 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
     │   └── uv.lock
     └── frontend/
         ├── public/
+        │   └── products/
+        │       ├── alpine-shell.jpg
+        │       ├── field-pack.jpg
+        │       ├── ridge-lamp.jpg
+        │       └── trail-flask.jpg
         ├── src/
         │   ├── test/
         │   ├── App.css
@@ -52,7 +58,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 - **Stage 1 - Preflight and repository bootstrap:** Complete
 - **Stage 2 - Initial backend and frontend:** Complete
-- **Stage 3 - Local application review:** Not started
+- **Stage 3 - Local application review:** Complete
 - **Stages 4-17:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
@@ -95,6 +101,13 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - `POST /api/discounts/validate` normalizes and validates discount codes.
 - `POST /api/checkout` reprices products, validates quantities and email, applies discounts, and returns a synthetic confirmation.
 - The initial application is intentionally healthy. The deterministic regression is introduced only in Stage 10.
+
+## Local Review Findings
+
+- Serve the frontend from `http://127.0.0.1:5173` and the backend from `http://127.0.0.1:8000` for the documented review path.
+- Default CORS configuration permits both `127.0.0.1` and `localhost` Vite origins and has a regression test for the IPv4 preflight.
+- Product images are committed static assets under `src/frontend/public/products`; the live app does not depend on third-party image responses.
+- Desktop and 390-pixel mobile browser checks passed with no horizontal overflow, console errors, page errors, or failed requests.
 
 ## Known Tooling Notes
 

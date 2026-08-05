@@ -2,6 +2,13 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-05 - Complete local application review
+
+- Ran the FastAPI service and React storefront together for desktop and mobile review.
+- Added both loopback Vite origins to the backend CORS defaults and covered the IPv4 preflight with an API regression test.
+- Replaced external runtime image requests with four deterministic local product assets.
+- Verified catalogue loading, quantity controls, valid and invalid discounts, checkout confirmation, responsive layout, and browser error state; the user approved the experience.
+
 ### 2026-08-05 - Start the healthy application
 
 - Grouped application projects under `src/backend` and `src/frontend`.

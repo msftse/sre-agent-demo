@@ -9,7 +9,10 @@ class Settings(BaseSettings):
 
     app_name: str = "Northstar Supply API"
     environment: str = "local"
-    allowed_origins: tuple[str, ...] = ("http://localhost:5173",)
+    allowed_origins: tuple[str, ...] = (
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+    )
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

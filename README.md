@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 2 is complete. The repository contains a healthy FastAPI checkout service and a tested React storefront under `src/`. No Azure resources have been created. Stage 3 will run both applications locally for review.
+Stage 3 is complete. The healthy FastAPI service and React storefront have been reviewed together on desktop and mobile. No Azure resources have been created. Stage 4 will add local metrics, structured logs, traces, and release correlation.
 
 ## Quick Start
 
@@ -46,6 +46,22 @@ npm run lint
 npm run build
 ```
 
+Run the application locally in two terminals:
+
+```bash
+# Terminal 1
+cd src/backend
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+```bash
+# Terminal 2
+cd src/frontend
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+```
+
+Open the storefront at `http://127.0.0.1:5173/` and the API documentation at `http://127.0.0.1:8000/docs`.
+
 The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies resolve through the Microsoft package-feed proxies committed in each project. If a direct pip fallback is ever required, run it with `PIP_CONFIG_FILE=pip.conf` from `src/backend`.
 
 ## Project Structure
@@ -61,6 +77,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── stages/
 │       ├── 01-preflight.md
 │       ├── 02-application.md
+│       ├── 03-local-review.md
 │       └── README.md
 ├── scripts/
 │   └── preflight.sh
@@ -79,6 +96,11 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
     │   └── uv.lock
     └── frontend/
         ├── public/
+        │   └── products/
+        │       ├── alpine-shell.jpg
+        │       ├── field-pack.jpg
+        │       ├── ridge-lamp.jpg
+        │       └── trail-flask.jpg
         ├── src/
         │   ├── test/
         │   ├── App.css
