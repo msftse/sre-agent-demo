@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 4 is complete. The healthy application now emits correlated Prometheus metrics, structured JSON logs, OpenTelemetry spans, operation/trace response headers, and immutable release identity. No Azure resources have been created. Stage 5 will containerize the application and create its Helm deployment.
+Stage 5 is complete. The application now has hardened multi-stage images and an AKS-targeted Helm chart with Restricted pod security, probes, resources, NetworkPolicies, Azure Managed Prometheus discovery, ingress, disruption budgets, and optional traffic generation. No Azure resources have been created. Stage 6 will build the modular Terraform foundation under `iac/`.
 
 ## Quick Start
 
@@ -68,6 +68,12 @@ Run the complete local telemetry proof:
 ./scripts/verify-observability.sh
 ```
 
+Build and validate both images and every Helm chart mode:
+
+```bash
+./scripts/verify-containers.sh
+```
+
 The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies resolve through the Microsoft package-feed proxies committed in each project. If a direct pip fallback is ever required, run it with `PIP_CONFIG_FILE=pip.conf` from `src/backend`.
 
 ## Project Structure
@@ -85,9 +91,18 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 02-application.md
 │       ├── 03-local-review.md
 │       ├── 04-observability.md
+│       ├── 05-containers-helm.md
 │       └── README.md
+├── deploy/
+│   └── helm/
+│       └── sre-demo/
+│           ├── templates/
+│           ├── Chart.yaml
+│           ├── values.schema.json
+│           └── values.yaml
 ├── scripts/
 │   ├── preflight.sh
+│   ├── verify-containers.sh
 │   └── verify-observability.sh
 └── src/
     ├── backend/
@@ -101,6 +116,8 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
     │   ├── tests/
     │   │   ├── test_api.py
     │   │   └── test_observability.py
+    │   ├── .dockerignore
+    │   ├── Dockerfile
     │   ├── pip.conf
     │   ├── pyproject.toml
     │   └── uv.lock
@@ -120,7 +137,10 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
         │   ├── index.css
         │   ├── main.tsx
         │   └── types.ts
+        ├── .dockerignore
         ├── .npmrc
+        ├── Dockerfile
+        ├── nginx.conf
         ├── package-lock.json
         ├── package.json
         └── vite.config.ts
@@ -154,3 +174,11 @@ Set release identity through these environment variables:
 | `VITE_GIT_SHA` | `development` | Frontend build marker |
 
 See [docs/stages/04-observability.md](docs/stages/04-observability.md) for signal definitions and sample queries.
+
+## Containers and Helm
+
+The backend runtime uses Python 3.12 as UID/GID `10001`; the frontend runtime uses unprivileged Nginx as UID/GID `101`. Both support read-only root filesystems, drop all Linux capabilities, expose health checks, and carry OCI version/revision/source labels. Production frontend requests use same-origin paths and Nginx proxies API, health, and metrics traffic to the stable `backend` Kubernetes Service.
+
+The Helm chart defaults to two replicas per service, Restricted Pod Security, no service-account token mounts, explicit requests/limits/probes, component NetworkPolicies, PDBs, and an Azure Managed Prometheus `ServiceMonitor`. Production deployments should set ACR image digests rather than relying on tags.
+
+See [docs/stages/05-containers-helm.md](docs/stages/05-containers-helm.md) for chart values and validation details.

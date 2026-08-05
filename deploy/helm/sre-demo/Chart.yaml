@@ -1,0 +1,7 @@
+apiVersion: v2
+name: sre-demo
+description: Northstar Supply closed-loop Azure SRE Agent demo
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.30.0-0"

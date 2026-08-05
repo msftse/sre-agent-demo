@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "namespace",
+    "release",
+    "backend",
+    "frontend",
+    "ingress",
+    "serviceMonitor",
+    "podDisruptionBudget",
+    "networkPolicy",
+    "trafficGenerator",
+    "imagePullSecrets"
+  ],
+  "properties": {
+    "nameOverride": { "type": "string" },
+    "fullnameOverride": { "type": "string" },
+    "namespace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["create", "podSecurityStandard"],
+      "properties": {
+        "create": { "type": "boolean" },
+        "podSecurityStandard": { "enum": ["baseline", "restricted"] }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "gitSha", "imageDigest"],
+      "properties": {
+        "environment": { "type": "string", "minLength": 1, "maxLength": 63 },
+        "gitSha": { "type": "string", "minLength": 7, "maxLength": 64 },
+        "imageDigest": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "backend": { "$ref": "#/$defs/application" },
+    "frontend": { "$ref": "#/$defs/application" },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "className", "annotations", "host", "path", "tls"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "className": { "type": "string", "minLength": 1 },
+        "annotations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "host": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "pattern": "^/" },
+        "tls": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "secretName"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "secretName": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "serviceMonitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "interval", "scrapeTimeout"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "interval": { "type": "string", "pattern": "^[0-9]+[smh]$" },
+        "scrapeTimeout": { "type": "string", "pattern": "^[0-9]+[smh]$" }
+      }
+    },
+    "podDisruptionBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "minAvailable"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "minAvailable": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "monitoringNamespace"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "monitoringNamespace": { "type": "string", "minLength": 1 }
+      }
+    },
+    "trafficGenerator": {
+      "allOf": [
+        { "$ref": "#/$defs/application" },
+        {
+          "type": "object",
+          "required": ["enabled", "intervalSeconds", "email"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "intervalSeconds": { "type": "integer", "minimum": 1 },
+            "email": { "type": "string", "format": "email" }
+          }
+        }
+      ]
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": { "name": { "type": "string", "minLength": 1 } }
+      }
+    }
+  },
+  "$defs": {
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "tag", "digest", "pullPolicy"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string", "minLength": 1 },
+        "digest": { "type": "string", "pattern": "^$|^sha256:[a-f0-9]{64}$" },
+        "pullPolicy": { "enum": ["Always", "IfNotPresent", "Never"] }
+      }
+    },
+    "application": {
+      "type": "object",
+      "required": ["image", "resources"],
+      "properties": {
+        "replicaCount": { "type": "integer", "minimum": 1 },
+        "image": { "$ref": "#/$defs/image" },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["port"],
+          "properties": { "port": { "type": "integer", "minimum": 1, "maximum": 65535 } }
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requests", "limits"],
+          "properties": {
+            "requests": { "$ref": "#/$defs/resourcePair" },
+            "limits": { "$ref": "#/$defs/resourcePair" }
+          }
+        },
+        "podAnnotations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "podLabels": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "resourcePair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpu", "memory"],
+      "properties": {
+        "cpu": { "type": "string", "minLength": 1 },
+        "memory": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

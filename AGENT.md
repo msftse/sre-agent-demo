@@ -17,9 +17,18 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 02-application.md
 │       ├── 03-local-review.md
 │       ├── 04-observability.md
+│       ├── 05-containers-helm.md
 │       └── README.md
+├── deploy/
+│   └── helm/
+│       └── sre-demo/
+│           ├── templates/
+│           ├── Chart.yaml
+│           ├── values.schema.json
+│           └── values.yaml
 ├── scripts/
 │   ├── preflight.sh
+│   ├── verify-containers.sh
 │   └── verify-observability.sh
 └── src/
     ├── backend/
@@ -33,6 +42,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
     │   ├── tests/
     │   │   ├── test_api.py
     │   │   └── test_observability.py
+    │   ├── .dockerignore
+    │   ├── Dockerfile
     │   ├── pip.conf
     │   ├── pyproject.toml
     │   └── uv.lock
@@ -52,7 +63,10 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
         │   ├── index.css
         │   ├── main.tsx
         │   └── types.ts
+        ├── .dockerignore
         ├── .npmrc
+        ├── Dockerfile
+        ├── nginx.conf
         ├── package-lock.json
         ├── package.json
         └── vite.config.ts
@@ -64,7 +78,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 2 - Initial backend and frontend:** Complete
 - **Stage 3 - Local application review:** Complete
 - **Stage 4 - Local observability and release correlation:** Complete
-- **Stages 5-17:** Not started; see `docs/stages/README.md`
+- **Stage 5 - Hardened containers and Helm deployment:** Complete
+- **Stages 6-17:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -130,3 +145,18 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Domain errors emit a correlated warning with a stable low-cardinality error code. OpenTelemetry checkout spans record the exception message and error status.
 - W3C `traceparent` is accepted and propagated; responses expose operation, trace, and build identifiers to allowed browser origins.
 - A dedicated `TracerProvider` belongs to each application instance, making tests isolated and allowing the future Azure Monitor exporter to be configured without global-provider conflicts.
+
+## Container and Helm Contract
+
+- Backend builds a wheel in `python:3.12.13-slim-bookworm` and copies only its virtual environment into the runtime stage. Runtime UID/GID is `10001`.
+- Frontend builds with `node:24.13.1-alpine3.22` and serves static files with `nginxinc/nginx-unprivileged:1.29.4-alpine3.23` as UID/GID `101`.
+- Build package resolution continues through the committed Microsoft npm and PyPI proxies.
+- Nginx has a baked same-origin proxy to the stable `backend` Service. This intentionally avoids runtime configuration writes and init-container permission changes.
+- Helm workload pods meet the Kubernetes Restricted profile: non-root, explicit `RuntimeDefault` seccomp, no privilege escalation, dropped `ALL` capabilities, read-only root filesystem, and allowed `emptyDir` only for `/tmp`.
+- Service-account token automount and Kubernetes service-link environment injection are disabled.
+- The chart supports immutable `repository@sha256:digest` references; Stage 9 delivery must set them for both images.
+- Azure Managed Prometheus discovery uses `azmonitoring.coreos.com/v1` with label limits `63/511/1023` required by Microsoft guidance.
+- NetworkPolicies allow public/ingress-controller access to frontend, frontend access to backend, monitoring-namespace access to backend metrics, DNS egress, and optional traffic-generator access to frontend.
+- Subscription policy inspection found only SQL/data Defender assignments and no AKS workload or registry restriction.
+- Docker Scout critical CVE scanning requires an authenticated Docker account in this environment and was not bypassed. SPDX SBOM generation succeeds locally; authenticated vulnerability scanning is required in Stage 9 CI.
+- No local Kubernetes cluster is reachable. API-server admission, Cilium policy enforcement, and `helm test` are deferred to the newly provisioned AKS cluster in Stage 7 and must not be reported as already validated.

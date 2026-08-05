@@ -1,0 +1,91 @@
+nameOverride: ""
+fullnameOverride: ""
+
+namespace:
+  create: true
+  podSecurityStandard: restricted
+
+release:
+  environment: demo
+  gitSha: development
+  imageDigest: local
+
+backend:
+  replicaCount: 2
+  image:
+    repository: sre-demo-backend
+    tag: latest
+    digest: ""
+    pullPolicy: IfNotPresent
+  service:
+    port: 8000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 384Mi
+  podAnnotations: {}
+  podLabels: {}
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: sre-demo-frontend
+    tag: latest
+    digest: ""
+    pullPolicy: IfNotPresent
+  service:
+    port: 8080
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  podAnnotations: {}
+  podLabels: {}
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  host: northstar.example.com
+  path: /
+  tls:
+    enabled: false
+    secretName: northstar-tls
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  monitoringNamespace: kube-system
+
+trafficGenerator:
+  enabled: false
+  image:
+    repository: curlimages/curl
+    tag: 8.17.0
+    digest: ""
+    pullPolicy: IfNotPresent
+  intervalSeconds: 5
+  email: load-generator@example.com
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+imagePullSecrets: []

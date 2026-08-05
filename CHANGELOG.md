@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-05 - Add hardened images and AKS Helm chart
+
+- Added pinned multi-stage backend and frontend images that install from the Microsoft package proxies and run as non-root users.
+- Added unprivileged Nginx same-origin API/health/metrics proxying, SPA fallback, security headers, and container health checks.
+- Added an AKS Helm chart with Restricted pod security, probes, resources, immutable digest support, PDBs, NetworkPolicies, optional ingress and traffic generation, and a Helm test pod.
+- Added Azure Managed Prometheus ServiceMonitor discovery with Microsoft-required label limits.
+- Added Helm values schema validation and a one-shot verifier for builds, restricted runtime smoke tests, chart modes, security assertions, SBOM generation, and cleanup.
+
 ### 2026-08-05 - Add local observability and release correlation
 
 - Added bounded Prometheus request, latency, in-progress, checkout outcome, and build-info metrics at `/metrics`.

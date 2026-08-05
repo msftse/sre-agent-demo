@@ -1,0 +1,19 @@
+Northstar Supply has been rendered for namespace {{ .Release.Namespace }}.
+
+Images:
+  Backend:  {{ include "sre-demo.image" .Values.backend.image }}
+  Frontend: {{ include "sre-demo.image" .Values.frontend.image }}
+  Git SHA:  {{ .Values.release.gitSha }}
+
+Run the chart smoke test after workloads are ready:
+  helm test {{ .Release.Name }} --namespace {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+Open the application:
+  {{ if .Values.ingress.tls.enabled }}https{{ else }}http{{ end }}://{{ .Values.ingress.host }}{{ .Values.ingress.path }}
+{{- else }}
+Port-forward the frontend service:
+  kubectl port-forward --namespace {{ .Release.Namespace }} service/{{ include "sre-demo.fullname" . }}-frontend 8080:{{ .Values.frontend.service.port }}
+
+Then open http://127.0.0.1:8080/
+{{- end }}

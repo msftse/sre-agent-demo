@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sre-demo.fullname" . }}-frontend
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sre-demo.labels" . | nindent 4 }}
+    {{- include "sre-demo.frontendLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "sre-demo.frontendLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.frontend.service.port }}
+      targetPort: http
+      protocol: TCP
