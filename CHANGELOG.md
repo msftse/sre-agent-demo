@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-05 - Start the healthy application
+
+- Grouped application projects under `src/backend` and `src/frontend`.
+- Added a typed, server-priced FastAPI catalogue, discount, and checkout contract with seven API tests and 97.92% coverage.
+- Built the responsive Northstar Supply React storefront with accessible cart, discount, checkout, and confirmation states plus three behavior tests.
+- Configured npm, uv, and pip fallback resolution to use the Microsoft package-feed proxies.
+- Completed Ruff, mypy, pytest, Vitest, ESLint, TypeScript, production-build, and shipped-dependency audit checks.
+
 ### 2026-08-05 - Begin repository bootstrap
 
 - Added the initial repository hygiene and documentation skeleton.

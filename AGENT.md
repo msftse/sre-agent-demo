@@ -14,15 +14,44 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 ├── docs/
 │   └── stages/
 │       ├── 01-preflight.md
+│       ├── 02-application.md
 │       └── README.md
-└── scripts/
-    └── preflight.sh
+├── scripts/
+│   └── preflight.sh
+└── src/
+    ├── backend/
+    │   ├── app/
+    │   │   ├── catalog.py
+    │   │   ├── config.py
+    │   │   ├── main.py
+    │   │   ├── models.py
+    │   │   └── service.py
+    │   ├── tests/
+    │   │   └── test_api.py
+    │   ├── pip.conf
+    │   ├── pyproject.toml
+    │   └── uv.lock
+    └── frontend/
+        ├── public/
+        ├── src/
+        │   ├── test/
+        │   ├── App.css
+        │   ├── App.test.tsx
+        │   ├── App.tsx
+        │   ├── api.ts
+        │   ├── index.css
+        │   ├── main.tsx
+        │   └── types.ts
+        ├── .npmrc
+        ├── package-lock.json
+        ├── package.json
+        └── vite.config.ts
 ```
 
 ## Stages
 
 - **Stage 1 - Preflight and repository bootstrap:** Complete
-- **Stage 2 - Initial backend and frontend:** Not started
+- **Stage 2 - Initial backend and frontend:** Complete
 - **Stage 3 - Local application review:** Not started
 - **Stages 4-17:** Not started; see `docs/stages/README.md`
 
@@ -55,3 +84,19 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Keep changes minimal and preserve an executable validation result for each stage.
 - Update `README.md`, `AGENT.md`, and `CHANGELOG.md` whenever project behavior or structure changes.
 - Use immutable Git SHA image tags for deployed workloads.
+- Keep application code under `src/backend` and `src/frontend`.
+- Resolve npm packages through `https://packagefeedproxy.microsoft.io/npm/`.
+- Resolve Python packages through `https://packagefeedproxy.microsoft.io/pypi/simple`.
+
+## Application Contract
+
+- `GET /health/live` and `GET /health/ready` expose process health.
+- `GET /api/products` returns the server-priced synthetic catalogue.
+- `POST /api/discounts/validate` normalizes and validates discount codes.
+- `POST /api/checkout` reprices products, validates quantities and email, applies discounts, and returns a synthetic confirmation.
+- The initial application is intentionally healthy. The deterministic regression is introduced only in Stage 10.
+
+## Known Tooling Notes
+
+- FastAPI's current `TestClient` emits a deprecation warning about its `httpx` compatibility layer; tests pass and runtime behavior is unaffected.
+- `npm audit --omit=dev` reports zero shipped vulnerabilities. The feed reports 10 high findings in future-version ESLint tooling while recommending contradictory downgrades; no automatic downgrade is applied while lint and build remain clean.
