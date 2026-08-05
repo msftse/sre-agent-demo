@@ -74,6 +74,14 @@ Build and validate both images and every Helm chart mode:
 ./scripts/verify-containers.sh
 ```
 
+After a registry exists and Docker is authenticated, build and push both AKS images from the local Docker daemon:
+
+```bash
+./scripts/publish-images.sh --registry <acr-name>.azurecr.io
+```
+
+This project does not use ACR build/import commands. The script targets `linux/amd64`, publishes immutable Git-SHA tags with `docker push`, and prints the pushed digests for Helm.
+
 The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies resolve through the Microsoft package-feed proxies committed in each project. If a direct pip fallback is ever required, run it with `PIP_CONFIG_FILE=pip.conf` from `src/backend`.
 
 ## Project Structure
@@ -102,6 +110,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │           └── values.yaml
 ├── scripts/
 │   ├── preflight.sh
+│   ├── publish-images.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
 └── src/

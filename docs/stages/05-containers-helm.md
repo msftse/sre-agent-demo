@@ -84,6 +84,24 @@ No scrape credential is required, so Kubernetes 1.37 namespace-scoped secret acc
 
 The chart accepts tags for local work but production deployment must provide both image digests:
 
+First build and push from the local Docker daemon after the registry exists and Docker authentication has been established:
+
+```bash
+./scripts/publish-images.sh --registry <acr-name>.azurecr.io
+```
+
+The publishing script:
+
+- Uses `docker build` locally, targeting `linux/amd64` for the AKS node pool.
+- Tags both repositories with the current 12-character Git SHA.
+- Uses `docker push` for publication.
+- Extracts the registry-generated digest from each push.
+- Prints exact Helm repository/digest values.
+- Never invokes Azure CLI, ACR build/import, or remote ACR tasks.
+- Never accepts or stores registry credentials; Docker must already be authenticated.
+
+Then use the printed values:
+
 ```bash
 helm upgrade --install northstar deploy/helm/sre-demo \
   --namespace northstar \
@@ -97,6 +115,8 @@ helm upgrade --install northstar deploy/helm/sre-demo \
 ```
 
 The values schema rejects malformed SHA-256 digest values.
+
+For Stage 5 verification, the same workflow is exercised against a temporary local Docker Registry. The real ACR push cannot occur until Terraform creates the registry and its login server is available.
 
 ## Verification
 

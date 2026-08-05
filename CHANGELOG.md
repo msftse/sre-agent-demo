@@ -9,6 +9,7 @@ This append-only log records implementation changes by date.
 - Added an AKS Helm chart with Restricted pod security, probes, resources, immutable digest support, PDBs, NetworkPolicies, optional ingress and traffic generation, and a Helm test pod.
 - Added Azure Managed Prometheus ServiceMonitor discovery with Microsoft-required label limits.
 - Added Helm values schema validation and a one-shot verifier for builds, restricted runtime smoke tests, chart modes, security assertions, SBOM generation, and cleanup.
+- Added a local Docker build-and-push workflow using immutable AMD64 Git-SHA tags and registry digests; no ACR-side build/import command is used.
 
 ### 2026-08-05 - Add local observability and release correlation
 

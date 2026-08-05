@@ -28,6 +28,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │           └── values.yaml
 ├── scripts/
 │   ├── preflight.sh
+│   ├── publish-images.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
 └── src/
@@ -113,6 +114,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Keep application code under `src/backend` and `src/frontend`.
 - Resolve npm packages through `https://packagefeedproxy.microsoft.io/npm/`.
 - Resolve Python packages through `https://packagefeedproxy.microsoft.io/pypi/simple`.
+- Build application images on the local/runner Docker daemon and publish them with `docker push`; do not use `az acr build`, `az acr import`, or remote ACR tasks.
 
 ## Application Contract
 
@@ -155,6 +157,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Helm workload pods meet the Kubernetes Restricted profile: non-root, explicit `RuntimeDefault` seccomp, no privilege escalation, dropped `ALL` capabilities, read-only root filesystem, and allowed `emptyDir` only for `/tmp`.
 - Service-account token automount and Kubernetes service-link environment injection are disabled.
 - The chart supports immutable `repository@sha256:digest` references; Stage 9 delivery must set them for both images.
+- `scripts/publish-images.sh` targets `linux/amd64`, uses immutable Git-SHA tags, performs only local `docker build` plus `docker push`, and emits the pushed digests for Helm. It assumes Docker authentication is already established and never accepts credentials.
 - Azure Managed Prometheus discovery uses `azmonitoring.coreos.com/v1` with label limits `63/511/1023` required by Microsoft guidance.
 - NetworkPolicies allow public/ingress-controller access to frontend, frontend access to backend, monitoring-namespace access to backend metrics, DNS egress, and optional traffic-generator access to frontend.
 - Subscription policy inspection found only SQL/data Defender assignments and no AKS workload or registry restriction.
