@@ -18,6 +18,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 03-local-review.md
 │       ├── 04-observability.md
 │       ├── 05-containers-helm.md
+│       ├── 06-terraform-foundation.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -26,9 +27,26 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │           ├── Chart.yaml
 │           ├── values.schema.json
 │           └── values.yaml
+├── iac/
+│   ├── modules/
+│   │   ├── aks/
+│   │   ├── container-registry/
+│   │   ├── identities/
+│   │   ├── network/
+│   │   ├── observability/
+│   │   ├── resource-group/
+│   │   └── sre-agent/
+│   ├── .terraform.lock.hcl
+│   ├── main.tf
+│   ├── outputs.tf
+│   ├── providers.tf
+│   ├── terraform.tfvars.example
+│   └── variables.tf
 ├── scripts/
+│   ├── audit-tags.sh
 │   ├── preflight.sh
 │   ├── publish-images.sh
+│   ├── verify-terraform.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
 └── src/
@@ -80,7 +98,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 3 - Local application review:** Complete
 - **Stage 4 - Local observability and release correlation:** Complete
 - **Stage 5 - Hardened containers and Helm deployment:** Complete
-- **Stages 6-17:** Not started; see `docs/stages/README.md`
+- **Stage 6 - Modular Terraform foundation:** Complete
+- **Stages 7-17:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -163,3 +182,23 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Subscription policy inspection found only SQL/data Defender assignments and no AKS workload or registry restriction.
 - Docker Scout critical CVE scanning requires an authenticated Docker account in this environment and was not bypassed. SPDX SBOM generation succeeds locally; authenticated vulnerability scanning is required in Stage 9 CI.
 - No local Kubernetes cluster is reachable. API-server admission, Cilium policy enforcement, and `helm test` are deferred to the newly provisioned AKS cluster in Stage 7 and must not be reported as already validated.
+
+## Terraform Contract
+
+- All `.tf` files are under `iac/`; child modules use only relative `./modules/<name>` sources.
+- State is local for the learning demo. State, plans, `.terraform/`, `terraform.tfvars`, and auto tfvars are ignored. No `backend.tf` exists.
+- Providers are pinned and locked: AzureRM 4.81.x, AzureAD 3.9.x, AzAPI 2.11.x, random 3.9.x. AzureRM 5 is intentionally deferred because current implementation guidance and validation target 4.x.
+- Subscription and tenant IDs are required variables and are not hardcoded in HCL. AzureRM automatic provider registration is disabled; the resource-group module explicitly registers the required namespaces.
+- Root naming uses a persisted six-character random suffix unless a deterministic suffix is supplied. ACR and Grafana names enforce service length/character restrictions.
+- Shared tags are merged at root, with `SecurityControl=Ignore` applied last so callers cannot override it.
+- Core modules: resource group/provider registration, network, ACR, AKS, GitHub Actions identity/OIDC/RBAC.
+- Optional modules: observability (`enable_observability=false` until Stage 8) and SRE Agent (`enable_sre_agent=false` until Stage 11).
+- AKS Standard uses Azure CNI Overlay with Cilium, managed identity, OIDC/workload identity, managed Entra authentication, Azure RBAC, disabled local accounts, Azure Policy, Key Vault CSI rotation, Azure Linux ephemeral system disks, host encryption, automatic patch/node-image upgrades, and no node public IPs.
+- ACR uses Standard SKU, disables admin and anonymous access, and remains public to support the confirmed local Docker/GitHub runner push model. AKS kubelet receives `AcrPull`; GitHub OIDC identity receives `AcrPush` and AKS deployment roles.
+- GitHub federation is bound to `repo:msftse/sre-agent-demo:environment:demo`, not a broad branch subject.
+- Observability module models workspace-based Application Insights, Log Analytics, Azure Monitor managed Prometheus workspace, Managed Grafana integration, and Monitoring Data Reader RBAC.
+- SRE Agent uses `Microsoft.App/agents@2026-01-01` through AzAPI, Review mode, Low access, managed-resource scope, system identity, and schema validation disabled because the published schema omits live fields.
+- `scripts/verify-terraform.sh` performs no apply. It validates 27 default resources and 33 full-feature resources, runs Checkov through the Microsoft PyPI proxy, and audits planned tags.
+- Checkov result: 24 passed, 0 failed, 13 explicitly reasoned skips. Skips document confirmed demo constraints (public/single-region/free/Standard/no-CMK) or features intentionally attached in later stages.
+- `scripts/audit-tags.sh` is the required post-apply live tag gate.
+- No Azure resource has been applied in Stage 6.

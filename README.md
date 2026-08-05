@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 5 is complete. The application now has hardened multi-stage images and an AKS-targeted Helm chart with Restricted pod security, probes, resources, NetworkPolicies, Azure Managed Prometheus discovery, ingress, disruption budgets, and optional traffic generation. No Azure resources have been created. Stage 6 will build the modular Terraform foundation under `iac/`.
+Stage 6 is complete. A modular Terraform foundation now plans the resource group, providers, network, ACR, AKS, GitHub OIDC identity/RBAC, optional observability, and optional Azure SRE Agent. No Terraform apply has run and no Azure resources have been created. Stage 7 will review and apply the core Azure plan after explicit approval.
 
 ## Quick Start
 
@@ -82,6 +82,22 @@ After a registry exists and Docker is authenticated, build and push both AKS ima
 
 This project does not use ACR build/import commands. The script targets `linux/amd64`, publishes immutable Git-SHA tags with `docker push`, and prints the pushed digests for Helm.
 
+Validate the Terraform foundation without applying resources:
+
+```bash
+export TF_VAR_subscription_id="<subscription-id>"
+export TF_VAR_tenant_id="<tenant-id>"
+./scripts/verify-terraform.sh
+```
+
+After a future apply, audit the mandatory resource tags:
+
+```bash
+./scripts/audit-tags.sh \
+  --resource-group "$(terraform -chdir=iac output -raw resource_group_name)" \
+  --resource-group "$(terraform -chdir=iac output -raw aks_node_resource_group)"
+```
+
 The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies resolve through the Microsoft package-feed proxies committed in each project. If a direct pip fallback is ever required, run it with `PIP_CONFIG_FILE=pip.conf` from `src/backend`.
 
 ## Project Structure
@@ -100,6 +116,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 03-local-review.md
 │       ├── 04-observability.md
 │       ├── 05-containers-helm.md
+│       ├── 06-terraform-foundation.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -108,9 +125,26 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │           ├── Chart.yaml
 │           ├── values.schema.json
 │           └── values.yaml
+├── iac/
+│   ├── modules/
+│   │   ├── aks/
+│   │   ├── container-registry/
+│   │   ├── identities/
+│   │   ├── network/
+│   │   ├── observability/
+│   │   ├── resource-group/
+│   │   └── sre-agent/
+│   ├── .terraform.lock.hcl
+│   ├── main.tf
+│   ├── outputs.tf
+│   ├── providers.tf
+│   ├── terraform.tfvars.example
+│   └── variables.tf
 ├── scripts/
+│   ├── audit-tags.sh
 │   ├── preflight.sh
 │   ├── publish-images.sh
+│   ├── verify-terraform.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
 └── src/
@@ -191,3 +225,11 @@ The backend runtime uses Python 3.12 as UID/GID `10001`; the frontend runtime us
 The Helm chart defaults to two replicas per service, Restricted Pod Security, no service-account token mounts, explicit requests/limits/probes, component NetworkPolicies, PDBs, and an Azure Managed Prometheus `ServiceMonitor`. Production deployments should set ACR image digests rather than relying on tags.
 
 See [docs/stages/05-containers-helm.md](docs/stages/05-containers-helm.md) for chart values and validation details.
+
+## Terraform Foundation
+
+All Terraform files live under `iac/`. State is local and ignored; there is intentionally no `backend.tf`. AzureRM automatic provider registration is disabled and required providers are registered explicitly. Azure subscription and tenant IDs are supplied only through `TF_VAR_*` or an ignored `terraform.tfvars` file.
+
+Core planning creates 27 resources across resource group/provider registration, VNet/subnet/NSG/public IP, Standard ACR, Cilium AKS, GitHub Actions managed identity/OIDC, and RBAC. Observability and SRE Agent modules are implemented but disabled by default until their dedicated stages.
+
+Every taggable Terraform resource receives `SecurityControl=Ignore`. The verifier runs format/init/validate, Checkov, core and full no-apply plans, and plan JSON tag audits. See [docs/stages/06-terraform-foundation.md](docs/stages/06-terraform-foundation.md).

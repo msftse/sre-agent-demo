@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars (ignored by Git) or use TF_VAR_* environment variables.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+tenant_id       = "00000000-0000-0000-0000-000000000000"
+location        = "swedencentral"
+environment     = "demo"
+project_name    = "sre-agent-demo"
+
+tags = {
+  Owner = "platform-engineering"
+}

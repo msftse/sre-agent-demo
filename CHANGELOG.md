@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-05 - Add modular Terraform foundation
+
+- Added pinned and locked AzureRM, AzureAD, AzAPI, and random providers with local ignored state and explicit provider registration.
+- Added focused Terraform modules for resource group, network, ACR, Cilium AKS, GitHub OIDC identity/RBAC, optional observability, and optional Azure SRE Agent.
+- Added mandatory shared tags with `SecurityControl=Ignore`, validated naming/CIDR/SKU inputs, and useful deployment outputs.
+- Added no-apply core/full planning, Checkov scanning, plan JSON tag auditing, and a post-apply live Azure tag audit script.
+- Validated 27 default resources and 33 full-feature resources; no Terraform apply or Azure resource creation occurred.
+
 ### 2026-08-05 - Add hardened images and AKS Helm chart
 
 - Added pinned multi-stage backend and frontend images that install from the Microsoft package proxies and run as non-root users.
