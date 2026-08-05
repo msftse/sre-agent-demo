@@ -1,4 +1,5 @@
 from functools import lru_cache
+from socket import gethostname
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -9,6 +10,11 @@ class Settings(BaseSettings):
 
     app_name: str = "Northstar Supply API"
     environment: str = "local"
+    service_version: str = "0.1.0"
+    git_sha: str = "development"
+    image_digest: str = "local"
+    instance_id: str = gethostname()
+    trace_console_exporter: bool = False
     allowed_origins: tuple[str, ...] = (
         "http://127.0.0.1:5173",
         "http://localhost:5173",

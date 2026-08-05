@@ -16,9 +16,11 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 01-preflight.md
 │       ├── 02-application.md
 │       ├── 03-local-review.md
+│       ├── 04-observability.md
 │       └── README.md
 ├── scripts/
-│   └── preflight.sh
+│   ├── preflight.sh
+│   └── verify-observability.sh
 └── src/
     ├── backend/
     │   ├── app/
@@ -26,9 +28,11 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
     │   │   ├── config.py
     │   │   ├── main.py
     │   │   ├── models.py
+    │   │   ├── observability.py
     │   │   └── service.py
     │   ├── tests/
-    │   │   └── test_api.py
+    │   │   ├── test_api.py
+    │   │   └── test_observability.py
     │   ├── pip.conf
     │   ├── pyproject.toml
     │   └── uv.lock
@@ -59,7 +63,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 1 - Preflight and repository bootstrap:** Complete
 - **Stage 2 - Initial backend and frontend:** Complete
 - **Stage 3 - Local application review:** Complete
-- **Stages 4-17:** Not started; see `docs/stages/README.md`
+- **Stage 4 - Local observability and release correlation:** Complete
+- **Stages 5-17:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -113,3 +118,15 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 - FastAPI's current `TestClient` emits a deprecation warning about its `httpx` compatibility layer; tests pass and runtime behavior is unaffected.
 - `npm audit --omit=dev` reports zero shipped vulnerabilities. The feed reports 10 high findings in future-version ESLint tooling while recommending contradictory downgrades; no automatic downgrade is applied while lint and build remain clean.
+
+## Observability Contract
+
+- Metrics use the `northstar_` prefix and base units. HTTP labels are limited to method, route template, and status code; checkout outcome is limited to `confirmed` or `rejected`.
+- `/metrics` is excluded from request self-instrumentation to avoid scrape feedback.
+- `northstar_http_requests_total`, `northstar_http_request_duration_seconds`, and `northstar_http_requests_in_progress` describe request health.
+- `northstar_checkout_attempts_total` is the business numerator/denominator used for checkout failure analysis.
+- `northstar_build_info` identifies version, Git SHA, image digest, and environment.
+- JSON request logs include operation ID, trace/span IDs, route, status, duration, release identity, environment, and instance.
+- Domain errors emit a correlated warning with a stable low-cardinality error code. OpenTelemetry checkout spans record the exception message and error status.
+- W3C `traceparent` is accepted and propagated; responses expose operation, trace, and build identifiers to allowed browser origins.
+- A dedicated `TracerProvider` belongs to each application instance, making tests isolated and allowing the future Azure Monitor exporter to be configured without global-provider conflicts.

@@ -62,6 +62,15 @@ class HealthResponse(BaseModel):
     environment: str
 
 
+class ReleaseInfo(BaseModel):
+    service: str
+    version: str
+    environment: str
+    git_sha: str
+    image_digest: str
+    instance_id: str
+
+
 class ErrorDetail(BaseModel):
     code: str
     message: str

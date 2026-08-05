@@ -14,11 +14,14 @@ FREE_SHIPPING_THRESHOLD_CENTS = 15000
 STANDARD_SHIPPING_CENTS = 1200
 
 
-@dataclass(frozen=True)
+@dataclass
 class DomainError(Exception):
     code: str
     message: str
     status_code: int = 422
+
+    def __post_init__(self) -> None:
+        Exception.__init__(self, self.message)
 
 
 def quote_discount(request: DiscountRequest) -> DiscountQuote:

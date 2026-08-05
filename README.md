@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 3 is complete. The healthy FastAPI service and React storefront have been reviewed together on desktop and mobile. No Azure resources have been created. Stage 4 will add local metrics, structured logs, traces, and release correlation.
+Stage 4 is complete. The healthy application now emits correlated Prometheus metrics, structured JSON logs, OpenTelemetry spans, operation/trace response headers, and immutable release identity. No Azure resources have been created. Stage 5 will containerize the application and create its Helm deployment.
 
 ## Quick Start
 
@@ -62,6 +62,12 @@ npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 
 Open the storefront at `http://127.0.0.1:5173/` and the API documentation at `http://127.0.0.1:8000/docs`.
 
+Run the complete local telemetry proof:
+
+```bash
+./scripts/verify-observability.sh
+```
+
 The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies resolve through the Microsoft package-feed proxies committed in each project. If a direct pip fallback is ever required, run it with `PIP_CONFIG_FILE=pip.conf` from `src/backend`.
 
 ## Project Structure
@@ -78,9 +84,11 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 01-preflight.md
 │       ├── 02-application.md
 │       ├── 03-local-review.md
+│       ├── 04-observability.md
 │       └── README.md
 ├── scripts/
-│   └── preflight.sh
+│   ├── preflight.sh
+│   └── verify-observability.sh
 └── src/
     ├── backend/
     │   ├── app/
@@ -88,9 +96,11 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
     │   │   ├── config.py
     │   │   ├── main.py
     │   │   ├── models.py
+    │   │   ├── observability.py
     │   │   └── service.py
     │   ├── tests/
-    │   │   └── test_api.py
+    │   │   ├── test_api.py
+    │   │   └── test_observability.py
     │   ├── pip.conf
     │   ├── pyproject.toml
     │   └── uv.lock
@@ -127,3 +137,20 @@ Application code is grouped under `src/`: the Python API lives in `src/backend`,
 ## Healthy Application
 
 The FastAPI service exposes health probes, a server-priced product catalogue, discount validation, and checkout. The storefront consumes that contract to provide catalogue loading, quantity controls, discount feedback, computed totals, checkout, confirmation, and explicit loading/error states. All data is synthetic and no payment or personal data is persisted.
+
+## Local Observability
+
+The backend exposes Prometheus metrics at `/metrics` and release metadata at `/api/release`. Every application response includes `X-Operation-ID`, `X-Trace-ID`, and `X-Build-SHA`. JSON request/error logs and OpenTelemetry request/checkout spans carry those same identifiers so an investigation can move between a metric, a log, a trace, and the responsible Git commit.
+
+Set release identity through these environment variables:
+
+| Variable | Local default | Purpose |
+| --- | --- | --- |
+| `SRE_DEMO_SERVICE_VERSION` | `0.1.0` | Application version |
+| `SRE_DEMO_GIT_SHA` | `development` | Source commit deployed |
+| `SRE_DEMO_IMAGE_DIGEST` | `local` | Immutable container identity when available |
+| `SRE_DEMO_INSTANCE_ID` | Hostname | Process/pod identity |
+| `SRE_DEMO_TRACE_CONSOLE_EXPORTER` | `false` | Print spans locally for learning and verification |
+| `VITE_GIT_SHA` | `development` | Frontend build marker |
+
+See [docs/stages/04-observability.md](docs/stages/04-observability.md) for signal definitions and sample queries.

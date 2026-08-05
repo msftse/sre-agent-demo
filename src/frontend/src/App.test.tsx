@@ -72,6 +72,7 @@ describe('storefront', () => {
 
     expect(screen.getByLabelText('1 items in bag')).toBeInTheDocument()
     expect(screen.getAllByText('$148.00').length).toBeGreaterThan(0)
+    expect(screen.getByText('Build development')).toBeInTheDocument()
   })
 
   it('applies a server-validated discount', async () => {

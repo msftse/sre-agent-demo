@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-05 - Add local observability and release correlation
+
+- Added bounded Prometheus request, latency, in-progress, checkout outcome, and build-info metrics at `/metrics`.
+- Added OpenTelemetry server and checkout spans with W3C trace-context propagation and recorded domain exceptions.
+- Added structured JSON request and domain-error logs with operation, trace, release, route, status, duration, environment, and instance fields.
+- Added `/api/release`, browser-visible correlation headers, and frontend build-SHA display.
+- Added three telemetry contract tests and a one-shot verifier that correlates headers, release JSON, metrics, logs, and spans.
+
 ### 2026-08-05 - Complete local application review
 
 - Ran the FastAPI service and React storefront together for desktop and mobile review.

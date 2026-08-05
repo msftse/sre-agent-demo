@@ -7,7 +7,7 @@ This tracker is the learning path for the Azure SRE Agent closed-loop demo. A st
 | 1 | 0-5% | Preflight and repository bootstrap | Complete |
 | 2 | 5-16% | Healthy FastAPI backend and React storefront | Complete |
 | 3 | 16-22% | Backend and frontend running locally for user review | Complete |
-| 4 | 22-30% | Local metrics, logs, traces, and release correlation | Not started |
+| 4 | 22-30% | Local metrics, logs, traces, and release correlation | Complete |
 | 5 | 30-36% | Hardened containers and Helm deployment | Not started |
 | 6 | 36-43% | Modular Terraform foundation under `iac/` | Not started |
 | 7 | 43-53% | Core Azure and AKS platform | Not started |

@@ -22,6 +22,8 @@ const formatCurrency = (cents: number) =>
     currency: 'USD',
   }).format(cents / 100)
 
+const frontendBuildSha = import.meta.env.VITE_GIT_SHA ?? 'development'
+
 function App() {
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<Record<string, number>>({})
@@ -413,7 +415,7 @@ function App() {
 
       <footer>
         <span>Northstar Supply Co.</span>
-        <span>Purpose-built in the Pacific Northwest</span>
+        <span>Build {frontendBuildSha.slice(0, 12)}</span>
       </footer>
     </div>
   )
