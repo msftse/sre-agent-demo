@@ -13,7 +13,7 @@ from azure.monitor.opentelemetry.exporter import (
     AzureMonitorTraceExporter,
 )
 from fastapi import Request, Response
-from opentelemetry import propagate
+from opentelemetry import propagate, trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import (
@@ -129,6 +129,7 @@ class Telemetry:
                 resource=resource,
                 sampler=ApplicationInsightsSampler(settings.trace_sampling_ratio),
             )
+            trace.set_tracer_provider(self.tracer_provider)
             self.azure_credential = DefaultAzureCredential()
             azure_exporter = AzureMonitorTraceExporter(
                 connection_string=settings.application_insights_connection_string,
@@ -148,8 +149,6 @@ class Telemetry:
         return Response(content=generate_latest(self.registry), media_type=CONTENT_TYPE_LATEST)
 
     def trace_fields(self) -> dict[str, str]:
-        from opentelemetry import trace
-
         context = trace.get_current_span().get_span_context()
         if not context.is_valid:
             return {"trace_id": "", "span_id": ""}

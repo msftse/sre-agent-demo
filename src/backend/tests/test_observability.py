@@ -110,6 +110,7 @@ def test_application_insights_uses_entra_authenticated_batch_export(
             "app.observability.AzureMonitorTraceExporter",
             return_value=exporter,
         ) as exporter_type,
+        patch("app.observability.trace.set_tracer_provider") as set_tracer_provider,
     ):
         telemetry = Telemetry(Settings())
         telemetry.shutdown()
@@ -118,4 +119,5 @@ def test_application_insights_uses_entra_authenticated_batch_export(
         connection_string=connection_string,
         credential=credential_type.return_value,
     )
+    set_tracer_provider.assert_called_once_with(telemetry.tracer_provider)
     credential_type.return_value.close.assert_called_once_with()
