@@ -2,6 +2,16 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-06 - Add managed Azure observability
+
+- Enabled AKS managed Prometheus and MSI-authenticated Container Insights with cost-scoped DCR associations and selected control-plane diagnostics.
+- Added Log Analytics, workspace-based Application Insights, Azure Monitor workspace, Managed Grafana 12, and least-privilege Grafana reader access.
+- Added passwordless Application Insights trace export through AKS workload identity and `Monitoring Metrics Publisher`, preserving disabled local authentication.
+- Enabled the Azure Monitor `ServiceMonitor`, backend HTTPS telemetry egress, and global production tracer-provider registration required by the exporter.
+- Verified two Prometheus release series, correlated ContainerLogV2 operation/trace records, and Application Insights request/dependency/exception telemetry.
+- Kept the live tag audit strict while explicitly reporting Azure's non-taggable, auto-created Failure Anomalies smart detector child.
+- Finished with 29 Terraform resources at zero drift and Helm revision 5 healthy at Git SHA `0e23af6890c3`.
+
 ### 2026-08-06 - Provision core Azure and AKS platform
 
 - Applied checksum-reviewed Terraform plans for the core platform and an opt-in, cluster-scoped human AKS administrator assignment; final state tracks 16 resources with zero drift.

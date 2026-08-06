@@ -20,6 +20,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 05-containers-helm.md
 │       ├── 06-terraform-foundation.md
 │       ├── 07-core-azure-aks.md
+│       ├── 08-managed-observability.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -31,6 +32,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 ├── iac/
 │   ├── modules/
 │   │   ├── aks/
+│   │   ├── aks-monitoring/
 │   │   ├── container-registry/
 │   │   ├── identities/
 │   │   ├── network/
@@ -101,7 +103,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 5 - Hardened containers and Helm deployment:** Complete
 - **Stage 6 - Modular Terraform foundation:** Complete
 - **Stage 7 - Core Azure and AKS platform:** Complete
-- **Stages 8-17:** Not started; see `docs/stages/README.md`
+- **Stage 8 - Managed Azure observability:** Complete
+- **Stages 9-17:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -167,7 +170,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - JSON request logs include operation ID, trace/span IDs, route, status, duration, release identity, environment, and instance.
 - Domain errors emit a correlated warning with a stable low-cardinality error code. OpenTelemetry checkout spans record the exception message and error status.
 - W3C `traceparent` is accepted and propagated; responses expose operation, trace, and build identifiers to allowed browser origins.
-- A dedicated `TracerProvider` belongs to each application instance, making tests isolated and allowing the future Azure Monitor exporter to be configured without global-provider conflicts.
+- Local and injected test exporters use isolated `TracerProvider` instances. The Azure-enabled production provider is registered globally because the Azure Monitor exporter derives Application Insights resource metadata from the global SDK provider.
+- Application Insights ingestion uses AKS workload identity and `Monitoring Metrics Publisher`; local authentication remains disabled.
 
 ## Container and Helm Contract
 
@@ -180,7 +184,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - The chart supports immutable `repository@sha256:digest` references; Stage 9 delivery must set them for both images.
 - `scripts/publish-images.sh` targets `linux/amd64`, uses immutable Git-SHA tags, performs only local `docker build` plus `docker push`, and emits the pushed digests for Helm. It assumes Docker authentication is already established and never accepts credentials.
 - Azure Managed Prometheus discovery uses `azmonitoring.coreos.com/v1` with label limits `63/511/1023` required by Microsoft guidance.
-- NetworkPolicies allow public/ingress-controller access to frontend, frontend access to backend, monitoring-namespace access to backend metrics, DNS egress, and optional traffic-generator access to frontend.
+- NetworkPolicies allow public/ingress-controller access to frontend, frontend access to backend, monitoring-namespace access to backend metrics, DNS egress, backend HTTPS egress for Microsoft Entra/Azure Monitor, and optional traffic-generator access to frontend.
 - Subscription policy inspection found only SQL/data Defender assignments and no AKS workload or registry restriction.
 - Docker Scout critical CVE scanning requires an authenticated Docker account in this environment and was not bypassed. SPDX SBOM generation succeeds locally; authenticated vulnerability scanning is required in Stage 9 CI.
 - No local Kubernetes cluster is reachable. API-server admission, Cilium policy enforcement, and `helm test` are deferred to the newly provisioned AKS cluster in Stage 7 and must not be reported as already validated.
@@ -194,17 +198,18 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Root naming uses a persisted six-character random suffix unless a deterministic suffix is supplied. ACR and Grafana names enforce service length/character restrictions.
 - Shared tags are merged at root, with `SecurityControl=Ignore` applied last so callers cannot override it.
 - Core modules: resource group, network, ACR, AKS, GitHub Actions identity/OIDC/RBAC.
-- Optional modules: observability (`enable_observability=false` until Stage 8) and SRE Agent (`enable_sre_agent=false` until Stage 11).
+- Optional modules: observability and AKS monitoring (`enable_observability`) plus SRE Agent (`enable_sre_agent=false` until Stage 11).
 - AKS Standard uses Azure CNI Overlay with Cilium, managed identity, OIDC/workload identity, managed Entra authentication, Azure RBAC, disabled local accounts, Azure Policy, Key Vault CSI rotation, Azure Linux ephemeral system disks, host encryption, automatic patch/node-image upgrades, and no node public IPs.
 - ACR uses Standard SKU, disables admin and anonymous access, and remains public to support the confirmed local Docker/GitHub runner push model. AKS kubelet receives `AcrPull`; GitHub OIDC identity receives `AcrPush` and AKS deployment roles.
 - GitHub federation is bound to `repo:msftse/sre-agent-demo:environment:demo`, not a broad branch subject.
-- Observability module models workspace-based Application Insights, Log Analytics, Azure Monitor managed Prometheus workspace, Managed Grafana integration, and Monitoring Data Reader RBAC.
+- Observability creates workspace-based Application Insights, Log Analytics, Azure Monitor managed Prometheus, Managed Grafana 12, and reader RBAC. AKS monitoring owns Prometheus/Container Insights DCR associations, selected control-plane diagnostics, and passwordless telemetry identity/RBAC.
 - SRE Agent uses `Microsoft.App/agents@2026-01-01` through AzAPI, Review mode, Low access, managed-resource scope, system identity, and schema validation disabled because the published schema omits live fields.
-- `scripts/verify-terraform.sh` performs no apply. It validates required provider registrations, 15 default resources and 21 full-feature resources, runs Checkov through the Microsoft PyPI proxy, and audits planned tags.
+- `scripts/verify-terraform.sh` performs no apply. It validates required provider registrations, 15 default resources and 29 full-feature resources, runs Checkov through the Microsoft PyPI proxy, rejects destroys, and audits planned tags.
 - Checkov result: 24 passed, 0 failed, 13 explicitly reasoned skips. Skips document confirmed demo constraints (public/single-region/free/Standard/no-CMK) or features intentionally attached in later stages.
-- `scripts/audit-tags.sh` is the required post-apply live tag gate.
+- `scripts/audit-tags.sh` is the required post-apply live tag gate. It explicitly reports and excludes only `Microsoft.AlertsManagement/smartDetectorAlertRules`, because Azure auto-creates the Application Insights Failure Anomalies child and neither ARM nor AzureRM exposes writable tags for that type.
 - `aks_operator_object_id` is an opt-in Microsoft Entra user object ID for cluster-scoped AKS RBAC administrator access. It defaults to `null`; the ignored demo configuration enables it because subscription `Owner` does not grant Kubernetes data-plane access.
 - Azure-managed public IP metadata is ignored through `ip_tags` lifecycle handling so Terraform does not replace the reserved ingress address to remove `FirstPartyUsage=/Unprivileged`.
+- Subscription-managed Defender for Containers is preserved through `microsoft_defender` lifecycle handling so AKS monitoring updates cannot disable the external security profile.
 
 ## Stage 7 Deployed Platform
 
@@ -215,3 +220,14 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - The Helm test pod carries release selector labels so Cilium admits only the chart's test identity to backend readiness. The live backend and frontend smoke test passes.
 - Managed Prometheus discovery is disabled until Stage 8 creates its CRD and Azure Monitor workspace. The reserved public IP `4.223.157.176` is not attached to an ingress controller yet.
 - The post-apply tag gate passed for 13 live resources across the primary and AKS-managed resource groups.
+
+## Stage 8 Managed Observability
+
+- Terraform tracks 29 resources with zero drift after enabling Azure Monitor managed Prometheus, Container Insights, selected AKS control-plane diagnostics, workspace-based Application Insights, and Managed Grafana 12.
+- Azure Monitor agents are healthy: two metrics and two logs daemon pods, two metrics replicas, one kube-state-metrics replica, and one logs replica.
+- Container Insights collects only `ContainerLogV2`, `KubeEvents`, and `KubePodInventory` for namespace `northstar` at a five-minute interval.
+- `northstar-sre-demo-backend` scrapes `/metrics` every 30 seconds through the Azure Monitor `ServiceMonitor` CRD.
+- Application Insights uses a federated telemetry identity scoped to `Monitoring Metrics Publisher` on the component; no client secret exists.
+- Helm release `northstar` revision 5 runs four ready pods at Git SHA `0e23af6890c3` with immutable ACR digests and a passing smoke test.
+- Managed Prometheus returned both `northstar_build_info` series, Log Analytics returned correlated operation/trace IDs and 200/422 outcomes, and Application Insights returned Northstar requests, dependencies, and exceptions.
+- The live tag gate audited 21 resources and skipped one explicitly reported, non-taggable Application Insights smart detector child.

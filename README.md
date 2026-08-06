@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 7 is complete. The Terraform-managed core platform is running in Sweden Central: ACR, a two-node encrypted Cilium AKS cluster, GitHub OIDC identity/RBAC, network, and reserved ingress IP. Locally built backend and frontend images are deployed by immutable digest through the healthy `northstar` Helm release. Stage 8 adds managed observability without changing this healthy baseline.
+Stage 8 is complete. The healthy AKS storefront now emits managed Prometheus metrics, correlated ContainerLogV2 records, and passwordless OpenTelemetry traces to Application Insights. Azure Managed Grafana is linked to the monitor workspace, and Terraform tracks the full platform with zero drift. Stage 9 will automate the proven build, push, digest deployment, and verification path through protected GitHub Actions.
 
 ## Quick Start
 
@@ -118,6 +118,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 05-containers-helm.md
 │       ├── 06-terraform-foundation.md
 │       ├── 07-core-azure-aks.md
+│       ├── 08-managed-observability.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -129,6 +130,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 ├── iac/
 │   ├── modules/
 │   │   ├── aks/
+│   │   ├── aks-monitoring/
 │   │   ├── container-registry/
 │   │   ├── identities/
 │   │   ├── network/
@@ -253,4 +255,32 @@ kubectl port-forward --namespace northstar \
   service/northstar-sre-demo-frontend 8080:8080
 ```
 
-Open `http://127.0.0.1:8080/`. Managed Prometheus discovery remains disabled until Stage 8 installs the required Azure Monitor resources and CRD. See [docs/stages/07-core-azure-aks.md](docs/stages/07-core-azure-aks.md).
+Open `http://127.0.0.1:8080/`. See [docs/stages/07-core-azure-aks.md](docs/stages/07-core-azure-aks.md).
+
+## Managed Azure Observability
+
+AKS sends managed Prometheus metrics to `amw-sre-agent-demo-demo-ij2608` and cost-scoped Northstar container logs to `log-sre-agent-demo-demo-ij2608`. Selected API server, privileged audit, and authentication logs use resource-specific Log Analytics tables. Managed Grafana 12 is linked to the Azure Monitor workspace.
+
+The backend sends its existing OpenTelemetry server and checkout spans to `appi-sre-agent-demo-demo-ij2608`. AKS workload identity authenticates ingestion with no client secret; the identity receives only `Monitoring Metrics Publisher` on the Application Insights component, whose local authentication is disabled.
+
+Useful queries:
+
+```promql
+northstar_build_info
+sum by (outcome) (northstar_checkout_attempts_total)
+```
+
+```kusto
+ContainerLogV2
+| where PodNamespace == "northstar"
+| extend Payload = parse_json(LogMessage)
+| project TimeGenerated,
+          OperationId=tostring(Payload.operation_id),
+          TraceId=tostring(Payload.trace_id),
+          StatusCode=toint(Payload.status_code)
+| order by TimeGenerated desc
+```
+
+Managed Grafana: `https://amg-sreage-demo-ij2608-gbhdd3bcdeedg2fx.cse.grafana.azure.com`
+
+See [docs/stages/08-managed-observability.md](docs/stages/08-managed-observability.md) for resource names, signal queries, security boundaries, and validation evidence.

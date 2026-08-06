@@ -11,7 +11,7 @@ This tracker is the learning path for the Azure SRE Agent closed-loop demo. A st
 | 5 | 30-36% | Hardened containers and Helm deployment | Complete |
 | 6 | 36-43% | Modular Terraform foundation under `iac/` | Complete |
 | 7 | 43-53% | Core Azure and AKS platform | Complete |
-| 8 | 53-63% | Managed Prometheus, Log Analytics, Application Insights, and Grafana | Not started |
+| 8 | 53-63% | Managed Prometheus, Log Analytics, Application Insights, and Grafana | Complete |
 | 9 | 63-71% | Protected GitHub Actions delivery | Not started |
 | 10 | 71-77% | Deterministic checkout incident and alert | Not started |
 | 11 | 77-83% | Azure SRE Agent and Azure Monitor incident platform | Not started |

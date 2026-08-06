@@ -33,13 +33,19 @@ command -v az >/dev/null 2>&1 || { printf '%s\n' 'Azure CLI is required.' >&2; e
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'jq is required.' >&2; exit 1; }
 
 total_resources=0
+total_non_taggable=0
 for resource_group in "${resource_groups[@]}"; do
   resources=$(az resource list --resource-group "$resource_group" --output json)
   missing=$(jq -r '
     .[]
+    | select((.type | ascii_downcase) != "microsoft.alertsmanagement/smartdetectoralertrules")
     | select(.tags.SecurityControl != "Ignore")
     | [.type, .name] | @tsv
   ' <<<"$resources")
+  non_taggable_count=$(jq '[
+    .[]
+    | select((.type | ascii_downcase) == "microsoft.alertsmanagement/smartdetectoralertrules")
+  ] | length' <<<"$resources")
 
   group_tag=$(az group show --name "$resource_group" --query 'tags.SecurityControl' -o tsv)
   if [[ "$group_tag" != "Ignore" ]]; then
@@ -55,9 +61,10 @@ for resource_group in "${resource_groups[@]}"; do
 
   resource_count=$(jq 'length' <<<"$resources")
   total_resources=$((total_resources + resource_count))
-  printf 'PASS: %s and %s resources include SecurityControl=Ignore.\n' \
-    "$resource_group" "$resource_count"
+  total_non_taggable=$((total_non_taggable + non_taggable_count))
+  printf 'PASS: %s has %s resources; %s non-taggable smart detector resources skipped.\n' \
+    "$resource_group" "$resource_count" "$non_taggable_count"
 done
 
-printf 'PASS: audited %s resource groups and %s resources.\n' \
-  "${#resource_groups[@]}" "$total_resources"
+printf 'PASS: audited %s resource groups and %s resources; %s explicit non-taggable exclusions.\n' \
+  "${#resource_groups[@]}" "$total_resources" "$total_non_taggable"
