@@ -36,7 +36,7 @@
         "imageDigest": { "type": "string", "minLength": 1, "maxLength": 128 }
       }
     },
-    "backend": { "$ref": "#/$defs/application" },
+    "backend": { "$ref": "#/$defs/backend" },
     "frontend": { "$ref": "#/$defs/application" },
     "ingress": {
       "type": "object",
@@ -112,6 +112,27 @@
     }
   },
   "$defs": {
+    "backend": {
+      "allOf": [
+        { "$ref": "#/$defs/application" },
+        {
+          "type": "object",
+          "required": ["azureMonitor"],
+          "properties": {
+            "azureMonitor": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["enabled", "clientId", "connectionString"],
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "clientId": { "type": "string" },
+                "connectionString": { "type": "string" }
+              }
+            }
+          }
+        }
+      ]
+    },
     "image": {
       "type": "object",
       "additionalProperties": false,

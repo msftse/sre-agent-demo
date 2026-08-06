@@ -62,19 +62,21 @@ module "container_registry" {
 module "aks" {
   source = "./modules/aks"
 
-  dns_service_ip      = var.aks_dns_service_ip
-  kubernetes_version  = null
-  location            = module.resource_group.location
-  name                = local.aks_name
-  node_count          = var.aks_node_count
-  node_vm_size        = var.aks_node_vm_size
-  pod_cidr            = var.aks_pod_cidr
-  resource_group_name = module.resource_group.name
-  service_cidr        = var.aks_service_cidr
-  sku_tier            = var.aks_sku_tier
-  subnet_id           = module.network.aks_subnet_id
-  tags                = local.common_tags
-  tenant_id           = var.tenant_id
+  dns_service_ip             = var.aks_dns_service_ip
+  kubernetes_version         = null
+  location                   = module.resource_group.location
+  log_analytics_workspace_id = var.enable_observability ? module.observability[0].log_analytics_workspace_id : null
+  managed_prometheus_enabled = var.enable_observability
+  name                       = local.aks_name
+  node_count                 = var.aks_node_count
+  node_vm_size               = var.aks_node_vm_size
+  pod_cidr                   = var.aks_pod_cidr
+  resource_group_name        = module.resource_group.name
+  service_cidr               = var.aks_service_cidr
+  sku_tier                   = var.aks_sku_tier
+  subnet_id                  = module.network.aks_subnet_id
+  tags                       = local.common_tags
+  tenant_id                  = var.tenant_id
 }
 
 module "identities" {
@@ -105,6 +107,23 @@ module "observability" {
   resource_group_name       = module.resource_group.name
   retention_in_days         = var.log_retention_days
   tags                      = local.common_tags
+}
+
+module "aks_monitoring" {
+  count  = var.enable_observability ? 1 : 0
+  source = "./modules/aks-monitoring"
+
+  aks_id                        = module.aks.id
+  aks_name                      = module.aks.name
+  aks_oidc_issuer_url           = module.aks.oidc_issuer_url
+  application_insights_id       = module.observability[0].application_insights_id
+  location                      = module.resource_group.location
+  log_analytics_workspace_id    = module.observability[0].log_analytics_workspace_id
+  monitor_workspace_id          = module.observability[0].monitor_workspace_id
+  resource_group_name           = module.resource_group.name
+  tags                          = local.common_tags
+  workload_namespace            = "northstar"
+  workload_service_account_name = "northstar-sre-demo-workload"
 }
 
 module "sre_agent" {

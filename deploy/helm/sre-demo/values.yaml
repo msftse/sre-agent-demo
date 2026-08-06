@@ -12,6 +12,10 @@ release:
 
 backend:
   replicaCount: 2
+  azureMonitor:
+    enabled: false
+    clientId: ""
+    connectionString: ""
   image:
     repository: sre-demo-backend
     tag: latest

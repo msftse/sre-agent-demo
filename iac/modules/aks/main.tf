@@ -81,9 +81,26 @@ resource "azurerm_kubernetes_cluster" "this" {
     secret_rotation_interval = "2m"
   }
 
+  dynamic "monitor_metrics" {
+    for_each = var.managed_prometheus_enabled ? [1] : []
+
+    content {}
+  }
+
+  dynamic "oms_agent" {
+    for_each = var.log_analytics_workspace_id == null ? [] : [var.log_analytics_workspace_id]
+
+    content {
+      log_analytics_workspace_id      = oms_agent.value
+      msi_auth_for_monitoring_enabled = true
+    }
+  }
+
   tags = var.tags
 
   lifecycle {
+    ignore_changes = [microsoft_defender]
+
     precondition {
       condition = alltrue([
         var.pod_cidr != var.service_cidr,

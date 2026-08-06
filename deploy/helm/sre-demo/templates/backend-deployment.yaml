@@ -23,6 +23,9 @@ spec:
         {{- include "sre-demo.backendLabels" . | nindent 8 }}
         sre-demo/environment: {{ .Values.release.environment | quote }}
         sre-demo/git-sha: {{ .Values.release.gitSha | quote }}
+        {{- if .Values.backend.azureMonitor.enabled }}
+        azure.workload.identity/use: "true"
+        {{- end }}
         {{- with .Values.backend.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -76,6 +79,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            {{- if .Values.backend.azureMonitor.enabled }}
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              value: {{ .Values.backend.azureMonitor.connectionString | quote }}
+            {{- end }}
           startupProbe:
             httpGet:
               path: /health/ready

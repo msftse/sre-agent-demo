@@ -65,7 +65,14 @@ output "observability" {
     grafana_endpoint        = module.observability[0].grafana_endpoint
     log_analytics_id        = module.observability[0].log_analytics_workspace_id
     monitor_workspace_id    = module.observability[0].monitor_workspace_id
+    telemetry_client_id     = module.aks_monitoring[0].telemetry_identity_client_id
   } : null
+}
+
+output "application_insights_connection_string" {
+  description = "Application Insights connection string passed to the backend trace exporter when observability is enabled."
+  value       = var.enable_observability ? module.observability[0].application_insights_connection_string : null
+  sensitive   = true
 }
 
 output "sre_agent" {

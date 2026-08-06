@@ -7,11 +7,17 @@ from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
+from azure.identity import DefaultAzureCredential
+from azure.monitor.opentelemetry.exporter import (
+    ApplicationInsightsSampler,
+    AzureMonitorTraceExporter,
+)
 from fastapi import Request, Response
 from opentelemetry import propagate
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import (
+    BatchSpanProcessor,
     ConsoleSpanExporter,
     SimpleSpanProcessor,
     SpanExporter,
@@ -71,6 +77,7 @@ def configure_logger(settings: Settings) -> logging.Logger:
 class Telemetry:
     def __init__(self, settings: Settings, span_exporter: SpanExporter | None = None) -> None:
         self.settings = settings
+        self.azure_credential: DefaultAzureCredential | None = None
         self.registry = CollectorRegistry(auto_describe=True)
         self.http_requests = Counter(
             "northstar_http_requests",
@@ -109,21 +116,32 @@ class Telemetry:
             environment=settings.environment,
         ).set(1)
 
-        self.tracer_provider = TracerProvider(
-            resource=Resource.create(
-                {
-                    "service.name": settings.app_name,
-                    "service.version": settings.service_version,
-                    "service.instance.id": settings.instance_id,
-                    "deployment.environment.name": settings.environment,
-                }
-            )
+        resource = Resource.create(
+            {
+                "service.name": settings.app_name,
+                "service.version": settings.service_version,
+                "service.instance.id": settings.instance_id,
+                "deployment.environment.name": settings.environment,
+            }
         )
-        exporter = span_exporter
-        if exporter is None and settings.trace_console_exporter:
-            exporter = ConsoleSpanExporter()
-        if exporter is not None:
-            self.tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
+        if span_exporter is None and settings.application_insights_connection_string:
+            self.tracer_provider = TracerProvider(
+                resource=resource,
+                sampler=ApplicationInsightsSampler(settings.trace_sampling_ratio),
+            )
+            self.azure_credential = DefaultAzureCredential()
+            azure_exporter = AzureMonitorTraceExporter(
+                connection_string=settings.application_insights_connection_string,
+                credential=self.azure_credential,
+            )
+            self.tracer_provider.add_span_processor(BatchSpanProcessor(azure_exporter))
+        else:
+            self.tracer_provider = TracerProvider(resource=resource)
+            exporter = span_exporter
+            if exporter is None and settings.trace_console_exporter:
+                exporter = ConsoleSpanExporter()
+            if exporter is not None:
+                self.tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
         self.tracer = self.tracer_provider.get_tracer("northstar.api", settings.service_version)
 
     def metrics_response(self) -> Response:
@@ -152,6 +170,8 @@ class Telemetry:
 
     def shutdown(self) -> None:
         self.tracer_provider.shutdown()
+        if self.azure_credential is not None:
+            self.azure_credential.close()
 
 
 def route_template(request: Request) -> str:

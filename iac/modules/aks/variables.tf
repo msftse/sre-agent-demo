@@ -8,6 +8,19 @@ variable "location" {
   type        = string
 }
 
+variable "log_analytics_workspace_id" {
+  description = "Optional Log Analytics workspace resource ID used by Container Insights."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "managed_prometheus_enabled" {
+  description = "Enable the Azure Monitor managed Prometheus metrics profile."
+  type        = bool
+  default     = false
+}
+
 variable "resource_group_name" {
   description = "Resource group containing AKS."
   type        = string

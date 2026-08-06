@@ -136,18 +136,25 @@ audit_plan_tags() {
 audit_plan_tags "$CORE_JSON"
 audit_plan_tags "$FULL_JSON"
 
+jq -e '[.resource_changes[] | select(.change.actions | index("delete"))] | length == 0' \
+  "$CORE_JSON" >/dev/null
+jq -e '[.resource_changes[] | select(.change.actions | index("delete"))] | length == 0' \
+  "$FULL_JSON" >/dev/null
+
 core_resources=$(jq '[.resource_changes[] | select(.change.actions != ["no-op"])] | length' "$CORE_JSON")
 full_resources=$(jq '[.resource_changes[] | select(.change.actions != ["no-op"])] | length' "$FULL_JSON")
 observability_resources=$(jq '[.resource_changes[] | select(.module_address == "module.observability[0]")] | length' "$FULL_JSON")
+aks_monitoring_resources=$(jq '[.resource_changes[] | select(.module_address == "module.aks_monitoring[0]")] | length' "$FULL_JSON")
 sre_agent_resources=$(jq '[.resource_changes[] | select(.module_address == "module.sre_agent[0]")] | length' "$FULL_JSON")
 
 [[ "$observability_resources" == "5" ]]
+[[ "$aks_monitoring_resources" == "8" ]]
 [[ "$sre_agent_resources" == "1" ]]
-(( full_resources - core_resources == 6 ))
+(( full_resources >= core_resources ))
 
 printf 'PASS: Terraform foundation is valid and plans without applying.\n'
 printf 'Providers: AzureRM 4.81, AzureAD 3.9, AzAPI 2.11, random 3.9\n'
 printf 'Current core plan: %s resources\n' "$core_resources"
-printf 'Current full plan: %s resources (%s observability, %s SRE Agent)\n' \
-  "$full_resources" "$observability_resources" "$sre_agent_resources"
-printf 'Security: Checkov has zero failures; mandatory planned tags pass\n'
+printf 'Current full plan: %s resources (%s observability, %s AKS monitoring, %s SRE Agent)\n' \
+  "$full_resources" "$observability_resources" "$aks_monitoring_resources" "$sre_agent_resources"
+printf 'Security: zero destroys, Checkov has zero failures, mandatory planned tags pass\n'

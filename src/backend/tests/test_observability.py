@@ -1,11 +1,14 @@
 import json
 import logging
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from pytest import MonkeyPatch
 
+from app.config import Settings
 from app.main import create_app
-from app.observability import JsonFormatter
+from app.observability import JsonFormatter, Telemetry
 
 
 def test_release_identity_and_prometheus_metrics() -> None:
@@ -92,3 +95,27 @@ def test_json_formatter_includes_correlation_and_release_fields() -> None:
     assert payload["trace_id"] == "a" * 32
     assert payload["git_sha"] == "commit-abc"
     assert payload["status_code"] == 200
+
+
+def test_application_insights_uses_entra_authenticated_batch_export(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    connection_string = "InstrumentationKey=00000000-0000-0000-0000-000000000000"
+    monkeypatch.setenv("APPLICATIONINSIGHTS_CONNECTION_STRING", connection_string)
+    exporter = InMemorySpanExporter()
+
+    with (
+        patch("app.observability.DefaultAzureCredential") as credential_type,
+        patch(
+            "app.observability.AzureMonitorTraceExporter",
+            return_value=exporter,
+        ) as exporter_type,
+    ):
+        telemetry = Telemetry(Settings())
+        telemetry.shutdown()
+
+    exporter_type.assert_called_once_with(
+        connection_string=connection_string,
+        credential=credential_type.return_value,
+    )
+    credential_type.return_value.close.assert_called_once_with()

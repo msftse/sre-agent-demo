@@ -191,7 +191,7 @@ variable "log_retention_days" {
 variable "grafana_major_version" {
   description = "Azure Managed Grafana major version requested when observability is enabled."
   type        = string
-  default     = "11"
+  default     = "12"
 }
 
 variable "enable_sre_agent" {
