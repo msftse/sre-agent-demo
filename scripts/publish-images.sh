@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-readonly ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+readonly ROOT_DIR
 readonly VERSION="${BUILD_VERSION:-0.1.0}"
 readonly GIT_SHA="${GIT_SHA:-$(git -C "$ROOT_DIR" rev-parse --short=12 HEAD)}"
 readonly TARGET_PLATFORM="${TARGET_PLATFORM:-linux/amd64}"

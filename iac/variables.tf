@@ -160,6 +160,30 @@ variable "github_repository" {
   }
 }
 
+variable "github_repository_owner_id" {
+  description = "Optional immutable GitHub repository owner ID for post-July-2026 OIDC subjects."
+  type        = number
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.github_repository_owner_id == null || var.github_repository_owner_id > 0
+    error_message = "github_repository_owner_id must be null or a positive integer."
+  }
+}
+
+variable "github_repository_id" {
+  description = "Optional immutable GitHub repository ID for post-July-2026 OIDC subjects."
+  type        = number
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.github_repository_id == null || var.github_repository_id > 0
+    error_message = "github_repository_id must be null or a positive integer."
+  }
+}
+
 variable "github_environment" {
   description = "Protected GitHub Environment used as the OIDC subject."
   type        = string

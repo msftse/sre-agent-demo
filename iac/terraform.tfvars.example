@@ -5,6 +5,8 @@ location        = "swedencentral"
 environment     = "demo"
 project_name    = "sre-agent-demo"
 aks_operator_object_id = null
+github_repository_owner_id = null
+github_repository_id       = null
 
 tags = {
   Owner = "platform-engineering"

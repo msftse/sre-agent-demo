@@ -5,8 +5,15 @@ resource "random_string" "suffix" {
 }
 
 locals {
-  suffix              = coalesce(var.name_suffix, random_string.suffix.result)
-  compact_project     = replace(var.project_name, "-", "")
+  suffix                  = coalesce(var.name_suffix, random_string.suffix.result)
+  compact_project         = replace(var.project_name, "-", "")
+  github_repository_parts = split("/", var.github_repository)
+  github_oidc_repository = (
+    var.github_repository_owner_id != null && var.github_repository_id != null
+    ? "${local.github_repository_parts[0]}@${var.github_repository_owner_id}/${local.github_repository_parts[1]}@${var.github_repository_id}"
+    : var.github_repository
+  )
+  github_oidc_subject = "repo:${local.github_oidc_repository}:environment:${var.github_environment}"
   resource_group_name = "rg-${var.project_name}-${var.environment}-${local.suffix}"
   vnet_name           = "vnet-${var.project_name}-${var.environment}-${local.suffix}"
   aks_name            = "aks-${var.project_name}-${var.environment}-${local.suffix}"
@@ -87,7 +94,7 @@ module "identities" {
   aks_kubelet_principal_id = module.aks.kubelet_identity_object_id
   aks_operator_object_id   = var.aks_operator_object_id
   github_environment       = var.github_environment
-  github_repository        = var.github_repository
+  github_oidc_subject      = local.github_oidc_subject
   identity_name            = local.github_identity_name
   location                 = module.resource_group.location
   resource_group_name      = module.resource_group.name

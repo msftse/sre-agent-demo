@@ -13,8 +13,8 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "github_repository" {
-  description = "GitHub owner/repository allowed to federate."
+variable "github_oidc_subject" {
+  description = "Exact GitHub Actions OIDC subject allowed to federate."
   type        = string
 }
 

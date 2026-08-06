@@ -53,6 +53,11 @@ output "github_actions_client_id" {
   value       = module.identities.github_actions_client_id
 }
 
+output "github_actions_oidc_subject" {
+  description = "Exact immutable or legacy GitHub Actions OIDC subject trusted by Azure."
+  value       = local.github_oidc_subject
+}
+
 output "ingress_public_ip_address" {
   description = "Reserved public IP address for the ingress controller."
   value       = module.network.ingress_public_ip_address

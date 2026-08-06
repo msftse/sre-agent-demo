@@ -1,0 +1,246 @@
+name: Deliver demo to AKS
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Build, scan, and deploy this commit to the demo environment
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: demo-aks-delivery
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate source and chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Python and uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: 3.12.13
+          enable-cache: true
+
+      - name: Validate backend
+        working-directory: src/backend
+        run: |
+          uv sync --locked --all-groups
+          uv run ruff check .
+          uv run mypy app tests
+          uv run pytest
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.13.1
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+
+      - name: Validate frontend
+        working-directory: src/frontend
+        run: |
+          npm ci
+          npm test -- --run
+          npm run lint
+          npm run build
+          npm audit --omit=dev
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: v4.2.3
+
+      - name: Validate Helm chart
+        run: |
+          helm lint deploy/helm/sre-demo
+          helm template northstar deploy/helm/sre-demo --namespace northstar >/dev/null
+          helm template northstar deploy/helm/sre-demo \
+            --namespace northstar \
+            --set backend.azureMonitor.enabled=true \
+            --set-string backend.azureMonitor.clientId=00000000-0000-0000-0000-000000000000 \
+            --set-string backend.azureMonitor.connectionString=InstrumentationKey=00000000-0000-0000-0000-000000000000 \
+            >/dev/null
+
+  deliver:
+    name: Build, scan, deploy, and verify
+    if: ${{ inputs.deploy }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: demo
+      url: ${{ vars.GRAFANA_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+      AKS_NAME: ${{ vars.AKS_NAME }}
+      APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+      TELEMETRY_CLIENT_ID: ${{ vars.TELEMETRY_CLIENT_ID }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Validate deployment configuration
+        run: |
+          required=(
+            ACR_LOGIN_SERVER
+            AKS_NAME
+            APPLICATIONINSIGHTS_CONNECTION_STRING
+            AZURE_CLIENT_ID
+            AZURE_SUBSCRIPTION_ID
+            AZURE_TENANT_ID
+            RESOURCE_GROUP
+            TELEMETRY_CLIENT_ID
+          )
+          for variable_name in "${required[@]}"; do
+            [[ -n "${!variable_name:-}" ]] || {
+              printf 'Required deployment value %s is empty.\n' "$variable_name" >&2
+              exit 1
+            }
+          done
+          [[ "$GITHUB_REF" == "refs/heads/main" ]] || {
+            printf 'Only main can deploy to demo; got %s.\n' "$GITHUB_REF" >&2
+            exit 1
+          }
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify Azure context
+        run: |
+          [[ "$(az account show --query id -o tsv)" == "$AZURE_SUBSCRIPTION_ID" ]]
+          [[ "$(az account show --query tenantId -o tsv)" == "$AZURE_TENANT_ID" ]]
+
+      - name: Sign Docker in to ACR
+        run: az acr login --name "${ACR_LOGIN_SERVER%%.*}"
+
+      - name: Build and push immutable images
+        run: |
+          output_file="$RUNNER_TEMP/publish-images.out"
+          GIT_SHA="$GITHUB_SHA" ./scripts/publish-images.sh \
+            --registry "$ACR_LOGIN_SERVER" \
+            >"$output_file"
+          cat "$output_file"
+
+          for output_name in \
+            backend_repository backend_digest frontend_repository frontend_digest; do
+            output_value=$(sed -n "s/^${output_name}=//p" "$output_file" | tail -1)
+            [[ -n "$output_value" ]] || {
+              printf 'Missing %s from image publication output.\n' "$output_name" >&2
+              exit 1
+            }
+            printf '%s=%s\n' "$output_name" "$output_value" >>"$GITHUB_ENV"
+          done
+
+          backend_digest=$(sed -n 's/^backend_digest=//p' "$output_file" | tail -1)
+          frontend_digest=$(sed -n 's/^frontend_digest=//p' "$output_file" | tail -1)
+          [[ "$backend_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$frontend_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.73.0
+          cache: true
+
+      - name: Scan images and generate SBOMs
+        run: |
+          trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 \
+            "$backend_repository:$GITHUB_SHA"
+          trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 \
+            "$frontend_repository:$GITHUB_SHA"
+          trivy image --format spdx-json --output "$RUNNER_TEMP/backend.spdx.json" \
+            "$backend_repository:$GITHUB_SHA"
+          trivy image --format spdx-json --output "$RUNNER_TEMP/frontend.spdx.json" \
+            "$frontend_repository:$GITHUB_SHA"
+          jq -e '.packages | length > 0' "$RUNNER_TEMP/backend.spdx.json" >/dev/null
+          jq -e '.packages | length > 0' "$RUNNER_TEMP/frontend.spdx.json" >/dev/null
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
+        with:
+          version: v1.35.1
+
+      - name: Set up kubelogin
+        uses: azure/use-kubelogin@76597ae0fcbaace21b05e13a2cbf8daee2c6e820 # v1
+        with:
+          kubelogin-version: v0.2.19
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: v4.2.3
+
+      - name: Connect to AKS
+        run: |
+          az aks get-credentials \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$AKS_NAME" \
+            --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+
+      - name: Deploy immutable image digests
+        run: |
+          helm upgrade --install northstar deploy/helm/sre-demo \
+            --namespace northstar \
+            --create-namespace \
+            --rollback-on-failure \
+            --wait \
+            --timeout 10m \
+            --set serviceMonitor.enabled=true \
+            --set backend.azureMonitor.enabled=true \
+            --set-string "backend.azureMonitor.clientId=$TELEMETRY_CLIENT_ID" \
+            --set-string "backend.azureMonitor.connectionString=$APPLICATIONINSIGHTS_CONNECTION_STRING" \
+            --set-string "backend.image.repository=$backend_repository" \
+            --set-string "backend.image.digest=$backend_digest" \
+            --set-string "frontend.image.repository=$frontend_repository" \
+            --set-string "frontend.image.digest=$frontend_digest" \
+            --set-string "release.gitSha=$GITHUB_SHA" \
+            --set-string "release.imageDigest=$backend_digest"
+
+      - name: Verify AKS deployment
+        run: |
+          ./scripts/verify-deployment.sh \
+            --release northstar \
+            --namespace northstar \
+            --git-sha "$GITHUB_SHA" \
+            --backend-repository "$backend_repository" \
+            --backend-digest "$backend_digest" \
+            --frontend-repository "$frontend_repository" \
+            --frontend-digest "$frontend_digest" \
+            --telemetry-client-id "$TELEMETRY_CLIENT_ID"
+
+      - name: Publish deployment summary
+        run: |
+          cat >>"$GITHUB_STEP_SUMMARY" <<EOF
+          ## Demo deployment
+
+          - Git SHA: \`$GITHUB_SHA\`
+          - Backend: \`$backend_repository@$backend_digest\`
+          - Frontend: \`$frontend_repository@$frontend_digest\`
+          - AKS: \`$RESOURCE_GROUP/$AKS_NAME\`
+          EOF
+
+      - name: Sign out of Azure
+        if: ${{ always() }}
+        run: az logout
