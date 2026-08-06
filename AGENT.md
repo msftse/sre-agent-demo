@@ -19,6 +19,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 04-observability.md
 │       ├── 05-containers-helm.md
 │       ├── 06-terraform-foundation.md
+│       ├── 07-core-azure-aks.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -99,7 +100,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 4 - Local observability and release correlation:** Complete
 - **Stage 5 - Hardened containers and Helm deployment:** Complete
 - **Stage 6 - Modular Terraform foundation:** Complete
-- **Stages 7-17:** Not started; see `docs/stages/README.md`
+- **Stage 7 - Core Azure and AKS platform:** Complete
+- **Stages 8-17:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -188,17 +190,28 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - All `.tf` files are under `iac/`; child modules use only relative `./modules/<name>` sources.
 - State is local for the learning demo. State, plans, `.terraform/`, `terraform.tfvars`, and auto tfvars are ignored. No `backend.tf` exists.
 - Providers are pinned and locked: AzureRM 4.81.x, AzureAD 3.9.x, AzAPI 2.11.x, random 3.9.x. AzureRM 5 is intentionally deferred because current implementation guidance and validation target 4.x.
-- Subscription and tenant IDs are required variables and are not hardcoded in HCL. AzureRM automatic provider registration is disabled; the resource-group module explicitly registers the required namespaces.
+- Subscription and tenant IDs are required variables and are not hardcoded in HCL. AzureRM automatic provider registration is disabled. Shared provider registrations are verified as pre-existing prerequisites and are not imported into environment state, preventing destroy from unregistering providers used elsewhere.
 - Root naming uses a persisted six-character random suffix unless a deterministic suffix is supplied. ACR and Grafana names enforce service length/character restrictions.
 - Shared tags are merged at root, with `SecurityControl=Ignore` applied last so callers cannot override it.
-- Core modules: resource group/provider registration, network, ACR, AKS, GitHub Actions identity/OIDC/RBAC.
+- Core modules: resource group, network, ACR, AKS, GitHub Actions identity/OIDC/RBAC.
 - Optional modules: observability (`enable_observability=false` until Stage 8) and SRE Agent (`enable_sre_agent=false` until Stage 11).
 - AKS Standard uses Azure CNI Overlay with Cilium, managed identity, OIDC/workload identity, managed Entra authentication, Azure RBAC, disabled local accounts, Azure Policy, Key Vault CSI rotation, Azure Linux ephemeral system disks, host encryption, automatic patch/node-image upgrades, and no node public IPs.
 - ACR uses Standard SKU, disables admin and anonymous access, and remains public to support the confirmed local Docker/GitHub runner push model. AKS kubelet receives `AcrPull`; GitHub OIDC identity receives `AcrPush` and AKS deployment roles.
 - GitHub federation is bound to `repo:msftse/sre-agent-demo:environment:demo`, not a broad branch subject.
 - Observability module models workspace-based Application Insights, Log Analytics, Azure Monitor managed Prometheus workspace, Managed Grafana integration, and Monitoring Data Reader RBAC.
 - SRE Agent uses `Microsoft.App/agents@2026-01-01` through AzAPI, Review mode, Low access, managed-resource scope, system identity, and schema validation disabled because the published schema omits live fields.
-- `scripts/verify-terraform.sh` performs no apply. It validates 27 default resources and 33 full-feature resources, runs Checkov through the Microsoft PyPI proxy, and audits planned tags.
+- `scripts/verify-terraform.sh` performs no apply. It validates required provider registrations, 15 default resources and 21 full-feature resources, runs Checkov through the Microsoft PyPI proxy, and audits planned tags.
 - Checkov result: 24 passed, 0 failed, 13 explicitly reasoned skips. Skips document confirmed demo constraints (public/single-region/free/Standard/no-CMK) or features intentionally attached in later stages.
 - `scripts/audit-tags.sh` is the required post-apply live tag gate.
-- No Azure resource has been applied in Stage 6.
+- `aks_operator_object_id` is an opt-in Microsoft Entra user object ID for cluster-scoped AKS RBAC administrator access. It defaults to `null`; the ignored demo configuration enables it because subscription `Owner` does not grant Kubernetes data-plane access.
+- Azure-managed public IP metadata is ignored through `ip_tags` lifecycle handling so Terraform does not replace the reserved ingress address to remove `FirstPartyUsage=/Unprivileged`.
+
+## Stage 7 Deployed Platform
+
+- Core resources use deterministic suffix `ij2608` in Sweden Central. Terraform tracks 16 resources and the final live plan has zero drift.
+- AKS `aks-sre-agent-demo-demo-ij2608` runs two Ready `Standard_D2ds_v5` Azure Linux 3 nodes with host encryption and Kubernetes `v1.35.6`.
+- ACR `acrsreagentdemodemoij2608` contains locally built AMD64 backend and frontend images tagged `4b78b371d14a`; the Helm release uses their immutable registry digests.
+- Helm release `northstar` revision 2 runs two ready replicas of each application component in the Restricted `northstar` namespace.
+- The Helm test pod carries release selector labels so Cilium admits only the chart's test identity to backend readiness. The live backend and frontend smoke test passes.
+- Managed Prometheus discovery is disabled until Stage 8 creates its CRD and Azure Monitor workspace. The reserved public IP `4.223.157.176` is not attached to an ingress controller yet.
+- The post-apply tag gate passed for 13 live resources across the primary and AKS-managed resource groups.

@@ -38,6 +38,13 @@ variable "aks_kubelet_principal_id" {
   type        = string
 }
 
+variable "aks_operator_object_id" {
+  description = "Optional Microsoft Entra user object ID receiving cluster-scoped AKS RBAC administrator access."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "tags" {
   description = "Tags applied to managed identity resources."
   type        = map(string)

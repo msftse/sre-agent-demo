@@ -32,10 +32,9 @@ locals {
 module "resource_group" {
   source = "./modules/resource-group"
 
-  location                     = var.location
-  name                         = local.resource_group_name
-  resource_provider_namespaces = var.resource_provider_namespaces
-  tags                         = local.common_tags
+  location = var.location
+  name     = local.resource_group_name
+  tags     = local.common_tags
 }
 
 module "network" {
@@ -84,6 +83,7 @@ module "identities" {
   acr_id                   = module.container_registry.id
   aks_id                   = module.aks.id
   aks_kubelet_principal_id = module.aks.kubelet_identity_object_id
+  aks_operator_object_id   = var.aks_operator_object_id
   github_environment       = var.github_environment
   github_repository        = var.github_repository
   identity_name            = local.github_identity_name

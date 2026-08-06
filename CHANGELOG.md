@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-06 - Provision core Azure and AKS platform
+
+- Applied checksum-reviewed Terraform plans for the core platform and an opt-in, cluster-scoped human AKS administrator assignment; final state tracks 16 resources with zero drift.
+- Registered the approved `Microsoft.Compute/EncryptionAtHost` prerequisite, provisioned two Ready encrypted Azure Linux AKS nodes, and preserved Azure-managed public IP metadata without replacing `4.223.157.176`.
+- Built both AMD64 application images on the local Docker daemon, published them to ACR with `docker push`, and deployed the immutable registry digests through Helm.
+- Corrected the Helm test pod identity and backend Cilium policy selector, then passed the backend/frontend in-cluster smoke test under Restricted Pod Security.
+- Audited all 13 live resources across the primary and AKS-managed resource groups for `SecurityControl=Ignore`.
+
 ### 2026-08-05 - Add modular Terraform foundation
 
 - Added pinned and locked AzureRM, AzureAD, AzAPI, and random providers with local ignored state and explicit provider registration.
@@ -9,6 +17,12 @@ This append-only log records implementation changes by date.
 - Added mandatory shared tags with `SecurityControl=Ignore`, validated naming/CIDR/SKU inputs, and useful deployment outputs.
 - Added no-apply core/full planning, Checkov scanning, plan JSON tag auditing, and a post-apply live Azure tag audit script.
 - Validated 27 default resources and 33 full-feature resources; no Terraform apply or Azure resource creation occurred.
+
+### 2026-08-06 - Keep shared provider registrations outside environment state
+
+- Recovered safely from an apply that stopped before Azure resource creation because subscription providers already existed.
+- Moved provider registration to read-only preflight verification so environment destroy cannot unregister providers shared with other workloads.
+- Updated core/full plan expectations to 15 and 21 resources respectively.
 
 ### 2026-08-05 - Add hardened images and AKS Helm chart
 

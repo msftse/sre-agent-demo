@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 6 is complete. A modular Terraform foundation now plans the resource group, providers, network, ACR, AKS, GitHub OIDC identity/RBAC, optional observability, and optional Azure SRE Agent. No Terraform apply has run and no Azure resources have been created. Stage 7 will review and apply the core Azure plan after explicit approval.
+Stage 7 is complete. The Terraform-managed core platform is running in Sweden Central: ACR, a two-node encrypted Cilium AKS cluster, GitHub OIDC identity/RBAC, network, and reserved ingress IP. Locally built backend and frontend images are deployed by immutable digest through the healthy `northstar` Helm release. Stage 8 adds managed observability without changing this healthy baseline.
 
 ## Quick Start
 
@@ -117,6 +117,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 04-observability.md
 │       ├── 05-containers-helm.md
 │       ├── 06-terraform-foundation.md
+│       ├── 07-core-azure-aks.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -228,8 +229,28 @@ See [docs/stages/05-containers-helm.md](docs/stages/05-containers-helm.md) for c
 
 ## Terraform Foundation
 
-All Terraform files live under `iac/`. State is local and ignored; there is intentionally no `backend.tf`. AzureRM automatic provider registration is disabled and required providers are registered explicitly. Azure subscription and tenant IDs are supplied only through `TF_VAR_*` or an ignored `terraform.tfvars` file.
+All Terraform files live under `iac/`. State is local and ignored; there is intentionally no `backend.tf`. AzureRM automatic provider registration is disabled, and required subscription-wide providers are validated as pre-existing prerequisites rather than adopted into this environment's state. Azure subscription and tenant IDs are supplied only through `TF_VAR_*` or an ignored `terraform.tfvars` file.
 
-Core planning creates 27 resources across resource group/provider registration, VNet/subnet/NSG/public IP, Standard ACR, Cilium AKS, GitHub Actions managed identity/OIDC, and RBAC. Observability and SRE Agent modules are implemented but disabled by default until their dedicated stages.
+Core planning creates 15 resources across the resource group, VNet/subnet/NSG/public IP, Standard ACR, Cilium AKS, GitHub Actions managed identity/OIDC, and RBAC. Observability and SRE Agent modules are implemented but disabled by default until their dedicated stages.
 
 Every taggable Terraform resource receives `SecurityControl=Ignore`. The verifier runs format/init/validate, Checkov, core and full no-apply plans, and plan JSON tag audits. See [docs/stages/06-terraform-foundation.md](docs/stages/06-terraform-foundation.md).
+
+## Core Azure and AKS
+
+The deployed demo uses deterministic suffix `ij2608`. AKS runs two Ready `Standard_D2ds_v5` Azure Linux 3 nodes with host encryption, managed Entra authentication, Azure RBAC, OIDC/workload identity, and Cilium. The local operator role is opt-in and cluster-scoped; reusable Terraform configurations create no human data-plane assignment by default.
+
+The backend and frontend were built locally for AMD64, pushed to `acrsreagentdemodemoij2608.azurecr.io`, and deployed by digest. Helm release `northstar` runs two replicas of each component in a Restricted namespace with PDBs and NetworkPolicies. Its in-cluster smoke test verifies backend readiness and frontend health.
+
+Connect to the cluster and review the application locally:
+
+```bash
+az aks get-credentials \
+  --resource-group rg-sre-agent-demo-demo-ij2608 \
+  --name aks-sre-agent-demo-demo-ij2608 \
+  --overwrite-existing
+kubelogin convert-kubeconfig -l azurecli
+kubectl port-forward --namespace northstar \
+  service/northstar-sre-demo-frontend 8080:8080
+```
+
+Open `http://127.0.0.1:8080/`. Managed Prometheus discovery remains disabled until Stage 8 installs the required Azure Monitor resources and CRD. See [docs/stages/07-core-azure-aks.md](docs/stages/07-core-azure-aks.md).

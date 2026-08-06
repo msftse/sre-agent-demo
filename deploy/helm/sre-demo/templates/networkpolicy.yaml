@@ -18,6 +18,10 @@ spec:
         - podSelector:
             matchLabels:
               {{- include "sre-demo.frontendLabels" . | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- include "sre-demo.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: test
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: {{ .Values.networkPolicy.monitoringNamespace | quote }}

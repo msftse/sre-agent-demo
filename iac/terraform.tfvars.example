@@ -4,6 +4,7 @@ tenant_id       = "00000000-0000-0000-0000-000000000000"
 location        = "swedencentral"
 environment     = "demo"
 project_name    = "sre-agent-demo"
+aks_operator_object_id = null
 
 tags = {
   Owner = "platform-engineering"

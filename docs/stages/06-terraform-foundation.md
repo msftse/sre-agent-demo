@@ -36,13 +36,13 @@ The verification script requires those values to match the active Azure CLI subs
 
 AzureRM 5.0 was available when this stage was built, but Microsoft Learn examples and the validated resource schemas target AzureRM 4.x. The major upgrade is deliberately deferred instead of silently adopting migration risk.
 
-AzureRM automatic resource-provider registration is set to `none`. The resource-group module explicitly registers required providers, including AKS, ACR, Monitor, Insights, Dashboard, Managed Identity, Network, Policy Insights, and SRE Agent's `Microsoft.App`.
+AzureRM automatic resource-provider registration is set to `none`. Required shared providers, including AKS, ACR, Monitor, Insights, Dashboard, Managed Identity, Network, Policy Insights, and SRE Agent's `Microsoft.App`, are checked as pre-existing subscription prerequisites by `preflight.sh` and `verify-terraform.sh`. They are deliberately not adopted into this environment's state because a later destroy must not unregister providers used by other workloads.
 
 ## Module Map
 
 | Module | Default | Resources and responsibility |
 | --- | --- | --- |
-| `resource-group` | Enabled | Provider registrations and tagged resource group |
+| `resource-group` | Enabled | Tagged resource group; provider registrations are verified prerequisites |
 | `network` | Enabled | VNet, AKS subnet, NSG, reserved Standard public IP |
 | `container-registry` | Enabled | Standard ACR with admin/anonymous access disabled |
 | `aks` | Enabled | Two-node AKS Standard, Cilium overlay, Entra/Azure RBAC, OIDC/workload identity |
@@ -125,8 +125,8 @@ Validated result:
 ```text
 Terraform validate: passed, zero warnings
 Checkov: 24 passed, 0 failed, 13 reasoned skips
-Core plan: 27 creates, 0 changes, 0 destroys
-Full plan: 33 creates, 0 changes, 0 destroys
+Core plan: 15 creates, 0 changes, 0 destroys
+Full plan: 21 creates, 0 changes, 0 destroys
 Optional resources: 5 observability, 1 SRE Agent
 Mandatory planned tags: passed
 Azure resources applied: 0
@@ -139,7 +139,7 @@ The 13 Checkov skips record confirmed demo trade-offs rather than hiding them: p
 Stage 7 must:
 
 1. Set a deterministic suffix and review a saved core plan.
-2. Present exact resource names and the 27 planned creates.
+2. Present exact resource names and the 15 planned creates.
 3. Obtain explicit approval before `terraform apply`.
 4. Apply only the reviewed plan through Terraform.
 5. Validate ACR, AKS, OIDC/RBAC, tags, and Terraform ownership.

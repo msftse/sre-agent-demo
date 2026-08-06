@@ -35,4 +35,8 @@ resource "azurerm_public_ip" "ingress" {
   sku                 = "Standard"
   sku_tier            = "Regional"
   tags                = var.tags
+
+  lifecycle {
+    ignore_changes = [ip_tags]
+  }
 }

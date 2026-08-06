@@ -7,6 +7,7 @@ readonly TARGET_REGION="Sweden Central"
 readonly EXPECTED_REMOTE="https://github.com/msftse/sre-agent-demo.git"
 readonly REQUIRED_TOOLS=(az docker gh git helm jq kubectl node npm terraform uv)
 readonly REQUIRED_PROVIDERS=(
+  Microsoft.AlertsManagement
   Microsoft.App
   Microsoft.Authorization
   Microsoft.ContainerRegistry
@@ -17,6 +18,10 @@ readonly REQUIRED_PROVIDERS=(
   Microsoft.Monitor
   Microsoft.Network
   Microsoft.OperationalInsights
+  Microsoft.PolicyInsights
+)
+readonly REQUIRED_FEATURES=(
+  "Microsoft.Compute|EncryptionAtHost"
 )
 readonly REGIONAL_RESOURCES=(
   "Microsoft.App|agents"
@@ -53,6 +58,17 @@ owner_assignments=$(az role assignment list \
 for provider in "${REQUIRED_PROVIDERS[@]}"; do
   registration_state=$(az provider show --namespace "$provider" --query registrationState -o tsv)
   [[ "$registration_state" == "Registered" ]] || fail "$provider is not registered"
+done
+
+for entry in "${REQUIRED_FEATURES[@]}"; do
+  namespace=${entry%%|*}
+  feature=${entry#*|}
+  registration_state=$(az feature show \
+    --namespace "$namespace" \
+    --name "$feature" \
+    --query properties.state \
+    -o tsv)
+  [[ "$registration_state" == "Registered" ]] || fail "$namespace/$feature is not registered"
 done
 
 for entry in "${REGIONAL_RESOURCES[@]}"; do

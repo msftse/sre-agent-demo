@@ -44,3 +44,12 @@ resource "azurerm_role_assignment" "github_aks_rbac_cluster_admin" {
   principal_type                   = "ServicePrincipal"
   skip_service_principal_aad_check = true
 }
+
+resource "azurerm_role_assignment" "operator_aks_rbac_cluster_admin" {
+  count = var.aks_operator_object_id == null ? 0 : 1
+
+  scope                = var.aks_id
+  role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
+  principal_id         = var.aks_operator_object_id
+  principal_type       = "User"
+}

@@ -68,25 +68,6 @@ variable "tags" {
   default     = {}
 }
 
-variable "resource_provider_namespaces" {
-  description = "Azure resource providers Terraform will explicitly register before resource creation."
-  type        = set(string)
-  default = [
-    "Microsoft.AlertsManagement",
-    "Microsoft.App",
-    "Microsoft.Authorization",
-    "Microsoft.ContainerRegistry",
-    "Microsoft.ContainerService",
-    "Microsoft.Dashboard",
-    "microsoft.insights",
-    "Microsoft.ManagedIdentity",
-    "Microsoft.Monitor",
-    "Microsoft.Network",
-    "Microsoft.OperationalInsights",
-    "Microsoft.PolicyInsights",
-  ]
-}
-
 variable "vnet_address_space" {
   description = "Address space for the demo virtual network."
   type        = list(string)
@@ -142,6 +123,18 @@ variable "aks_sku_tier" {
   validation {
     condition     = contains(["Free", "Standard", "Premium"], var.aks_sku_tier)
     error_message = "aks_sku_tier must be Free, Standard, or Premium."
+  }
+}
+
+variable "aks_operator_object_id" {
+  description = "Optional Microsoft Entra user object ID receiving cluster-scoped AKS RBAC administrator access."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.aks_operator_object_id == null || can(regex("^[0-9a-fA-F-]{36}$", var.aks_operator_object_id))
+    error_message = "aks_operator_object_id must be null or a valid UUID."
   }
 }
 
