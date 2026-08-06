@@ -21,6 +21,12 @@ FROM nginxinc/nginx-unprivileged:1.29.4-alpine3.23 AS runtime
 ARG BUILD_VERSION=0.1.0
 ARG GIT_SHA=development
 
+USER 0
+
+RUN apk upgrade --no-cache libcrypto3 libssl3
+
+USER 101:101
+
 LABEL org.opencontainers.image.title="Northstar Supply Storefront" \
       org.opencontainers.image.description="React storefront for the Azure SRE Agent demo" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
