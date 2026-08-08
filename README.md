@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 8 is complete. The healthy AKS storefront now emits managed Prometheus metrics, correlated ContainerLogV2 records, and passwordless OpenTelemetry traces to Application Insights. Azure Managed Grafana is linked to the monitor workspace, and Terraform tracks the full platform with zero drift. Stage 9 will automate the proven build, push, digest deployment, and verification path through protected GitHub Actions.
+Stage 9 is complete. Pull requests require independent approval and automated application/chart validation before merge to `main`. A separately approved GitHub Actions deployment uses immutable OIDC, local Docker builds, critical-CVE blocking, SPDX SBOMs, digest-pinned Helm rollout, and live AKS verification. Stage 10 introduces the deterministic checkout regression and alert through this protected path.
 
 ## Quick Start
 
@@ -104,6 +104,10 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 
 ```text
 .
+├── .github/
+│   ├── pull_request_template.md
+│   └── workflows/
+│       └── deliver-demo.yml
 ├── .editorconfig
 ├── .gitignore
 ├── AGENT.md
@@ -119,6 +123,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 06-terraform-foundation.md
 │       ├── 07-core-azure-aks.md
 │       ├── 08-managed-observability.md
+│       ├── 09-protected-github-delivery.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -147,6 +152,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   ├── audit-tags.sh
 │   ├── preflight.sh
 │   ├── publish-images.sh
+│   ├── verify-deployment.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
@@ -284,3 +290,13 @@ ContainerLogV2
 Managed Grafana: `https://amg-sreage-demo-ij2608-gbhdd3bcdeedg2fx.cse.grafana.azure.com`
 
 See [docs/stages/08-managed-observability.md](docs/stages/08-managed-observability.md) for resource names, signal queries, security boundaries, and validation evidence.
+
+## Protected GitHub Delivery
+
+Pull requests to `main` run backend, frontend, and Helm validation and require one approving review from someone other than the last pusher. Stale approvals are dismissed, conversations must be resolved, and administrators cannot bypass the rule.
+
+Deployments are manually dispatched from `main` into the protected `demo` environment. The job authenticates to Azure through the repository's immutable environment-bound OIDC subject, builds AMD64 images on the GitHub-hosted Docker daemon, pushes with Docker, rejects fixed critical vulnerabilities, creates SPDX SBOMs, and deploys only registry digests. `scripts/verify-deployment.sh` proves the release SHA, digests, replicas, workload identity, ServiceMonitor, and in-cluster health.
+
+The first real run blocked a critical frontend OpenSSL CVE before deployment. After patching the runtime packages, [run 31112420552](https://github.com/msftse/sre-agent-demo/actions/runs/31112420552) completed end to end and deployed Helm revision 6.
+
+See [docs/stages/09-protected-github-delivery.md](docs/stages/09-protected-github-delivery.md) for approval rules, workflow steps, OIDC trust, CVE evidence, and deployed digests.

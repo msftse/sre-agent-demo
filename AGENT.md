@@ -6,6 +6,10 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ```text
 .
+├── .github/
+│   ├── pull_request_template.md
+│   └── workflows/
+│       └── deliver-demo.yml
 ├── .editorconfig
 ├── .gitignore
 ├── AGENT.md
@@ -21,6 +25,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 06-terraform-foundation.md
 │       ├── 07-core-azure-aks.md
 │       ├── 08-managed-observability.md
+│       ├── 09-protected-github-delivery.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -49,6 +54,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   ├── audit-tags.sh
 │   ├── preflight.sh
 │   ├── publish-images.sh
+│   ├── verify-deployment.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
@@ -104,7 +110,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 6 - Modular Terraform foundation:** Complete
 - **Stage 7 - Core Azure and AKS platform:** Complete
 - **Stage 8 - Managed Azure observability:** Complete
-- **Stages 9-17:** Not started; see `docs/stages/README.md`
+- **Stage 9 - Protected GitHub Actions delivery:** Complete
+- **Stages 10-17:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -201,7 +208,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Optional modules: observability and AKS monitoring (`enable_observability`) plus SRE Agent (`enable_sre_agent=false` until Stage 11).
 - AKS Standard uses Azure CNI Overlay with Cilium, managed identity, OIDC/workload identity, managed Entra authentication, Azure RBAC, disabled local accounts, Azure Policy, Key Vault CSI rotation, Azure Linux ephemeral system disks, host encryption, automatic patch/node-image upgrades, and no node public IPs.
 - ACR uses Standard SKU, disables admin and anonymous access, and remains public to support the confirmed local Docker/GitHub runner push model. AKS kubelet receives `AcrPull`; GitHub OIDC identity receives `AcrPush` and AKS deployment roles.
-- GitHub federation is bound to `repo:msftse/sre-agent-demo:environment:demo`, not a broad branch subject.
+- GitHub federation uses the immutable environment subject `repo:msftse@259423729/sre-agent-demo@1323141369:environment:demo`, not a broad branch subject. Terraform supports legacy subjects for older repositories when immutable IDs are null.
 - Observability creates workspace-based Application Insights, Log Analytics, Azure Monitor managed Prometheus, Managed Grafana 12, and reader RBAC. AKS monitoring owns Prometheus/Container Insights DCR associations, selected control-plane diagnostics, and passwordless telemetry identity/RBAC.
 - SRE Agent uses `Microsoft.App/agents@2026-01-01` through AzAPI, Review mode, Low access, managed-resource scope, system identity, and schema validation disabled because the published schema omits live fields.
 - `scripts/verify-terraform.sh` performs no apply. It validates required provider registrations, 15 default resources and 29 full-feature resources, runs Checkov through the Microsoft PyPI proxy, rejects destroys, and audits planned tags.
@@ -231,3 +238,13 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Helm release `northstar` revision 5 runs four ready pods at Git SHA `0e23af6890c3` with immutable ACR digests and a passing smoke test.
 - Managed Prometheus returned both `northstar_build_info` series, Log Analytics returned correlated operation/trace IDs and 200/422 outcomes, and Application Insights returned Northstar requests, dependencies, and exceptions.
 - The live tag gate audited 21 resources and skipped one explicitly reported, non-taggable Application Insights smart detector child.
+
+## Stage 9 Protected Delivery
+
+- Public repository protection requires one approving review on every PR to `main`, approval by someone other than the last pusher, stale-review dismissal, resolved conversations, linear history, and admin enforcement. Force pushes and deletion are disabled.
+- Pull requests automatically run backend, frontend, dependency-audit, and Helm validation. Deployment remains `workflow_dispatch` only.
+- The `demo` environment accepts only `main` and requires `ij-23` approval. Deployment self-review is allowed because `ij-23` is currently the sole environment reviewer; independent review is enforced at the PR boundary.
+- Workflow permissions are `contents: read` plus job-scoped `id-token: write`. Third-party actions and tool versions are pinned.
+- Images are built on the runner Docker daemon and published with `docker push`; no ACR build/import/task command is used.
+- Trivy blocks fixed critical vulnerabilities and generates SPDX SBOMs before deployment. The first run blocked `CVE-2026-31789`; the patched Alpine OpenSSL packages passed the replacement run.
+- Successful run `31112420552` deployed Helm revision 6 at commit `61f739ca6d55bc734ad67e3171da3b83994c3912`; all four replicas and the in-cluster Helm test passed.
