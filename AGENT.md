@@ -52,6 +52,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-github-protection.sh
 │   ├── preflight.sh
 │   ├── publish-images.sh
 │   ├── verify-deployment.sh
@@ -241,7 +242,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Stage 9 Protected Delivery
 
-- Public repository protection requires one approving review on every PR to `main`, approval by someone other than the last pusher, stale-review dismissal, resolved conversations, linear history, and admin enforcement. Force pushes and deletion are disabled.
+- `scripts/configure-github-protection.sh` switches between `routine` and `incident-demo`. Routine mode permits direct implementation pushes while retaining linear history and force-push/deletion protection. Incident-demo mode additionally requires the validation check, one approval by someone other than the last pusher, stale-review dismissal, resolved conversations, and admin enforcement.
+- PRs are reserved for fixes authored after an actual SRE Agent investigation; routine implementation stages commit directly. Enable `incident-demo` before the remediation exercise.
 - Pull requests automatically run backend, frontend, dependency-audit, and Helm validation. Deployment remains `workflow_dispatch` only.
 - The `demo` environment accepts only `main` and requires `ij-23` approval. Deployment self-review is allowed because `ij-23` is currently the sole environment reviewer; independent review is enforced at the PR boundary.
 - Workflow permissions are `contents: read` plus job-scoped `id-token: write`. Third-party actions and tool versions are pinned.

@@ -33,7 +33,7 @@ The deployment job has only `contents: read` and `id-token: write`. All third-pa
 
 The repository is public so GitHub Free can enforce protection rules.
 
-`main` branch protection requires:
+The validated `incident-demo` branch protection profile requires:
 
 - One approving review before merge.
 - Approval by someone other than the last pusher.
@@ -43,13 +43,27 @@ The repository is public so GitHub Free can enforce protection rules.
 - Enforcement for administrators.
 - No force pushes or branch deletion.
 
-The `demo` environment:
+The `demo` environment always:
 
 - Accepts deployments only from `main`.
 - Requires approval from `ij-23`.
 - Allows self-review at deployment time because `ij-23` is currently the sole reviewer.
 
 Independent review is therefore enforced at the PR boundary. The environment approval is a second operational confirmation, not the independent code-review control.
+
+Routine implementation stages use the `routine` profile so normal demo-building changes can be committed directly without creating artificial PRs. Before the SRE Agent incident exercise, switch back to the enforced profile:
+
+```bash
+./scripts/configure-github-protection.sh incident-demo
+```
+
+After the exercise, return to routine development with:
+
+```bash
+./scripts/configure-github-protection.sh routine
+```
+
+PRs are reserved for code fixes authored after an actual SRE Agent investigation. The public-repository bootstrap PR proved the required review and status-check behavior before routine mode was restored.
 
 ## Immutable OIDC Trust
 
@@ -120,4 +134,4 @@ Helm smoke test: succeeded
 
 ## Outcome
 
-Stage 9 is complete. The demo now has an enforced human PR approval boundary and a separately approved, secretless, scan-gated, immutable deployment path to AKS. Stage 10 can introduce the deterministic checkout regression and Azure Monitor alert through the same protected process.
+Stage 9 is complete. The demo has a validated, repeatable human PR approval profile and a separately approved, secretless, scan-gated, immutable deployment path to AKS. Routine mode is currently active; the incident-demo profile must be enabled before the SRE Agent creates its remediation PR. Stage 10 can introduce the deterministic checkout regression and Azure Monitor alert without creating a setup PR.

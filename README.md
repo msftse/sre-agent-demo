@@ -150,6 +150,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-github-protection.sh
 │   ├── preflight.sh
 │   ├── publish-images.sh
 │   ├── verify-deployment.sh
@@ -293,10 +294,16 @@ See [docs/stages/08-managed-observability.md](docs/stages/08-managed-observabili
 
 ## Protected GitHub Delivery
 
-Pull requests to `main` run backend, frontend, and Helm validation and require one approving review from someone other than the last pusher. Stale approvals are dismissed, conversations must be resolved, and administrators cannot bypass the rule.
+Pull requests to `main` run backend, frontend, and Helm validation. The repository has two protection profiles: `routine` permits direct setup-stage commits while retaining linear-history/no-force-push safeguards; `incident-demo` requires a successful validation check and one approving review from someone other than the last pusher.
 
 Deployments are manually dispatched from `main` into the protected `demo` environment. The job authenticates to Azure through the repository's immutable environment-bound OIDC subject, builds AMD64 images on the GitHub-hosted Docker daemon, pushes with Docker, rejects fixed critical vulnerabilities, creates SPDX SBOMs, and deploys only registry digests. `scripts/verify-deployment.sh` proves the release SHA, digests, replicas, workload identity, ServiceMonitor, and in-cluster health.
 
 The first real run blocked a critical frontend OpenSSL CVE before deployment. After patching the runtime packages, [run 31112420552](https://github.com/msftse/sre-agent-demo/actions/runs/31112420552) completed end to end and deployed Helm revision 6.
+
+Enable the approval boundary before the SRE Agent incident exercise:
+
+```bash
+./scripts/configure-github-protection.sh incident-demo
+```
 
 See [docs/stages/09-protected-github-delivery.md](docs/stages/09-protected-github-delivery.md) for approval rules, workflow steps, OIDC trust, CVE evidence, and deployed digests.

@@ -5,6 +5,7 @@ This append-only log records implementation changes by date.
 ### 2026-08-08 - Add protected GitHub Actions delivery
 
 - Added PR-triggered backend, frontend, dependency, and Helm validation plus enforced independent approval on `main`.
+- Added repeatable `routine` and `incident-demo` protection profiles so implementation work does not create artificial PRs while the actual SRE remediation flow remains enforceable.
 - Added manual `demo` delivery with main-only environment approval, immutable GitHub OIDC, local Docker builds, ACR push, digest-pinned Helm rollout, and live AKS verification.
 - Pinned third-party actions and tool versions, added critical-CVE blocking and SPDX SBOM generation, and kept workflow token permissions least-privilege.
 - Proved the scan gate failed closed on frontend OpenSSL `CVE-2026-31789`, patched `libcrypto3`/`libssl3`, and passed the replacement workflow.
