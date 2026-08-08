@@ -1,6 +1,9 @@
 name: Deliver demo to AKS
 
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       deploy:
@@ -73,7 +76,7 @@ jobs:
 
   deliver:
     name: Build, scan, deploy, and verify
-    if: ${{ inputs.deploy }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy }}
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 45
