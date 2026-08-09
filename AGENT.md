@@ -29,7 +29,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 10-checkout-incident.md
 │       ├── 11-sre-agent-foundation.md
 │       ├── 12-teams-bridge.md
-│       ├── 13-architecture-proposal.md
+│       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -135,8 +135,9 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 10 - Deterministic checkout incident and alert:** Complete
 - **Stage 11 - Azure SRE Agent and Azure Monitor incident platform:** Complete
 - **Stage 12 - Teams connector and threaded notifications:** Complete
-- **Stage 13 - Customer-facing Azure architecture proposal:** Not started
-- **Stages 14-19:** Not started; see `docs/stages/README.md`
+- **Stages 13-17:** Not started; see `docs/stages/README.md`
+- **Stage 18 - User-owned Azure architecture proposal with Codex:** Not started
+- **Stage 19 - Final learning materials and Terraform teardown:** Not started
 
 ## Key Decisions
 
@@ -289,7 +290,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Azure SRE Agent `sre-sre-agent-demo-demo-ij2608` is `Succeeded`, `Running`, and reachable at its generated Sweden Central `azuresre.ai` endpoint.
 - Native incident management is `AzMonitor`. Subscription-scoped Monitoring Contributor lets the UAMI scan, acknowledge, and synchronize Azure Monitor alerts without an action group.
 - Resource access uses UAMI `id-sre-sre-agent-demo-demo-ij2608`. It has Reader, Monitoring Reader, and Log Analytics Reader on the demo resource group plus AKS Cluster User and AKS RBAC Reader on the cluster.
-- The agent has no Contributor, Owner, AKS admin, sandbox, or VNet integration. Global Review/Low is the fallback; the Stage 16 checkout response plan will use Autonomous mode for connector actions constrained by tool policy and GitHub permissions.
+- The agent has no Contributor, Owner, AKS admin, sandbox, or VNet integration. Global Review/Low is the fallback; the Stage 15 checkout response plan will use Autonomous mode for connector actions constrained by tool policy and GitHub permissions.
 - Direct ARM creation produced no quickstart response plan. Live data-plane collections show zero threads, incident filters, connectors, custom agents, and plugins.
 - The 2026 API requires the UAMI resource ID in both `actionConfiguration.identity` and `knowledgeGraphConfiguration.identity`; omitting it returns `InvalidIdentity`.
 - Terraform tracks 39 resources with zero drift. Checkov passes 24 checks with zero failures, all four application pods remain Ready, traffic is disabled, and no checkout alert is active.

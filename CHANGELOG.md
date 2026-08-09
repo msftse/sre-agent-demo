@@ -2,6 +2,11 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Move architecture proposal to the end
+
+- Moved the architecture proposal from Stage 13 to user-owned Stage 18 so it can be run manually with Codex after the full workflow rehearsal.
+- Restored GitHub validation, checkout skill, response plan, continuation, and rehearsal to Stages 13-17 while keeping final learning materials and teardown at Stage 19.
+
 ### 2026-08-09 - Add Azure architecture proposal stage
 
 - Added Stage 13 for a self-contained, customer-facing HTML architecture design built with the `azure-architecture-proposal` skill.
