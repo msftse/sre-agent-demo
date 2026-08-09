@@ -77,4 +77,4 @@ Incident traffic: disabled
 
 ## Outcome
 
-Stage 12 is complete. Teams transport, threading, secure MCP exposure, and automated SRE connector provisioning are ready. Stage 13 can validate the GitHub connector capability boundary without activating the incident.
+Stage 12 is complete. Teams transport, threading, secure MCP exposure, and automated SRE connector provisioning are ready. Stage 13 can document the complete Azure architecture and approval model before Stage 14 validates GitHub write capabilities.

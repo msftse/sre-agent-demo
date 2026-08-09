@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 12 is complete. Azure SRE Agent has a secured, automatically provisioned `northstar-teams` MCP connector backed by a real Teams bot and threaded notification bridge. The FIELD20 traffic generator remains disabled and the severity-1 checkout alert remains quiet. Activation waits until GitHub, the dedicated checkout skill, and the incident responder are configured in Stages 13-15.
+Stage 12 is complete. Azure SRE Agent has a secured, automatically provisioned `northstar-teams` MCP connector backed by a real Teams bot and threaded notification bridge. The FIELD20 traffic generator remains disabled and the severity-1 checkout alert remains quiet. Stage 13 creates the customer-facing architecture design; activation waits until GitHub, the dedicated checkout skill, and the incident responder are configured in Stages 14-16.
 
 ## Quick Start
 
@@ -127,6 +127,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 10-checkout-incident.md
 │       ├── 11-sre-agent-foundation.md
 │       ├── 12-teams-bridge.md
+│       ├── 13-architecture-proposal.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -339,7 +340,7 @@ The incident is not active. Later, deploy it from the protected workflow with `d
 
 Azure SRE Agent `sre-sre-agent-demo-demo-ij2608` is running on the Stable channel with native Azure Monitor incident management. Global `Review` mode and Low access provide a conservative Azure-action fallback. A dedicated UAMI has the documented monitoring/read roles for the demo resource group and AKS cluster; it has no general Azure contributor or AKS administrator role.
 
-The agent endpoint is `https://sre-sre-agent-demo-demo-ij2608--ba3ee979.bb5fab60.swedencentral.azuresre.ai`. Its data plane is reachable and currently has zero threads, response plans, connectors, custom agents, or plugins. Stage 14 will add a reusable checkout investigation and remediation skill. Stage 15 will set Autonomous mode only on the narrowly matched checkout response plan; GitHub permissions and branch protection will allow branch/commit/PR creation while preventing merge or deployment.
+The agent endpoint is `https://sre-sre-agent-demo-demo-ij2608--ba3ee979.bb5fab60.swedencentral.azuresre.ai`. Stage 13 will produce a self-contained Azure architecture proposal, Stage 15 will add a reusable checkout investigation and remediation skill, and Stage 16 will set Autonomous mode only on the narrowly matched checkout response plan. GitHub permissions and branch protection will allow branch/commit/PR creation while preventing merge or deployment.
 
 See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation.md) for identity wiring, RBAC scopes, native alert discovery, and validation evidence.
 

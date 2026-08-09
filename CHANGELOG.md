@@ -2,6 +2,12 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Add Azure architecture proposal stage
+
+- Added Stage 13 for a self-contained, customer-facing HTML architecture design built with the `azure-architecture-proposal` skill.
+- Defined the proposal as a greenfield/general Azure design grounded in repository and live Stage 1-12 evidence, with diagrams for topology, closed-loop flow, and approval boundaries.
+- Renumbered GitHub validation, checkout skill, response plan, continuation, rehearsal, and teardown through Stage 19.
+
 ### 2026-08-09 - Add Teams bridge and automated SRE connector
 
 - Added a Python 3.12 Functions Flex bridge, Azure Bot F0/Teams channel, Durable workflow, keyless storage, Key Vault, UAMI, and a sideloadable Azure SRE Agent Teams package.

@@ -23,7 +23,7 @@ The agent has these control-plane settings:
 | Managed resources | Demo resource group | Limits investigation context |
 | Sandbox/VNet | None | VNet integration remains out of scope |
 
-Response-plan autonomy is separate from the global fallback. Stage 15 will create a narrowly matched Autonomous checkout plan so GitHub branch, commit, and pull-request creation can proceed without approval. GitHub permissions, tool access policy, branch protection, and the protected deployment environment remain the hard boundaries: the agent must not merge or deploy.
+Response-plan autonomy is separate from the global fallback. Stage 16 will create a narrowly matched Autonomous checkout plan so GitHub branch, commit, and pull-request creation can proceed without approval. GitHub permissions, tool access policy, branch protection, and the protected deployment environment remain the hard boundaries: the agent must not merge or deploy.
 
 ## Identity and RBAC
 
@@ -46,7 +46,7 @@ Subscription-scoped Monitoring Contributor is required by the native Azure Monit
 
 Azure SRE Agent scans Azure Monitor every minute for alerts in subscriptions where its UAMI has Monitoring Contributor. The checkout Prometheus rule therefore has no action group. This avoids a misleading no-op routing resource and keeps Azure Monitor as the source of truth.
 
-Direct ARM creation connected `AzMonitor` without creating a quickstart response plan. The data-plane collection `/api/v2/extendedAgent/incidentfilters` is empty, so no default plan can start a duplicate or premature investigation. Stage 15 will add the dedicated plan after Teams, GitHub, and the Northstar checkout skill are configured.
+Direct ARM creation connected `AzMonitor` without creating a quickstart response plan. The data-plane collection `/api/v2/extendedAgent/incidentfilters` is empty, so no default plan can start a duplicate or premature investigation. Stage 16 will add the dedicated plan after the architecture proposal, Teams, GitHub, and the Northstar checkout skill are configured.
 
 ## Deployment Note
 
