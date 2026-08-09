@@ -66,13 +66,12 @@ output "ingress_public_ip_address" {
 output "observability" {
   description = "Observability resource endpoints and IDs when enabled."
   value = var.enable_observability ? {
-    application_insights_id  = module.observability[0].application_insights_id
-    checkout_action_group_id = module.aks_monitoring[0].checkout_action_group_id
-    checkout_rule_group_id   = module.aks_monitoring[0].checkout_prometheus_rule_group_id
-    grafana_endpoint         = module.observability[0].grafana_endpoint
-    log_analytics_id         = module.observability[0].log_analytics_workspace_id
-    monitor_workspace_id     = module.observability[0].monitor_workspace_id
-    telemetry_client_id      = module.aks_monitoring[0].telemetry_identity_client_id
+    application_insights_id = module.observability[0].application_insights_id
+    checkout_rule_group_id  = module.aks_monitoring[0].checkout_prometheus_rule_group_id
+    grafana_endpoint        = module.observability[0].grafana_endpoint
+    log_analytics_id        = module.observability[0].log_analytics_workspace_id
+    monitor_workspace_id    = module.observability[0].monitor_workspace_id
+    telemetry_client_id     = module.aks_monitoring[0].telemetry_identity_client_id
   } : null
 }
 
@@ -85,8 +84,10 @@ output "application_insights_connection_string" {
 output "sre_agent" {
   description = "Azure SRE Agent identifiers when enabled."
   value = var.enable_sre_agent ? {
-    endpoint     = module.sre_agent[0].endpoint
-    id           = module.sre_agent[0].id
-    principal_id = module.sre_agent[0].principal_id
+    endpoint                                  = module.sre_agent[0].endpoint
+    id                                        = module.sre_agent[0].id
+    identity_id                               = module.sre_agent[0].identity_id
+    monitoring_contributor_role_assignment_id = module.sre_agent[0].monitoring_contributor_role_assignment_id
+    principal_id                              = module.sre_agent[0].principal_id
   } : null
 }

@@ -43,7 +43,6 @@ Terraform manages:
 
 | Resource | Name |
 | --- | --- |
-| Action group | `ag-aks-sre-agent-demo-demo-ij2608-checkout` |
 | Managed Prometheus rule group | `prom-aks-sre-agent-demo-demo-ij2608-checkout` |
 | Alert | `NorthstarCheckoutFailureRatioHigh` |
 
@@ -54,7 +53,7 @@ The alert evaluates every minute and fires at severity 1 when both conditions re
 
 The minimum-rate guard prevents false alerts when no checkout traffic exists. Persistence is expressed with `min_over_time` subqueries because Checkov 3.3.9 cannot parse Terraform's otherwise valid Prometheus rule `for` attribute. The replacement expression was validated against live Managed Prometheus and restored zero Checkov parsing errors.
 
-The alert auto-resolves after five healthy minutes. Its action group intentionally has no receiver in Stage 10; Stage 11 connects it to the incident/SRE Agent path.
+The alert auto-resolves after five healthy minutes. Stage 11 removed the temporary empty action group because Azure SRE Agent's native Azure Monitor incident platform scans the subscription directly and does not require action-group delivery.
 
 ## Deployment Control
 

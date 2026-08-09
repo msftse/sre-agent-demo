@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 10 is complete and dormant. Source contains a deterministic FIELD20 checkout regression, the disabled Helm traffic generator can reproduce it every five seconds, and a severity-1 Managed Prometheus alert is deployed and quiet. The healthy Stage 9 image remains live; activation waits until Azure SRE Agent and Teams are connected in Stages 11 and 12.
+Stage 11 is complete. Azure SRE Agent is running with native Azure Monitor incident discovery, a dedicated managed identity, and read-only Northstar investigation access. No response plan or connector is configured yet, the FIELD20 traffic generator remains disabled, and the severity-1 checkout alert remains quiet. Activation waits until Teams, GitHub, the dedicated checkout skill, and the incident responder are configured in Stages 12-15.
 
 ## Quick Start
 
@@ -125,6 +125,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 08-managed-observability.md
 │       ├── 09-protected-github-delivery.md
 │       ├── 10-checkout-incident.md
+│       ├── 11-sre-agent-foundation.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -241,7 +242,7 @@ See [docs/stages/05-containers-helm.md](docs/stages/05-containers-helm.md) for c
 
 All Terraform files live under `iac/`. State is local and ignored; there is intentionally no `backend.tf`. AzureRM automatic provider registration is disabled, and required subscription-wide providers are validated as pre-existing prerequisites rather than adopted into this environment's state. Azure subscription and tenant IDs are supplied only through `TF_VAR_*` or an ignored `terraform.tfvars` file.
 
-Core planning creates 15 resources across the resource group, VNet/subnet/NSG/public IP, Standard ACR, Cilium AKS, GitHub Actions managed identity/OIDC, and RBAC. Observability and SRE Agent modules are implemented but disabled by default until their dedicated stages.
+Core planning covers the resource group, VNet/subnet/NSG/public IP, Standard ACR, Cilium AKS, GitHub Actions managed identity/OIDC, and RBAC. The deployed environment also enables managed observability and Azure SRE Agent.
 
 Every taggable Terraform resource receives `SecurityControl=Ignore`. The verifier runs format/init/validate, Checkov, core and full no-apply plans, and plan JSON tag audits. See [docs/stages/06-terraform-foundation.md](docs/stages/06-terraform-foundation.md).
 
@@ -313,6 +314,14 @@ See [docs/stages/09-protected-github-delivery.md](docs/stages/09-protected-githu
 
 The prepared regression affects only valid `FIELD20` checkout: discount validation succeeds, but checkout returns HTTP 500 with error code `discount_calculation_failed`. Health endpoints and ordinary checkout remain green, and the existing suite intentionally lacks the valid FIELD20 checkout case that the later SRE Agent fix must add.
 
-The disabled traffic generator submits a qualifying FIELD20 request every five seconds and continues after failures. Azure Monitor evaluates the checkout 5xx ratio every minute, requires more than 50% failures plus active traffic across two minutes, and auto-resolves after recovery. Stage 11 will connect the existing action group to the incident path.
+The disabled traffic generator submits a qualifying FIELD20 request every five seconds and continues after failures. Azure Monitor evaluates the checkout 5xx ratio every minute, requires more than 50% failures plus active traffic across two minutes, and auto-resolves after recovery. Azure SRE Agent discovers the alert through its native subscription scanner; no action group is required.
 
 The incident is not active. Later, deploy it from the protected workflow with `deploy=true` and `incident_traffic=true`. See [docs/stages/10-checkout-incident.md](docs/stages/10-checkout-incident.md).
+
+## Azure SRE Agent Foundation
+
+Azure SRE Agent `sre-sre-agent-demo-demo-ij2608` is running on the Stable channel with native Azure Monitor incident management. Global `Review` mode and Low access provide a conservative Azure-action fallback. A dedicated UAMI has the documented monitoring/read roles for the demo resource group and AKS cluster; it has no general Azure contributor or AKS administrator role.
+
+The agent endpoint is `https://sre-sre-agent-demo-demo-ij2608--ba3ee979.bb5fab60.swedencentral.azuresre.ai`. Its data plane is reachable and currently has zero threads, response plans, connectors, custom agents, or plugins. Stage 14 will add a reusable checkout investigation and remediation skill. Stage 15 will set Autonomous mode only on the narrowly matched checkout response plan; GitHub permissions and branch protection will allow branch/commit/PR creation while preventing merge or deployment.
+
+See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation.md) for identity wiring, RBAC scopes, native alert discovery, and validation evidence.

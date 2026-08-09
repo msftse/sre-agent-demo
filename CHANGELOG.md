@@ -2,6 +2,15 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Deploy Azure SRE Agent foundation
+
+- Deployed a Stable Azure SRE Agent with native Azure Monitor incident discovery, global Review/Low safeguards, and demo-resource-group knowledge scope.
+- Added the required dedicated UAMI and least-privilege monitoring, Log Analytics, and AKS reader roles; granted the operator SRE Agent Administrator only on the agent resource.
+- Removed the temporary empty checkout action group because native Azure Monitor scanning discovers fired alerts directly.
+- Added Terraform assertions for agent settings, the RBAC allowlist, tags, Checkov, and zero-destroy planning.
+- Verified a reachable empty data plane, no quickstart response plan or connectors, 39 Terraform resources at zero drift, a healthy four-pod workload, disabled traffic, and no active checkout alert.
+- Added a dedicated Northstar checkout skill stage before response-plan activation and renumbered the remaining roadmap through Stage 18.
+
 ### 2026-08-09 - Prepare deterministic checkout incident
 
 - Added a deliberate missing-test regression where valid FIELD20 checkout returns `discount_calculation_failed` with HTTP 500 while health and ordinary checkout remain healthy.

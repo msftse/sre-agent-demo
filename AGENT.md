@@ -27,6 +27,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 08-managed-observability.md
 │       ├── 09-protected-github-delivery.md
 │       ├── 10-checkout-incident.md
+│       ├── 11-sre-agent-foundation.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -114,7 +115,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 8 - Managed Azure observability:** Complete
 - **Stage 9 - Protected GitHub Actions delivery:** Complete
 - **Stage 10 - Deterministic checkout incident and alert:** Complete
-- **Stages 11-17:** Not started; see `docs/stages/README.md`
+- **Stage 11 - Azure SRE Agent and Azure Monitor incident platform:** Complete
+- **Stages 12-18:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -208,13 +210,13 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Root naming uses a persisted six-character random suffix unless a deterministic suffix is supplied. ACR and Grafana names enforce service length/character restrictions.
 - Shared tags are merged at root, with `SecurityControl=Ignore` applied last so callers cannot override it.
 - Core modules: resource group, network, ACR, AKS, GitHub Actions identity/OIDC/RBAC.
-- Optional modules: observability and AKS monitoring (`enable_observability`) plus SRE Agent (`enable_sre_agent=false` until Stage 11).
+- Optional modules: observability and AKS monitoring (`enable_observability`) plus SRE Agent (`enable_sre_agent`). Both are enabled in the ignored demo configuration.
 - AKS Standard uses Azure CNI Overlay with Cilium, managed identity, OIDC/workload identity, managed Entra authentication, Azure RBAC, disabled local accounts, Azure Policy, Key Vault CSI rotation, Azure Linux ephemeral system disks, host encryption, automatic patch/node-image upgrades, and no node public IPs.
 - ACR uses Standard SKU, disables admin and anonymous access, and remains public to support the confirmed local Docker/GitHub runner push model. AKS kubelet receives `AcrPull`; GitHub OIDC identity receives `AcrPush` and AKS deployment roles.
 - GitHub federation uses the immutable environment subject `repo:msftse@259423729/sre-agent-demo@1323141369:environment:demo`, not a broad branch subject. Terraform supports legacy subjects for older repositories when immutable IDs are null.
 - Observability creates workspace-based Application Insights, Log Analytics, Azure Monitor managed Prometheus, Managed Grafana 12, and reader RBAC. AKS monitoring owns Prometheus/Container Insights DCR associations, selected control-plane diagnostics, and passwordless telemetry identity/RBAC.
-- SRE Agent uses `Microsoft.App/agents@2026-01-01` through AzAPI, Review mode, Low access, managed-resource scope, system identity, and schema validation disabled because the published schema omits live fields.
-- `scripts/verify-terraform.sh` performs no apply. It validates required provider registrations, 15 default resources and 29 full-feature resources, runs Checkov through the Microsoft PyPI proxy, rejects destroys, and audits planned tags.
+- SRE Agent uses `Microsoft.App/agents@2026-01-01` through AzAPI, Review mode, Low access, `AzMonitor`, and demo-resource-group scope. A dedicated UAMI is attached beside the platform system identity and is referenced by both action and knowledge configuration.
+- `scripts/verify-terraform.sh` performs no apply. It validates provider prerequisites, agent mode/incident settings, the SRE RBAC allowlist, zero destroys, Checkov, and planned tags across core and full plans.
 - Checkov result: 24 passed, 0 failed, 13 explicitly reasoned skips. Skips document confirmed demo constraints (public/single-region/free/Standard/no-CMK) or features intentionally attached in later stages.
 - `scripts/audit-tags.sh` is the required post-apply live tag gate. It explicitly reports and excludes only `Microsoft.AlertsManagement/smartDetectorAlertRules`, because Azure auto-creates the Application Insights Failure Anomalies child and neither ARM nor AzureRM exposes writable tags for that type.
 - `aks_operator_object_id` is an opt-in Microsoft Entra user object ID for cluster-scoped AKS RBAC administrator access. It defaults to `null`; the ignored demo configuration enables it because subscription `Owner` does not grant Kubernetes data-plane access.
@@ -259,5 +261,15 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - The traffic generator defaults off. When enabled, it submits two `field-pack-28` items with FIELD20 every five seconds and continues after failures.
 - The delivery workflow exposes `incident_traffic`; the live incident uses `deploy=true` and `incident_traffic=true` only after SRE Agent and Teams are connected.
 - Managed Prometheus alert `NorthstarCheckoutFailureRatioHigh` is severity 1, requires more than 50% checkout 5xx plus active traffic across two minutes, and auto-resolves after five healthy minutes.
-- Action group `ag-aks-sre-agent-demo-demo-ij2608-checkout` has no receiver until Stage 11.
-- Terraform tracks 31 resources with zero drift. The healthy Stage 9 image remains deployed, traffic is disabled, and no Stage 10 alert is firing.
+- Azure SRE Agent discovers fired alerts through the native Azure Monitor scanner; the temporary empty action group was removed in Stage 11.
+- The healthy Stage 9 image remains deployed, traffic is disabled, and no Stage 10 alert is firing.
+
+## Stage 11 SRE Agent Foundation
+
+- Azure SRE Agent `sre-sre-agent-demo-demo-ij2608` is `Succeeded`, `Running`, and reachable at its generated Sweden Central `azuresre.ai` endpoint.
+- Native incident management is `AzMonitor`. Subscription-scoped Monitoring Contributor lets the UAMI scan, acknowledge, and synchronize Azure Monitor alerts without an action group.
+- Resource access uses UAMI `id-sre-sre-agent-demo-demo-ij2608`. It has Reader, Monitoring Reader, and Log Analytics Reader on the demo resource group plus AKS Cluster User and AKS RBAC Reader on the cluster.
+- The agent has no Contributor, Owner, AKS admin, sandbox, or VNet integration. Global Review/Low is the fallback; the Stage 15 checkout response plan will use Autonomous mode for connector actions constrained by tool policy and GitHub permissions.
+- Direct ARM creation produced no quickstart response plan. Live data-plane collections show zero threads, incident filters, connectors, custom agents, and plugins.
+- The 2026 API requires the UAMI resource ID in both `actionConfiguration.identity` and `knowledgeGraphConfiguration.identity`; omitting it returns `InvalidIdentity`.
+- Terraform tracks 39 resources with zero drift. Checkov passes 24 checks with zero failures, all four application pods remain Ready, traffic is disabled, and no checkout alert is active.

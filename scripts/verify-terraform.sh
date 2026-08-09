@@ -141,6 +141,43 @@ jq -e '[.resource_changes[] | select(.change.actions | index("delete"))] | lengt
 jq -e '[.resource_changes[] | select(.change.actions | index("delete"))] | length == 0' \
   "$FULL_JSON" >/dev/null
 
+jq -e '
+  .resource_changes[]
+  | select(.address == "module.sre_agent[0].azapi_resource.this")
+  | .change.after.body.properties
+  | .actionConfiguration.accessLevel == "Low"
+    and .actionConfiguration.mode == "Review"
+    and .incidentManagementConfiguration.type == "AzMonitor"
+    and .incidentManagementConfiguration.connectionName == "azmonitor"
+' "$FULL_JSON" >/dev/null
+
+jq -e '
+  [
+    .resource_changes[]
+    | select(.module_address == "module.sre_agent[0]")
+    | select(.type == "azurerm_role_assignment")
+    | .change.after.role_definition_name
+  ] as $roles
+  | [
+      "Reader",
+      "Monitoring Reader",
+      "Monitoring Contributor",
+      "Log Analytics Reader",
+      "Azure Kubernetes Service Cluster User Role",
+      "Azure Kubernetes Service RBAC Reader"
+    ]
+    | all(. as $role | $roles | index($role))
+  | select($roles | all(
+      . == "Reader"
+      or . == "Monitoring Reader"
+      or . == "Monitoring Contributor"
+      or . == "Log Analytics Reader"
+      or . == "Azure Kubernetes Service Cluster User Role"
+      or . == "Azure Kubernetes Service RBAC Reader"
+      or . == "SRE Agent Administrator"
+    ))
+' "$FULL_JSON" >/dev/null
+
 core_resources=$(jq '[.resource_changes[] | select(.change.actions != ["no-op"])] | length' "$CORE_JSON")
 full_resources=$(jq '[.resource_changes[] | select(.change.actions != ["no-op"])] | length' "$FULL_JSON")
 observability_resources=$(jq '[.resource_changes[] | select(.module_address == "module.observability[0]")] | length' "$FULL_JSON")
@@ -148,8 +185,8 @@ aks_monitoring_resources=$(jq '[.resource_changes[] | select(.module_address == 
 sre_agent_resources=$(jq '[.resource_changes[] | select(.module_address == "module.sre_agent[0]")] | length' "$FULL_JSON")
 
 [[ "$observability_resources" == "5" ]]
-[[ "$aks_monitoring_resources" == "10" ]]
-[[ "$sre_agent_resources" == "1" ]]
+[[ "$aks_monitoring_resources" == "9" ]]
+[[ "$sre_agent_resources" == "9" ]]
 (( full_resources >= core_resources ))
 
 printf 'PASS: Terraform foundation is valid and plans without applying.\n'
@@ -157,4 +194,4 @@ printf 'Providers: AzureRM 4.81, AzureAD 3.9, AzAPI 2.11, random 3.9\n'
 printf 'Current core plan: %s resources\n' "$core_resources"
 printf 'Current full plan: %s resources (%s observability, %s AKS monitoring, %s SRE Agent)\n' \
   "$full_resources" "$observability_resources" "$aks_monitoring_resources" "$sre_agent_resources"
-printf 'Security: zero destroys, Checkov has zero failures, mandatory planned tags pass\n'
+printf 'Security: zero destroys, Checkov and RBAC allowlist pass\n'

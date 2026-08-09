@@ -14,13 +14,14 @@ This tracker is the learning path for the Azure SRE Agent closed-loop demo. A st
 | 8 | 53-63% | Managed Prometheus, Log Analytics, Application Insights, and Grafana | Complete |
 | 9 | 63-71% | Protected GitHub Actions delivery | Complete |
 | 10 | 71-77% | Deterministic checkout incident and alert | Complete |
-| 11 | 77-83% | Azure SRE Agent and Azure Monitor incident platform | Not started |
+| 11 | 77-83% | Azure SRE Agent and Azure Monitor incident platform | Complete |
 | 12 | 83-87% | Teams connector and threaded incident notifications | Not started |
 | 13 | 87-90% | GitHub connector capability validation | Not started |
-| 14 | 90-94% | Incident responder and mandatory Teams timeline | Not started |
-| 15 | 94-97% | GitHub-to-agent-to-Teams continuation loop | Not started |
-| 16 | 97-99% | Full approval and rejection dress rehearsal | Not started |
-| 17 | 99-100% | Final learning materials and Terraform teardown | Not started |
+| 14 | 90-92% | Northstar checkout investigation and remediation skill | Not started |
+| 15 | 92-95% | Incident responder, response plan, and mandatory Teams timeline | Not started |
+| 16 | 95-97% | GitHub-to-agent-to-Teams continuation loop | Not started |
+| 17 | 97-99% | Full approval and rejection dress rehearsal | Not started |
+| 18 | 99-100% | Final learning materials and Terraform teardown | Not started |
 
 ## Stage Protocol
 

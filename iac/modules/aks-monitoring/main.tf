@@ -124,13 +124,6 @@ resource "azurerm_role_assignment" "telemetry_metrics_publisher" {
   skip_service_principal_aad_check = true
 }
 
-resource "azurerm_monitor_action_group" "checkout_incident" {
-  name                = "ag-${var.aks_name}-checkout"
-  resource_group_name = var.resource_group_name
-  short_name          = "checkout"
-  tags                = var.tags
-}
-
 resource "azurerm_monitor_alert_prometheus_rule_group" "checkout" {
   name                = "prom-${var.aks_name}-checkout"
   location            = var.location
@@ -172,10 +165,6 @@ resource "azurerm_monitor_alert_prometheus_rule_group" "checkout" {
       )
     PROMQL
     severity   = 1
-
-    action {
-      action_group_id = azurerm_monitor_action_group.checkout_incident.id
-    }
 
     alert_resolution {
       auto_resolved   = true

@@ -137,12 +137,16 @@ module "sre_agent" {
   count  = var.enable_sre_agent ? 1 : 0
   source = "./modules/sre-agent"
 
+  aks_id   = module.aks.id
   location = module.resource_group.location
   managed_resource_ids = [
     module.resource_group.id,
   ]
-  name              = local.sre_agent_name
-  resource_group_id = module.resource_group.id
-  tags              = local.common_tags
-  upgrade_channel   = var.sre_agent_upgrade_channel
+  name                = local.sre_agent_name
+  operator_object_id  = var.aks_operator_object_id
+  resource_group_id   = module.resource_group.id
+  resource_group_name = module.resource_group.name
+  subscription_id     = var.subscription_id
+  tags                = local.common_tags
+  upgrade_channel     = var.sre_agent_upgrade_channel
 }
