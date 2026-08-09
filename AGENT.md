@@ -163,7 +163,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Key Decisions
 
-- Azure subscription: `be9948d2-4149-4be2-a040-ef1a6dc1c866`.
+- Azure subscription and tenant are deployment inputs; verify them with `az account show` and the ignored Terraform variables before every operation.
 - Preferred region: Sweden Central, subject to Stage 1 capability validation.
 - Backend: Python 3.12 and FastAPI.
 - Frontend: React, TypeScript, and Vite.
@@ -177,9 +177,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Verified Environment
 
-- Azure CLI subscription: `ME-MngEnvMCAP786446-itzhakjanach-1` (`be9948d2-4149-4be2-a040-ef1a6dc1c866`).
-- Azure CLI tenant: `6cdedf3f-fe2c-48bd-894d-1c8e5554c0be`; inherited `Owner` is assigned at its management-group scope.
-- VS Code Azure extensions are signed in separately as `itzhakjanach@microsoft.com` in the Microsoft tenant. Do not assume extension and CLI contexts are interchangeable.
+- The active Azure CLI subscription and tenant must match `TF_VAR_subscription_id` and `TF_VAR_tenant_id`; `scripts/preflight.sh` and `scripts/verify-terraform.sh` enforce this.
+- VS Code Azure extensions and Azure CLI may use separate authentication contexts. Do not assume they are interchangeable.
 - Sweden Central supports the planned SRE Agent, AKS, Managed Grafana, Azure Monitor workspace, Application Insights, Log Analytics, and ACR resource types.
 - GitHub user `ij-23` has `ADMIN` permission on the empty `msftse/sre-agent-demo` repository.
 - System Python 3.12 is absent; use `uv` to provision the pinned Python 3.12 runtime in Stage 2.
@@ -268,24 +267,24 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Stage 7 Deployed Platform
 
-- Core resources use deterministic suffix `ij2608` in Sweden Central. Terraform tracks 16 resources and the final live plan has zero drift.
-- AKS `aks-sre-agent-demo-demo-ij2608` runs two Ready `Standard_D2ds_v5` Azure Linux 3 nodes with host encryption and Kubernetes `v1.35.6`.
-- ACR `acrsreagentdemodemoij2608` contains locally built AMD64 backend and frontend images tagged `4b78b371d14a`; the Helm release uses their immutable registry digests.
-- Helm release `northstar` revision 2 runs two ready replicas of each application component in the Restricted `northstar` namespace.
+- Stage 7 created the core resources under the generated suffix exposed by Terraform and finished with zero drift.
+- The AKS output identifies a two-node `Standard_D2ds_v5` Azure Linux system pool with host encryption; query the current Kubernetes version from the live cluster.
+- The ACR output identifies the registry containing locally built AMD64 backend and frontend images; Helm uses immutable registry digests.
+- Helm release `northstar` runs two ready replicas of each application component in the Restricted `northstar` namespace; revisions are transient.
 - The Helm test pod carries release selector labels so Cilium admits only the chart's test identity to backend readiness. The live backend and frontend smoke test passes.
-- Managed Prometheus discovery is disabled until Stage 8 creates its CRD and Azure Monitor workspace. The reserved public IP `4.223.157.176` is not attached to an ingress controller yet.
-- The post-apply tag gate passed for 13 live resources across the primary and AKS-managed resource groups.
+- Managed Prometheus discovery is disabled until Stage 8 creates its CRD and Azure Monitor workspace. The reserved public IP is exposed by Terraform and is not attached to an ingress controller yet.
+- The post-apply tag gate passed across the primary and AKS-managed resource groups; resource counts are stage snapshots, not reusable expectations.
 
 ## Stage 8 Managed Observability
 
-- Terraform tracks 29 resources with zero drift after enabling Azure Monitor managed Prometheus, Container Insights, selected AKS control-plane diagnostics, workspace-based Application Insights, and Managed Grafana 12.
+- Stage 8 finished with zero drift after enabling Azure Monitor managed Prometheus, Container Insights, selected AKS control-plane diagnostics, workspace-based Application Insights, and Managed Grafana.
 - Azure Monitor agents are healthy: two metrics and two logs daemon pods, two metrics replicas, one kube-state-metrics replica, and one logs replica.
 - Container Insights collects only `ContainerLogV2`, `KubeEvents`, and `KubePodInventory` for namespace `northstar` at a five-minute interval.
 - `northstar-sre-demo-backend` scrapes `/metrics` every 30 seconds through the Azure Monitor `ServiceMonitor` CRD.
 - Application Insights uses a federated telemetry identity scoped to `Monitoring Metrics Publisher` on the component; no client secret exists.
-- Helm release `northstar` revision 5 runs four ready pods at Git SHA `0e23af6890c3` with immutable ACR digests and a passing smoke test.
+- Helm release `northstar` runs four ready pods with immutable ACR digests and a passing smoke test; query the current revision and SHA from Helm and `/api/release`.
 - Managed Prometheus returned both `northstar_build_info` series, Log Analytics returned correlated operation/trace IDs and 200/422 outcomes, and Application Insights returned Northstar requests, dependencies, and exceptions.
-- The live tag gate audited 21 resources and skipped one explicitly reported, non-taggable Application Insights smart detector child.
+- The Stage 8 tag-gate snapshot audited the deployed resources and skipped one explicitly reported, non-taggable Application Insights smart detector child; counts vary after recreation.
 
 ## Stage 9 Protected Delivery
 
@@ -296,7 +295,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Workflow permissions are `contents: read` plus job-scoped `id-token: write`. Third-party actions and tool versions are pinned.
 - Images are built on the runner Docker daemon and published with `docker push`; no ACR build/import/task command is used.
 - Trivy blocks fixed critical vulnerabilities and generates SPDX SBOMs before deployment. The first run blocked `CVE-2026-31789`; the patched Alpine OpenSSL packages passed the replacement run.
-- Successful run `31112420552` deployed Helm revision 6 at commit `61f739ca6d55bc734ad67e3171da3b83994c3912`; all four replicas and the in-cluster Helm test passed.
+- The successful Stage 9 replacement run deployed a digest-pinned release; all four replicas and the in-cluster Helm test passed. Workflow run IDs and release SHAs are historical evidence in the stage record, not current environment inputs.
 
 ## Stage 10 Dormant Checkout Incident
 
@@ -309,13 +308,13 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Stage 11 SRE Agent Foundation
 
-- Azure SRE Agent `sre-sre-agent-demo-demo-ij2608` is `Succeeded`, `Running`, and reachable at its generated Sweden Central `azuresre.ai` endpoint.
+- The SRE Agent returned by the nested Terraform output is `Succeeded`, `Running`, and reachable at its generated data-plane endpoint.
 - Native incident management is `AzMonitor`. Subscription-scoped Monitoring Contributor lets the UAMI scan, acknowledge, and synchronize Azure Monitor alerts without an action group.
-- Resource access uses UAMI `id-sre-sre-agent-demo-demo-ij2608`. It has Reader, Monitoring Reader, and Log Analytics Reader on the demo resource group plus AKS Cluster User and AKS RBAC Reader on the cluster.
+- Resource access uses the UAMI ID returned by the nested SRE Agent output. It has Reader, Monitoring Reader, and Log Analytics Reader on the demo resource group plus AKS Cluster User and AKS RBAC Reader on the cluster.
 - The agent has no Contributor, Owner, AKS admin, sandbox, or VNet integration. Global Review/Low is the fallback; the Stage 15 checkout response plan will use Autonomous mode for connector actions constrained by tool policy and GitHub permissions.
 - Direct ARM creation produced no quickstart response plan. Live data-plane collections show zero threads, incident filters, connectors, custom agents, and plugins.
 - The 2026 API requires the UAMI resource ID in both `actionConfiguration.identity` and `knowledgeGraphConfiguration.identity`; omitting it returns `InvalidIdentity`.
-- Terraform tracks 39 resources with zero drift. Checkov passes 24 checks with zero failures, all four application pods remain Ready, traffic is disabled, and no checkout alert is active.
+- The Stage 11 validation finished with zero Terraform drift. Checkov passes 24 checks with zero failures, all four application pods remain Ready, traffic is disabled, and no checkout alert is active; tracked counts vary by enabled features.
 
 ## Stage 12 Teams Bridge
 
@@ -325,7 +324,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - UAMI access is limited to keyless host storage roles, Key Vault Secrets User, and SRE Agent Standard User. The operator can rotate secrets only in the bridge vault.
 - `scripts/configure-sre-teams-connector.sh` performs secret-safe, idempotent data-plane creation/update of `northstar-teams` and verifies its exact three prefixed tools. It is called automatically after every successful bridge deployment.
 - Live outbound testing created a validation root post and same-thread reply, then read the fixed route back. No SRE investigation or checkout alert was created.
-- Terraform tracks 62 resources with zero drift; incident traffic remains disabled.
+- The Stage 12 validation finished with zero Terraform drift and incident traffic disabled; tracked counts vary by enabled features.
 
 ## Stage 13 GitHub Connector
 

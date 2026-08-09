@@ -10,20 +10,17 @@ The Teams app uses a single-tenant bot registration in the demo tenant and is si
 
 The Function UAMI calls Azure SRE Agent with audience `https://azuresre.dev`, stores Teams/SRE thread mappings in Azure Table Storage, and reads the bot credential and MCP shared key from Key Vault references. The storage account disables shared keys and anonymous blob access.
 
-| Component | Live value |
-| --- | --- |
-| Function App | `func-tm-sreagent-demo-ij2608` |
-| Azure Bot | `bot-teams-sre-agent-demo-demo-ij2608` (F0) |
-| Bot endpoint | `https://func-tm-sreagent-demo-ij2608.azurewebsites.net/api/messages` |
-| MCP endpoint | `https://func-tm-sreagent-demo-ij2608.azurewebsites.net/api/mcp/` |
-| Key Vault | `kv-tm-sreagent-ij2608` |
-| Storage | `sttmsreagentdemoij2608` |
-| SRE connector | `northstar-teams` |
-| Target | Team `276a314b-c2c8-4363-b044-edf802d82193`, channel `IJ-Test` |
+Generated names and endpoints change on every recreated environment. Retrieve the current bridge values with:
+
+```bash
+terraform -chdir=iac output -json teams_bridge | jq
+```
+
+This output includes the Function App name and ID, bot client ID, Key Vault name, UAMI principal ID, messaging endpoint, and MCP endpoint. The storage and Azure Bot resource names are implementation details generated from the deployment suffix. The stable SRE connector name is `northstar-teams`; its fixed destination comes from the `teams_team_id` and `teams_channel_id` Terraform inputs.
 
 ## Security Boundary
 
-Inbound Bot Connector JWT validation is owned by the maintained Microsoft Teams SDK. Application checks additionally require the corporate tenant, exact Team GUID, exact channel ID, and operator object ID. Teams activities expose the Microsoft Graph Team GUID as `channelData.team.aadGroupId`; the parser deliberately prefers that field over the Teams thread identifier in `channelData.team.id`.
+Inbound Bot Connector JWT validation is owned by the maintained Microsoft Teams SDK. Application checks additionally require the configured tenant, exact Team GUID, exact channel ID, and operator object ID. Teams activities expose the Microsoft Graph Team GUID as `channelData.team.aadGroupId`; the parser deliberately prefers that field over the Teams thread identifier in `channelData.team.id`.
 
 Outbound MCP requires `x-mcp-key`, retains DNS-rebinding protection, and allows only the live Function hostname. The server exposes exactly:
 
@@ -70,7 +67,7 @@ MCP with key: exactly three tools
 Inbound Teams status mention: ready response received
 Outbound MCP: root post, threaded reply, and stored-route read-back succeeded
 SRE connector: connected, CustomHeaders, exact three prefixed tools
-Terraform: 62 resources, zero drift
+Terraform: zero drift; tracked count recorded from the current state
 Checkout alert instances: 0
 Incident traffic: disabled
 ```

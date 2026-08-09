@@ -6,11 +6,13 @@ Deploy Azure SRE Agent with native Azure Monitor incident discovery and enough r
 
 ## Deployed Agent
 
-Terraform manages `sre-sre-agent-demo-demo-ij2608` through `Microsoft.App/agents@2026-01-01`. The live agent is `Running` with provisioning state `Succeeded` at:
+Terraform manages the generated agent through `Microsoft.App/agents@2026-01-01`. Retrieve the current resource ID, endpoint, and identity IDs with:
 
-```text
-https://sre-sre-agent-demo-demo-ij2608--ba3ee979.bb5fab60.swedencentral.azuresre.ai
+```bash
+terraform -chdir=iac output -json sre_agent | jq
 ```
+
+After deployment, the agent must report `Running` with provisioning state `Succeeded` and its generated endpoint must be reachable.
 
 The agent has these control-plane settings:
 
@@ -27,7 +29,7 @@ Response-plan autonomy is separate from the global fallback. Stage 15 created a 
 
 ## Identity and RBAC
 
-The 2026 API requires a dedicated user-assigned managed identity in both `actionConfiguration.identity` and `knowledgeGraphConfiguration.identity`. The agent retains its platform system identity, but resource investigation uses `id-sre-sre-agent-demo-demo-ij2608`.
+The 2026 API requires a dedicated user-assigned managed identity in both `actionConfiguration.identity` and `knowledgeGraphConfiguration.identity`. The agent retains its platform system identity, but resource investigation uses the identity ID in the nested `sre_agent` Terraform output.
 
 The UAMI receives exactly:
 
@@ -57,7 +59,7 @@ The first agent PUT returned `InvalidIdentity` because the initial payload omitt
 Validated after apply:
 
 ```text
-Terraform: 39 resources, zero drift
+Terraform: zero drift; tracked count recorded from the current state
 Checkov: 24 passed, 0 failed, 13 reasoned skips
 Agent: Succeeded, Running, Stable, AzMonitor
 Agent data plane: reachable with https://azuresre.dev token audience

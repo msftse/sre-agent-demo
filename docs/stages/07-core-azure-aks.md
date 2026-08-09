@@ -6,23 +6,24 @@ Provision the approved core Azure platform with Terraform, publish the applicati
 
 ## Provisioned Platform
 
-| Component | Name or value |
-| --- | --- |
-| Resource group | `rg-sre-agent-demo-demo-ij2608` |
-| Region | Sweden Central |
-| AKS | `aks-sre-agent-demo-demo-ij2608` |
-| AKS node resource group | `MC_rg-sre-agent-demo-demo-ij2608_aks-sre-agent-demo-demo-ij2608_swedencentral` |
-| ACR | `acrsreagentdemodemoij2608` |
-| VNet | `vnet-sre-agent-demo-demo-ij2608` |
-| Reserved ingress IP | `4.223.157.176` |
-| GitHub Actions identity | `id-github-sre-agent-demo-demo-ij2608` |
-| Helm release | `northstar`, revision 2, namespace `northstar` |
+Resource names are generated per deployment. Retrieve the reusable identifiers with:
 
-The AKS system pool contains two `Standard_D2ds_v5` Azure Linux 3 nodes. Both reported `Ready` on Kubernetes `v1.35.6`. Host encryption, OIDC, workload identity, managed Entra authentication, Azure RBAC, Cilium, and the hardened settings defined in Stage 6 are enabled.
+```bash
+terraform -chdir=iac output -json | jq '{
+  resource_group: .resource_group_name.value,
+  suffix: .resource_name_suffix.value,
+  aks: .aks_name.value,
+  aks_node_resource_group: .aks_node_resource_group.value,
+  acr_login_server: .acr_login_server.value,
+  ingress_public_ip: .ingress_public_ip_address.value
+}'
+```
+
+The AKS system pool contains two `Standard_D2ds_v5` Azure Linux nodes. Query readiness and the current Kubernetes version from the recreated cluster. Host encryption, OIDC, workload identity, managed Entra authentication, Azure RBAC, Cilium, and the hardened settings defined in Stage 6 are enabled.
 
 ## Terraform Apply
 
-The deterministic ignored configuration uses suffix `ij2608`. Shared provider registrations remain outside environment state and are validated as subscription prerequisites. AKS host encryption also requires the subscription feature:
+The ignored configuration can provide a deterministic suffix for a specific run; otherwise Terraform persists a generated suffix. Shared provider registrations remain outside environment state and are validated as subscription prerequisites. AKS host encryption also requires the subscription feature:
 
 ```text
 Microsoft.Compute/EncryptionAtHost = Registered
@@ -34,7 +35,7 @@ Azure added `FirstPartyUsage=/Unprivileged` to the reserved public IP. Removing 
 
 A second approved saved plan added one optional, cluster-scoped `Azure Kubernetes Service RBAC Cluster Admin` assignment for the configured human operator. Subscription `Owner` alone does not grant Kubernetes data-plane access, and local accounts remain disabled. Reusable environments default `aks_operator_object_id` to `null`; this ignored demo configuration opts in with the operator's immutable Entra object ID.
 
-Final Terraform result:
+Historical Stage 7 Terraform validation snapshot:
 
 ```text
 16 resources tracked
@@ -44,14 +45,7 @@ No changes. Your infrastructure matches the configuration.
 
 ## Images
 
-Both images were built for `linux/amd64` on the local Docker daemon and published with `docker push`. No ACR build, import, or task command was used.
-
-| Image | Git tag | Immutable digest |
-| --- | --- | --- |
-| `northstar/backend` | `4b78b371d14a` | `sha256:2b688a788d00e8212fe57508478da7c0b565e0ac8ade5ca2540595a9196fbf8a` |
-| `northstar/frontend` | `4b78b371d14a` | `sha256:77e36a6e7ee9844175f59506602531deac72b77086daad5e411051b232a08249` |
-
-ACR returned the same digests before Helm installation. AKS pulls through its kubelet identity and cluster-scoped `AcrPull` assignment.
+Both images were built for `linux/amd64` on the local Docker daemon and published with `docker push`. No ACR build, import, or task command was used. The Stage 7 baseline used the current Git SHA tag and immutable digests returned by ACR; each recreated deployment must capture its own values from `scripts/publish-images.sh`. AKS pulls through its kubelet identity and cluster-scoped `AcrPull` assignment.
 
 ## Helm Deployment
 
@@ -71,7 +65,7 @@ AKS power state: Running
 System nodes: 2/2 Ready
 Host encryption: enabled
 Required ACR and AKS role assignments: present
-Helm release: deployed, revision 2
+Helm release: deployed; revision captured from the current cluster
 Backend replicas: 2/2 ready
 Frontend replicas: 2/2 ready
 Helm smoke test: Succeeded
@@ -79,18 +73,18 @@ PodDisruptionBudgets: 2
 NetworkPolicies: 2
 Restricted namespace labels: passed
 Terraform drift: none
-SecurityControl=Ignore: 13 live resources across both resource groups
+SecurityControl=Ignore: live audit passed across both resource groups
 ```
 
-The Helm test verifies backend `/health/ready` and frontend `/healthz` through the live ClusterIP services. A local port-forward also returned the Northstar storefront with HTTP 200, and `/api/release` reported Git SHA `4b78b371d14a` in environment `demo`.
+The Helm test verifies backend `/health/ready` and frontend `/healthz` through the live ClusterIP services. A local port-forward also returned the Northstar storefront with HTTP 200, and `/api/release` reported the deployed Git SHA in environment `demo`.
 
 To review the deployed application:
 
 ```bash
 export KUBECONFIG="${TMPDIR}/sre-agent-demo-kubeconfig"
 az aks get-credentials \
-  --resource-group rg-sre-agent-demo-demo-ij2608 \
-  --name aks-sre-agent-demo-demo-ij2608 \
+  --resource-group "$(terraform -chdir=iac output -raw resource_group_name)" \
+  --name "$(terraform -chdir=iac output -raw aks_name)" \
   --file "$KUBECONFIG" \
   --overwrite-existing
 kubelogin convert-kubeconfig -l azurecli

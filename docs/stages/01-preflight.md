@@ -8,8 +8,8 @@ Establish a clean repository and prove that the operator, subscription, region, 
 
 | Check | Result |
 | --- | --- |
-| Azure subscription | `ME-MngEnvMCAP786446-itzhakjanach-1` (`be9948d2-4149-4be2-a040-ef1a6dc1c866`), enabled |
-| Azure CLI identity | `itzhakjanach@MngEnvMCAP786446.onmicrosoft.com` |
+| Azure subscription | Active subscription matched the deployment input and was enabled |
+| Azure CLI identity | Authenticated operator resolved from `az account show` |
 | Azure authorization | Inherited `Owner` at management-group scope |
 | Required providers | Registered |
 | Preferred region | Sweden Central supports every planned resource type |
@@ -38,7 +38,13 @@ The following Azure resource types report Sweden Central support:
 
 ## Authentication Boundary
 
-The Azure CLI and VS Code Azure extensions maintain separate authentication contexts. The CLI is connected to the managed-environment tenant that owns the target subscription. VS Code Azure extensions are signed in as `itzhakjanach@microsoft.com` in the Microsoft tenant. Every deployment command must explicitly verify the CLI subscription before it changes Azure resources; Teams OAuth will use the Microsoft account during its dedicated connector stage.
+The Azure CLI and VS Code Azure extensions maintain separate authentication contexts. The CLI is connected to the tenant that owns the target subscription; the extensions may use a different account and tenant. Every deployment command must explicitly verify the CLI subscription before it changes Azure resources; Teams OAuth uses the account selected during its dedicated connector stage.
+
+Retrieve the current account context instead of relying on this stage snapshot:
+
+```bash
+az account show --query '{subscription:name,subscriptionId:id,tenantId:tenantId,user:user.name}' -o json
+```
 
 ## Repeat the Check
 

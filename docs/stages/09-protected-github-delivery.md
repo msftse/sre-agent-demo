@@ -79,7 +79,7 @@ Repository Actions configuration contains eight non-secret variables and one mas
 
 ## Security Gate Proof
 
-The first real delivery run, [31104579216](https://github.com/msftse/sre-agent-demo/actions/runs/31104579216), proved the gate failed closed:
+The original Stage 9 delivery run, [31104579216](https://github.com/msftse/sre-agent-demo/actions/runs/31104579216), is historical validation evidence that the gate failed closed:
 
 - OIDC, Azure context, ACR login, and immutable image pushes succeeded.
 - Trivy found `CVE-2026-31789` in frontend `libcrypto3` and `libssl3` version `3.5.5-r0`.
@@ -88,7 +88,7 @@ The first real delivery run, [31104579216](https://github.com/msftse/sre-agent-d
 
 The frontend runtime now upgrades only `libcrypto3` and `libssl3` as root, then restores UID/GID `101` before application content is copied. Local Trivy `v0.73.0` reported zero critical findings with patched version `3.5.7-r0`.
 
-The replacement run, [31112420552](https://github.com/msftse/sre-agent-demo/actions/runs/31112420552), completed successfully:
+The original Stage 9 replacement run, [31112420552](https://github.com/msftse/sre-agent-demo/actions/runs/31112420552), is historical validation evidence that the protected path completed successfully:
 
 ```text
 Validation: passed
@@ -101,9 +101,9 @@ Digest-pinned Helm deployment: passed
 Live AKS verification and Helm test: passed
 ```
 
-## Deployed Release
+## Historical Stage 9 Release
 
-Helm release `northstar` revision 6 runs commit:
+The original Stage 9 snapshot used Helm revision 6 and this commit:
 
 ```text
 61f739ca6d55bc734ad67e3171da3b83994c3912
@@ -114,7 +114,7 @@ Helm release `northstar` revision 6 runs commit:
 | Backend | `sha256:1cc82d9255d1ff511cf0332668b25c0ec5f2851393f764f67b15448be1d8d9f8` |
 | Frontend | `sha256:a39f0e1c5e2462e82f71c1c1411473e3aaee7dca409ccdc528c2ebd4af645f49` |
 
-The reusable `scripts/verify-deployment.sh` validates the same contract locally and in GitHub Actions.
+These values are audit evidence, not inputs or expectations for a recreated environment. The reusable `scripts/verify-deployment.sh` validates the same contract locally and in GitHub Actions using the current release values.
 
 ## Verification
 

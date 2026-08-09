@@ -2,6 +2,13 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Make deployment documentation environment-portable
+
+- Replaced recreated-environment Azure names, subscription and tenant IDs, endpoints, Team identifiers, public IPs, and generated suffixes with Terraform output or Azure CLI discovery commands.
+- Updated the core platform, observability, protected delivery, incident, SRE Agent, and Teams stage records so transient values are either discovered live or explicitly labeled as historical validation evidence.
+- Preserved stable application constants, repository identity, local development addresses, and all prior append-only changelog history.
+- Executed every documented Terraform output lookup against the current state and completed a repository-wide Markdown scan for stale environment values.
+
 ### 2026-08-09 - Add signed GitHub continuation loop
 
 - Added a Key Vault-backed, HMAC-validated GitHub webhook for PR, workflow-run, and deployment-status events.

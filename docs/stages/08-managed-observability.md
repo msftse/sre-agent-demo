@@ -6,15 +6,13 @@ Connect the healthy AKS baseline to Azure Monitor managed service for Prometheus
 
 ## Deployed Resources
 
-| Component | Name | Purpose |
-| --- | --- | --- |
-| Azure Monitor workspace | `amw-sre-agent-demo-demo-ij2608` | Managed Prometheus storage and query endpoint |
-| Log Analytics workspace | `log-sre-agent-demo-demo-ij2608` | Container Insights and AKS control-plane logs |
-| Application Insights | `appi-sre-agent-demo-demo-ij2608` | OpenTelemetry request, dependency, and exception telemetry |
-| Azure Managed Grafana | `amg-sreage-demo-ij2608` | Managed Prometheus visualization |
-| Prometheus DCR | `MSProm-aks-sre-agent-demo-demo-ij2608` | Routes `Microsoft-PrometheusMetrics` to the monitor workspace |
-| Container Insights DCR | `MSCI-aks-sre-agent-demo-demo-ij2608-swedencentral` | Routes cost-scoped Northstar logs and inventory |
-| Telemetry identity | `id-telemetry-aks-sre-agent-demo-demo-ij2608` | Passwordless Application Insights ingestion |
+Terraform exposes the recreated observability resource IDs, names, and endpoints as a nested output:
+
+```bash
+terraform -chdir=iac output -json observability | jq
+```
+
+The output identifies the Azure Monitor workspace for managed Prometheus, Log Analytics workspace for Container Insights and control-plane logs, Application Insights component for OpenTelemetry, Managed Grafana instance, data collection resources, and passwordless telemetry identity.
 
 Managed Grafana uses Standard SKU and major version 12, the supported intersection of the live Azure API and locked AzureRM 4.81 provider.
 
@@ -45,14 +43,7 @@ The Azure exporter requires the SDK tracer provider to be globally registered to
 
 ## Kubernetes Integration
 
-Helm release `northstar` revision 5 runs the final Stage 8 image set:
-
-| Image | Git SHA | Digest |
-| --- | --- | --- |
-| Backend | `0e23af6890c3` | `sha256:2ee86a1681b5e94bdbf3287e325ddb7e0c7aa565f618eeb2da52f34bbb9b6de1` |
-| Frontend | `0e23af6890c3` | `sha256:54df91373947a521a6e7f96f30073933e9d8534c86733f2b35222b006f61adc9` |
-
-Both images were built on the local Docker daemon and published with `docker push`. The Azure Monitor `ServiceMonitor` selects the backend service's named `metrics` port and scrapes `/metrics` every 30 seconds.
+Helm release `northstar` runs the Stage 8 image set by immutable digest. Revisions, Git SHAs, and digests are generated per deployment; retrieve them from `helm status northstar -n northstar` and `/api/release`. Both images were built on the local Docker daemon and published with `docker push`. The Azure Monitor `ServiceMonitor` selects the backend service's named `metrics` port and scrapes `/metrics` every 30 seconds.
 
 The backend NetworkPolicy permits DNS plus TCP 443 egress. HTTPS is required for Microsoft Entra workload identity token exchange and Application Insights ingestion. Backend ingress remains restricted to frontend, monitoring, and the labeled Helm test pod.
 
@@ -60,11 +51,11 @@ The backend NetworkPolicy permits DNS plus TCP 443 egress. HTTPS is required for
 
 The approved initial plan contained 13 creates, one monitoring-only AKS update, and zero destroys. It applied AKS and 11 resources before Azure rejected Managed Grafana major version 11; the live Standard API accepts only 12 or 13. AzureRM 4.81 accepts 11 or 12, making 12 the compatible choice.
 
-A second checksum-reviewed recovery plan contained only Managed Grafana 12 and its `Monitoring Data Reader` role. It completed with two creates and zero destroys. Final Terraform state contains 29 resources and reports no drift.
+A second checksum-reviewed recovery plan contained only Managed Grafana 12 and its `Monitoring Data Reader` role. It completed with two creates and zero destroys. The historical Stage 8 state snapshot contained 29 resources and reported no drift; recreated-environment counts vary.
 
 ## Verification
 
-Infrastructure and agents:
+Historical Stage 8 infrastructure and agent validation snapshot:
 
 ```text
 AKS provisioning: Succeeded
@@ -85,18 +76,18 @@ Live tag audit: 21 resources, 1 explicit non-taggable smart detector exclusion
 Application and signal proof:
 
 ```text
-Helm release: northstar revision 5, deployed
+Helm release: northstar deployed; revision captured from the current cluster
 Helm smoke test: Succeeded
 Backend and frontend replicas: 4/4 ready
 Application Insights: 786 requests, 9 dependencies, 1 exception observed
-Managed Prometheus: 2 northstar_build_info series for Git SHA 0e23af6890c3
+Managed Prometheus: 2 northstar_build_info series for the deployed Git SHA
 ContainerLogV2: correlated stage8 operation IDs, trace IDs, and 200/422 outcomes
 ```
 
 Example PromQL:
 
 ```promql
-northstar_build_info{git_sha="0e23af6890c3"}
+northstar_build_info
 ```
 
 Example KQL:
@@ -119,10 +110,10 @@ requests
 | summarize Requests=count(), Latest=max(timestamp), ResultCodes=make_set(resultCode)
 ```
 
-Managed Grafana endpoint:
+Retrieve the Managed Grafana endpoint for the current deployment:
 
-```text
-https://amg-sreage-demo-ij2608-gbhdd3bcdeedg2fx.cse.grafana.azure.com
+```bash
+terraform -chdir=iac output -json observability | jq -r '.grafana_endpoint'
 ```
 
 Application Insights automatically creates a `Failure Anomalies` smart detector child. AzureRM and the live ARM resource expose no writable tags for `Microsoft.AlertsManagement/smartDetectorAlertRules`, so the live audit reports and excludes only that exact non-taggable type.

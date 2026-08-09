@@ -43,7 +43,7 @@ Terraform manages:
 
 | Resource | Name |
 | --- | --- |
-| Managed Prometheus rule group | `prom-aks-sre-agent-demo-demo-ij2608-checkout` |
+| Managed Prometheus rule group | Generated from the current AKS name; resource ID is `.checkout_rule_group_id` in the `observability` Terraform output |
 | Alert | `NorthstarCheckoutFailureRatioHigh` |
 
 The alert evaluates every minute and fires at severity 1 when both conditions remain true across two minutes:
@@ -74,7 +74,7 @@ That one approved deployment builds and scans the exact regression commit, deplo
 
 ## Verification
 
-Validated before commit:
+Historical Stage 10 validation snapshot (resource counts vary after recreation):
 
 ```text
 Ruff: passed

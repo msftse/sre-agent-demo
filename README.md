@@ -284,16 +284,18 @@ Every taggable Terraform resource receives `SecurityControl=Ignore`. The verifie
 
 ## Core Azure and AKS
 
-The deployed demo uses deterministic suffix `ij2608`. AKS runs two Ready `Standard_D2ds_v5` Azure Linux 3 nodes with host encryption, managed Entra authentication, Azure RBAC, OIDC/workload identity, and Cilium. The local operator role is opt-in and cluster-scoped; reusable Terraform configurations create no human data-plane assignment by default.
+Each deployment receives a generated suffix exposed by `terraform -chdir=iac output -raw resource_name_suffix`. AKS runs two `Standard_D2ds_v5` Azure Linux 3 nodes with host encryption, managed Entra authentication, Azure RBAC, OIDC/workload identity, and Cilium. The local operator role is opt-in and cluster-scoped; reusable Terraform configurations create no human data-plane assignment by default.
 
-The backend and frontend were built locally for AMD64, pushed to `acrsreagentdemodemoij2608.azurecr.io`, and deployed by digest. Helm release `northstar` runs two replicas of each component in a Restricted namespace with PDBs and NetworkPolicies. Its in-cluster smoke test verifies backend readiness and frontend health.
+The backend and frontend are built locally for AMD64, pushed to the ACR endpoint returned by `terraform -chdir=iac output -raw acr_login_server`, and deployed by digest. Helm release `northstar` runs two replicas of each component in a Restricted namespace with PDBs and NetworkPolicies. Its in-cluster smoke test verifies backend readiness and frontend health.
 
 Connect to the cluster and review the application locally:
 
 ```bash
+RESOURCE_GROUP=$(terraform -chdir=iac output -raw resource_group_name)
+AKS_NAME=$(terraform -chdir=iac output -raw aks_name)
 az aks get-credentials \
-  --resource-group rg-sre-agent-demo-demo-ij2608 \
-  --name aks-sre-agent-demo-demo-ij2608 \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$AKS_NAME" \
   --overwrite-existing
 kubelogin convert-kubeconfig -l azurecli
 kubectl port-forward --namespace northstar \
@@ -304,9 +306,9 @@ Open `http://127.0.0.1:8080/`. See [docs/stages/07-core-azure-aks.md](docs/stage
 
 ## Managed Azure Observability
 
-AKS sends managed Prometheus metrics to `amw-sre-agent-demo-demo-ij2608` and cost-scoped Northstar container logs to `log-sre-agent-demo-demo-ij2608`. Selected API server, privileged audit, and authentication logs use resource-specific Log Analytics tables. Managed Grafana 12 is linked to the Azure Monitor workspace.
+AKS sends managed Prometheus metrics and cost-scoped Northstar container logs to the resources identified by the nested `observability` Terraform output. Selected API server, privileged audit, and authentication logs use resource-specific Log Analytics tables. Managed Grafana is linked to the Azure Monitor workspace.
 
-The backend sends its existing OpenTelemetry server and checkout spans to `appi-sre-agent-demo-demo-ij2608`. AKS workload identity authenticates ingestion with no client secret; the identity receives only `Monitoring Metrics Publisher` on the Application Insights component, whose local authentication is disabled.
+The backend sends its existing OpenTelemetry server and checkout spans to the Application Insights component identified by that output. AKS workload identity authenticates ingestion with no client secret; the identity receives only `Monitoring Metrics Publisher` on the component, whose local authentication is disabled.
 
 Useful queries:
 
@@ -326,7 +328,11 @@ ContainerLogV2
 | order by TimeGenerated desc
 ```
 
-Managed Grafana: `https://amg-sreage-demo-ij2608-gbhdd3bcdeedg2fx.cse.grafana.azure.com`
+Get the current Managed Grafana endpoint with:
+
+```bash
+terraform -chdir=iac output -json observability | jq -r '.grafana_endpoint'
+```
 
 See [docs/stages/08-managed-observability.md](docs/stages/08-managed-observability.md) for resource names, signal queries, security boundaries, and validation evidence.
 
@@ -336,7 +342,7 @@ Pull requests to `main` run backend, frontend, and Helm validation. The reposito
 
 Deployments are manually dispatched from `main` into the protected `demo` environment. The job authenticates to Azure through the repository's immutable environment-bound OIDC subject, builds AMD64 images on the GitHub-hosted Docker daemon, pushes with Docker, rejects fixed critical vulnerabilities, creates SPDX SBOMs, and deploys only registry digests. `scripts/verify-deployment.sh` proves the release SHA, digests, replicas, workload identity, ServiceMonitor, and in-cluster health.
 
-The first real run blocked a critical frontend OpenSSL CVE before deployment. After patching the runtime packages, [run 31112420552](https://github.com/msftse/sre-agent-demo/actions/runs/31112420552) completed end to end and deployed Helm revision 6.
+The Stage 9 validation first proved that a critical frontend OpenSSL CVE blocks deployment, then proved that the patched replacement can complete end to end. See the Stage 9 record for its historical run evidence.
 
 Enable the approval boundary before the SRE Agent incident exercise:
 
@@ -356,9 +362,9 @@ The incident is not active. Later, deploy it from the protected workflow with `d
 
 ## Azure SRE Agent Foundation
 
-Azure SRE Agent `sre-sre-agent-demo-demo-ij2608` is running on the Stable channel with native Azure Monitor incident management. Global `Review` mode and Low access provide a conservative Azure-action fallback. A dedicated UAMI has the documented monitoring/read roles for the demo resource group and AKS cluster; it has no general Azure contributor or AKS administrator role.
+The Azure SRE Agent identified by the nested `sre_agent` Terraform output runs on the Stable channel with native Azure Monitor incident management. Global `Review` mode and Low access provide a conservative Azure-action fallback. A dedicated UAMI has the documented monitoring/read roles for the demo resource group and AKS cluster; it has no general Azure contributor or AKS administrator role.
 
-The agent endpoint is `https://sre-sre-agent-demo-demo-ij2608--ba3ee979.bb5fab60.swedencentral.azuresre.ai`. Stage 14 added the reusable checkout skill, and Stage 15 set Autonomous mode only on the exact Sev1 checkout response plan. GitHub permissions and branch protection allow branch/commit/PR creation while preventing merge or deployment. The user will run the `azure-architecture-proposal` skill with Codex in Stage 18.
+Retrieve the current endpoint with `terraform -chdir=iac output -json sre_agent | jq -r '.endpoint'`. Stage 14 added the reusable checkout skill, and Stage 15 set Autonomous mode only on the exact Sev1 checkout response plan. GitHub permissions and branch protection allow branch/commit/PR creation while preventing merge or deployment. The user will run the `azure-architecture-proposal` skill with Codex in Stage 18.
 
 See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation.md) for identity wiring, RBAC scopes, native alert discovery, and validation evidence.
 
