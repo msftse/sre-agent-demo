@@ -53,4 +53,4 @@ The verifier checks the exact connector tool set without printing its authorizat
 
 ## Outcome
 
-Stage 13 is complete. Azure SRE Agent can read Northstar source and has the exact write primitives required for automatic branch, commit, and pull-request creation. Stage 14 can now package the checkout investigation and remediation procedure as a dedicated skill without granting merge or deployment capability.
+Stage 13 is complete. Azure SRE Agent can read Northstar source and has the exact write primitives required for automatic branch, commit, and pull-request creation. Stage 14 subsequently packaged the checkout investigation and remediation procedure as a dedicated skill without granting merge or deployment capability.

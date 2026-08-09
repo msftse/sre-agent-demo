@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-readonly ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+readonly ROOT_DIR
 readonly APP_DIR="$ROOT_DIR/src/teams-bridge"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
@@ -12,13 +13,29 @@ command -v unzip >/dev/null 2>&1 || { printf '%s\n' 'unzip is required.' >&2; ex
 command -v uv >/dev/null 2>&1 || { printf '%s\n' 'uv is required.' >&2; exit 1; }
 
 bash -n \
+  "$ROOT_DIR/scripts/configure-sre-agent-capabilities.sh" \
+  "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh" \
+  "$ROOT_DIR/scripts/configure-sre-github-connector.sh" \
   "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" \
   "$ROOT_DIR/scripts/deploy-teams-bridge.sh" \
-  "$ROOT_DIR/scripts/package-teams-app.sh"
+  "$ROOT_DIR/scripts/package-teams-app.sh" \
+  "$ROOT_DIR/scripts/verify-checkout-skill.sh"
+
+capability_bootstrap="$ROOT_DIR/scripts/configure-sre-agent-capabilities.sh"
+teams_line=$(grep -nF 'configure-sre-teams-connector.sh' "$capability_bootstrap" | cut -d: -f1)
+github_line=$(grep -nF 'configure-sre-github-connector.sh' "$capability_bootstrap" | cut -d: -f1)
+skill_line=$(grep -nF 'configure-sre-checkout-skill.sh' "$capability_bootstrap" | cut -d: -f1)
+(( teams_line < github_line && github_line < skill_line ))
+grep -F 'configure-sre-agent-capabilities.sh' "$ROOT_DIR/scripts/deploy-teams-bridge.sh" >/dev/null
+if grep -F 'configure-sre-teams-connector.sh' "$ROOT_DIR/scripts/deploy-teams-bridge.sh" >/dev/null; then
+  printf '%s\n' 'Deployment bypasses the unified SRE capability bootstrap.' >&2
+  exit 1
+fi
 
 grep -F 'post_incident_update' "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" >/dev/null
 grep -F 'reply_incident_thread' "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" >/dev/null
 grep -F 'get_incident_thread' "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" >/dev/null
+# shellcheck disable=SC2016 # This is literal jq interpolation syntax in the connector script.
 grep -F '"\($connector)_" + .' "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" >/dev/null
 
 (

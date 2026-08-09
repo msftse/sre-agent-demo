@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Add portable SRE checkout skill
+
+- Added an environment-portable checkout investigation/remediation skill used only by Azure SRE Agent, with runtime discovery for all Azure resource identifiers.
+- Removed the abandoned `.github/skills` approach so GitHub Copilot does not discover or execute the skill as repository customization.
+- Added native data-plane skill upsert and exact live-content/tool verification derived from Terraform outputs and active Azure context.
+- Added a unified deployment bootstrap that configures Teams, GitHub, and the skill in dependency order after every Teams bridge deployment.
+- Proved idempotent live installation of one custom skill with nine tools while keeping incident traffic disabled and creating no branch or pull request.
+
 ### 2026-08-09 - Validate least-privilege GitHub connector
 
 - Added secret-safe, idempotent Azure SRE Agent registration for GitHub's official remote MCP server.

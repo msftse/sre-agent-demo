@@ -30,6 +30,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 11-sre-agent-foundation.md
 │       ├── 12-teams-bridge.md
 │       ├── 13-github-connector.md
+│       ├── 14-checkout-skill.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -58,6 +59,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-sre-agent-capabilities.sh
+│   ├── configure-sre-checkout-skill.sh
 │   ├── configure-sre-github-connector.sh
 │   ├── configure-sre-teams-connector.sh
 │   ├── configure-github-protection.sh
@@ -67,12 +70,15 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   ├── provision-teams-bot-identity.sh
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
+│   ├── verify-checkout-skill.sh
 │   ├── verify-deployment.sh
 │   ├── verify-github-connector.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
+├── sre-agent-skills/
+│   └── northstar-checkout-remediation.md
 └── src/
     ├── backend/
     │   ├── app/
@@ -139,7 +145,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 11 - Azure SRE Agent and Azure Monitor incident platform:** Complete
 - **Stage 12 - Teams connector and threaded notifications:** Complete
 - **Stage 13 - GitHub connector capability validation:** Complete
-- **Stages 14-17:** Not started; see `docs/stages/README.md`
+- **Stage 14 - Northstar checkout investigation and remediation skill:** Complete
+- **Stages 15-17:** Not started; see `docs/stages/README.md`
 - **Stage 18 - User-owned Azure architecture proposal with Codex:** Not started
 - **Stage 19 - Final learning materials and Terraform teardown:** Not started
 
@@ -317,3 +324,12 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - `scripts/verify-github-connector.sh` validates the live connector and the independent main-branch and protected-environment controls.
 - A live `get_file_contents` call read `README.md` from `main`; no branch, commit, PR, workflow, deployment, investigation, or alert was created.
 - The demo uses the active `ij-23` GitHub CLI credential, whose scopes are broader than the selected MCP tools. Production should use a dedicated repository-scoped GitHub App or fine-grained service credential.
+
+## Stage 14 Checkout Skill
+
+- `sre-agent-skills/northstar-checkout-remediation.md` is deployment source for an Azure SRE Agent custom skill, not a repository-discoverable Copilot skill; `.github/skills` is absent.
+- The skill has nine temporary tools: read-only Azure investigation, five constrained GitHub operations, and three fixed-destination Teams operations.
+- Runtime instructions discover Azure resource names and IDs from the active incident and live relationships; no environment-specific subscription, resource group, cluster, workspace, namespace, or agent identifier is embedded.
+- `scripts/configure-sre-checkout-skill.sh` derives the current agent ID and endpoint from Terraform, validates Azure CLI subscription context, and performs an idempotent native data-plane upsert.
+- `scripts/configure-sre-agent-capabilities.sh` configures Teams, GitHub, then the skill and verifies its live content. `scripts/deploy-teams-bridge.sh` invokes this bootstrap after Function health succeeds.
+- The live SRE Agent has one custom skill with nine tools and byte-identical content. Repeated bootstrap runs succeeded without starting an incident or creating GitHub changes.

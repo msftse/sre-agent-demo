@@ -17,7 +17,7 @@ This tracker is the learning path for the Azure SRE Agent closed-loop demo. A st
 | 11 | 77-83% | Azure SRE Agent and Azure Monitor incident platform | Complete |
 | 12 | 83-87% | Teams connector and threaded incident notifications | Complete |
 | 13 | 87-90% | GitHub connector capability validation | Complete |
-| 14 | 90-92% | Northstar checkout investigation and remediation skill | Not started |
+| 14 | 90-92% | Northstar checkout investigation and remediation skill | Complete |
 | 15 | 92-95% | Incident responder, response plan, and mandatory Teams timeline | Not started |
 | 16 | 95-97% | GitHub-to-agent-to-Teams continuation loop | Not started |
 | 17 | 97-98% | Full approval and rejection dress rehearsal | Not started |

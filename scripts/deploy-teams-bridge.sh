@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-readonly ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
 readonly APP_DIR="$ROOT_DIR/src/teams-bridge"
 
@@ -40,5 +41,5 @@ function_hostname=${function_hostname%/api/messages}
   --function-hostname "$function_hostname"
 
 curl --fail-with-body --silent --show-error "https://$function_hostname/api/health" | jq -e '.status == "ok"' >/dev/null
-"$ROOT_DIR/scripts/configure-sre-teams-connector.sh"
+"$ROOT_DIR/scripts/configure-sre-agent-capabilities.sh"
 printf 'Teams bridge deployed and healthy: https://%s/api/health\n' "$function_hostname"

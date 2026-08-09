@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 13 is complete. Azure SRE Agent has secured Teams and GitHub MCP connectors; GitHub exposes only source search/read plus automatic branch, commit, and pull-request creation. Merge, review, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled and the severity-1 checkout alert remains quiet. Activation waits until the dedicated checkout skill and incident responder are configured in Stages 14-15. The user will create the final architecture proposal with Codex in Stage 18.
+Stage 14 is complete. Azure SRE Agent has secured Teams and GitHub MCP connectors plus an automatically deployed, environment-portable checkout remediation skill. Merge, review, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled and the severity-1 checkout alert remains quiet. Activation waits until the incident responder is configured in Stage 15. The user will create the final architecture proposal with Codex in Stage 18.
 
 ## Quick Start
 
@@ -127,6 +127,8 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 10-checkout-incident.md
 │       ├── 11-sre-agent-foundation.md
 │       ├── 12-teams-bridge.md
+│       ├── 13-github-connector.md
+│       ├── 14-checkout-skill.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -155,6 +157,8 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-sre-agent-capabilities.sh
+│   ├── configure-sre-checkout-skill.sh
 │   ├── configure-sre-github-connector.sh
 │   ├── configure-sre-teams-connector.sh
 │   ├── configure-github-protection.sh
@@ -164,12 +168,15 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   ├── provision-teams-bot-identity.sh
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
+│   ├── verify-checkout-skill.sh
 │   ├── verify-deployment.sh
 │   ├── verify-github-connector.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
+├── sre-agent-skills/
+│   └── northstar-checkout-remediation.md
 └── src/
     ├── backend/
     │   ├── app/
@@ -350,7 +357,7 @@ See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation
 
 Stage 12 runs a Python 3.12 Azure Functions Flex Consumption bridge behind Azure Bot Service. Inbound Teams activities are restricted to the approved tenant, Team, `IJ-Test` channel, and operator. Outbound SRE updates use three authenticated MCP tools for a root notification, threaded replies, and route lookup; no tool can select another destination or perform Azure/GitHub changes.
 
-Deploying the bridge also runs `scripts/configure-sre-teams-connector.sh`, which idempotently creates or updates the SRE Agent `northstar-teams` connector. The script discovers and verifies the live MCP tools before registration, retrieves the custom-header key from Key Vault only at runtime, uses protected temporary files, and verifies the saved connector without printing the credential. Terraform state contains no bot or MCP secret.
+Deploying the bridge also runs `scripts/configure-sre-agent-capabilities.sh`. This idempotently configures the Teams connector, GitHub connector, and checkout skill in dependency order, then verifies the live skill. The Teams script retrieves its custom-header key from Key Vault only at runtime, uses protected temporary files, and never prints the credential. Terraform state contains no bot, MCP, or GitHub credential.
 
 Validate source and packaging with:
 
@@ -371,3 +378,17 @@ The live gate verifies the connector metadata without printing its authorization
 ```
 
 See [docs/stages/13-github-connector.md](docs/stages/13-github-connector.md) for the capability model, credential trade-off, idempotency proof, and live read validation.
+
+## Checkout Remediation Skill
+
+Stage 14 installs `northstar-checkout-remediation` as an Azure SRE Agent custom skill. The repository file under `sre-agent-skills/` is deployment source only; it is deliberately outside `.github/skills` and cannot be discovered as a GitHub Copilot project skill.
+
+The skill resolves all Azure resource names and IDs from the active incident and live resource relationships, then correlates metrics, AKS health, logs, traces, release identity, and deployed source before proposing the FIELD20 repair. It can create a branch, commit, and PR, but must stop for human review.
+
+Every Teams bridge deployment automatically runs the connector-and-skill bootstrap. Verify the live skill independently with:
+
+```bash
+./scripts/verify-checkout-skill.sh
+```
+
+See [docs/stages/14-checkout-skill.md](docs/stages/14-checkout-skill.md) for runtime discovery, tool scope, repair contract, deployment ordering, and live evidence.
