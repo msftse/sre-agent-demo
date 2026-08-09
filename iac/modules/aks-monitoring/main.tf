@@ -123,3 +123,69 @@ resource "azurerm_role_assignment" "telemetry_metrics_publisher" {
   principal_type                   = "ServicePrincipal"
   skip_service_principal_aad_check = true
 }
+
+resource "azurerm_monitor_action_group" "checkout_incident" {
+  name                = "ag-${var.aks_name}-checkout"
+  resource_group_name = var.resource_group_name
+  short_name          = "checkout"
+  tags                = var.tags
+}
+
+resource "azurerm_monitor_alert_prometheus_rule_group" "checkout" {
+  name                = "prom-${var.aks_name}-checkout"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  cluster_name        = var.aks_name
+  description         = "Northstar checkout business-health alerts for the SRE Agent demo."
+  interval            = "PT1M"
+  rule_group_enabled  = true
+  scopes              = [var.monitor_workspace_id]
+  tags                = var.tags
+
+  rule {
+    alert = "NorthstarCheckoutFailureRatioHigh"
+    annotations = {
+      description = "More than 50% of Northstar checkout requests are returning HTTP 5xx while checkout traffic remains active."
+      runbook_url = "https://github.com/msftse/sre-agent-demo/blob/main/docs/stages/10-checkout-incident.md"
+      summary     = "Northstar checkout failure ratio is above 50%."
+    }
+    enabled    = true
+    expression = <<-PROMQL
+      (
+        min_over_time(
+          (
+            (
+              sum(rate(northstar_http_requests_total{cluster="${var.aks_name}",namespace="${var.workload_namespace}",method="POST",route="/api/checkout",status_code=~"5.."}[1m]))
+              /
+              sum(rate(northstar_http_requests_total{cluster="${var.aks_name}",namespace="${var.workload_namespace}",method="POST",route="/api/checkout"}[1m]))
+            ) > bool 0.5
+          )[2m:1m]
+        ) == 1
+      )
+      and
+      (
+        min_over_time(
+          (
+            sum(rate(northstar_http_requests_total{cluster="${var.aks_name}",namespace="${var.workload_namespace}",method="POST",route="/api/checkout"}[1m])) > bool 0.05
+          )[2m:1m]
+        ) == 1
+      )
+    PROMQL
+    severity   = 1
+
+    action {
+      action_group_id = azurerm_monitor_action_group.checkout_incident.id
+    }
+
+    alert_resolution {
+      auto_resolved   = true
+      time_to_resolve = "PT5M"
+    }
+
+    labels = {
+      environment = "demo"
+      service     = "northstar-checkout"
+      team        = "sre-demo"
+    }
+  }
+}

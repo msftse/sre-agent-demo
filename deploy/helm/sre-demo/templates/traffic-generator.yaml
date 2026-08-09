@@ -44,11 +44,13 @@ spec:
           args:
             - |
               while true; do
-                curl --fail --silent --show-error \
+                if ! curl --fail --silent --show-error \
                   --request POST \
                   --header 'Content-Type: application/json' \
-                  --data '{"email":"{{ .Values.trafficGenerator.email }}","items":[{"product_id":"field-pack-28","quantity":1}]}' \
-                  http://{{ include "sre-demo.fullname" . }}-frontend:{{ .Values.frontend.service.port }}/api/checkout >/dev/null
+                  --data '{"email":"{{ .Values.trafficGenerator.email }}","discount_code":"{{ .Values.trafficGenerator.discountCode }}","items":[{"product_id":"{{ .Values.trafficGenerator.productId }}","quantity":{{ .Values.trafficGenerator.quantity }}}]}' \
+                  http://{{ include "sre-demo.fullname" . }}-frontend:{{ .Values.frontend.service.port }}/api/checkout >/dev/null; then
+                  printf '%s\n' 'checkout request failed as expected for the incident scenario'
+                fi
                 sleep {{ .Values.trafficGenerator.intervalSeconds }}
               done
           resources:

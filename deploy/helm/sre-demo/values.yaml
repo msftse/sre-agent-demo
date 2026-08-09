@@ -84,6 +84,9 @@ trafficGenerator:
     pullPolicy: IfNotPresent
   intervalSeconds: 5
   email: load-generator@example.com
+  productId: field-pack-28
+  quantity: 2
+  discountCode: FIELD20
   resources:
     requests:
       cpu: 10m

@@ -148,7 +148,7 @@ aks_monitoring_resources=$(jq '[.resource_changes[] | select(.module_address == 
 sre_agent_resources=$(jq '[.resource_changes[] | select(.module_address == "module.sre_agent[0]")] | length' "$FULL_JSON")
 
 [[ "$observability_resources" == "5" ]]
-[[ "$aks_monitoring_resources" == "8" ]]
+[[ "$aks_monitoring_resources" == "10" ]]
 [[ "$sre_agent_resources" == "1" ]]
 (( full_resources >= core_resources ))
 

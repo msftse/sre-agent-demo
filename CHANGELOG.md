@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Prepare deterministic checkout incident
+
+- Added a deliberate missing-test regression where valid FIELD20 checkout returns `discount_calculation_failed` with HTTP 500 while health and ordinary checkout remain healthy.
+- Added disabled-by-default, failure-tolerant FIELD20 traffic and an explicit GitHub deployment input to activate it later.
+- Added a severity-1 Managed Prometheus checkout failure-ratio rule plus an action group reserved for Stage 11 incident routing.
+- Validated the alert PromQL against the live healthy baseline and moved persistence into PromQL to maintain complete Checkov parsing.
+- Finished with 31 Terraform resources at zero drift, all existing tests passing, live traffic disabled, and zero fired checkout alerts.
+
 ### 2026-08-08 - Add protected GitHub Actions delivery
 
 - Added PR-triggered backend, frontend, dependency, and Helm validation plus enforced independent approval on `main`.

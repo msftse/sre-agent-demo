@@ -26,6 +26,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 07-core-azure-aks.md
 │       ├── 08-managed-observability.md
 │       ├── 09-protected-github-delivery.md
+│       ├── 10-checkout-incident.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -112,7 +113,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 7 - Core Azure and AKS platform:** Complete
 - **Stage 8 - Managed Azure observability:** Complete
 - **Stage 9 - Protected GitHub Actions delivery:** Complete
-- **Stages 10-17:** Not started; see `docs/stages/README.md`
+- **Stage 10 - Deterministic checkout incident and alert:** Complete
+- **Stages 11-17:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -250,3 +252,12 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Images are built on the runner Docker daemon and published with `docker push`; no ACR build/import/task command is used.
 - Trivy blocks fixed critical vulnerabilities and generates SPDX SBOMs before deployment. The first run blocked `CVE-2026-31789`; the patched Alpine OpenSSL packages passed the replacement run.
 - Successful run `31112420552` deployed Helm revision 6 at commit `61f739ca6d55bc734ad67e3171da3b83994c3912`; all four replicas and the in-cluster Helm test passed.
+
+## Stage 10 Dormant Checkout Incident
+
+- `checkout()` intentionally returns HTTP 500 with `discount_calculation_failed` only after a valid `FIELD20` quote. Existing tests pass because valid FIELD20 checkout is the deliberate missing case.
+- The traffic generator defaults off. When enabled, it submits two `field-pack-28` items with FIELD20 every five seconds and continues after failures.
+- The delivery workflow exposes `incident_traffic`; the live incident uses `deploy=true` and `incident_traffic=true` only after SRE Agent and Teams are connected.
+- Managed Prometheus alert `NorthstarCheckoutFailureRatioHigh` is severity 1, requires more than 50% checkout 5xx plus active traffic across two minutes, and auto-resolves after five healthy minutes.
+- Action group `ag-aks-sre-agent-demo-demo-ij2608-checkout` has no receiver until Stage 11.
+- Terraform tracks 31 resources with zero drift. The healthy Stage 9 image remains deployed, traffic is disabled, and no Stage 10 alert is firing.

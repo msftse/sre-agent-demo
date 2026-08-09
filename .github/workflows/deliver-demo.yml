@@ -11,6 +11,11 @@ on:
         required: true
         type: boolean
         default: false
+      incident_traffic:
+        description: Run deterministic FIELD20 checkout traffic after deployment
+        required: true
+        type: boolean
+        default: false
 
 concurrency:
   group: demo-aks-delivery
@@ -95,6 +100,7 @@ jobs:
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
       TELEMETRY_CLIENT_ID: ${{ vars.TELEMETRY_CLIENT_ID }}
+      TRAFFIC_GENERATOR_ENABLED: ${{ inputs.incident_traffic }}
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -110,6 +116,7 @@ jobs:
             AZURE_TENANT_ID
             RESOURCE_GROUP
             TELEMETRY_CLIENT_ID
+            TRAFFIC_GENERATOR_ENABLED
           )
           for variable_name in "${required[@]}"; do
             [[ -n "${!variable_name:-}" ]] || {
@@ -211,6 +218,7 @@ jobs:
             --wait \
             --timeout 10m \
             --set serviceMonitor.enabled=true \
+            --set "trafficGenerator.enabled=$TRAFFIC_GENERATOR_ENABLED" \
             --set backend.azureMonitor.enabled=true \
             --set-string "backend.azureMonitor.clientId=$TELEMETRY_CLIENT_ID" \
             --set-string "backend.azureMonitor.connectionString=$APPLICATIONINSIGHTS_CONNECTION_STRING" \
@@ -242,6 +250,7 @@ jobs:
           - Backend: \`$backend_repository@$backend_digest\`
           - Frontend: \`$frontend_repository@$frontend_digest\`
           - AKS: \`$RESOURCE_GROUP/$AKS_NAME\`
+          - Incident traffic: \`$TRAFFIC_GENERATOR_ENABLED\`
           EOF
 
       - name: Sign out of Azure

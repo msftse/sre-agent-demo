@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 9 is complete. Pull requests require independent approval and automated application/chart validation before merge to `main`. A separately approved GitHub Actions deployment uses immutable OIDC, local Docker builds, critical-CVE blocking, SPDX SBOMs, digest-pinned Helm rollout, and live AKS verification. Stage 10 introduces the deterministic checkout regression and alert through this protected path.
+Stage 10 is complete and dormant. Source contains a deterministic FIELD20 checkout regression, the disabled Helm traffic generator can reproduce it every five seconds, and a severity-1 Managed Prometheus alert is deployed and quiet. The healthy Stage 9 image remains live; activation waits until Azure SRE Agent and Teams are connected in Stages 11 and 12.
 
 ## Quick Start
 
@@ -124,6 +124,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 07-core-azure-aks.md
 │       ├── 08-managed-observability.md
 │       ├── 09-protected-github-delivery.md
+│       ├── 10-checkout-incident.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -307,3 +308,11 @@ Enable the approval boundary before the SRE Agent incident exercise:
 ```
 
 See [docs/stages/09-protected-github-delivery.md](docs/stages/09-protected-github-delivery.md) for approval rules, workflow steps, OIDC trust, CVE evidence, and deployed digests.
+
+## Deterministic Checkout Incident
+
+The prepared regression affects only valid `FIELD20` checkout: discount validation succeeds, but checkout returns HTTP 500 with error code `discount_calculation_failed`. Health endpoints and ordinary checkout remain green, and the existing suite intentionally lacks the valid FIELD20 checkout case that the later SRE Agent fix must add.
+
+The disabled traffic generator submits a qualifying FIELD20 request every five seconds and continues after failures. Azure Monitor evaluates the checkout 5xx ratio every minute, requires more than 50% failures plus active traffic across two minutes, and auto-resolves after recovery. Stage 11 will connect the existing action group to the incident path.
+
+The incident is not active. Later, deploy it from the protected workflow with `deploy=true` and `incident_traffic=true`. See [docs/stages/10-checkout-incident.md](docs/stages/10-checkout-incident.md).
