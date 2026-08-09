@@ -2,6 +2,12 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Complete user-owned architecture proposal
+
+- Added the user-created, self-contained Azure SRE Agent architecture proposal at `docs/architecture/sre-agent-demo-architecture.html`.
+- Embedded three architecture diagrams and documented the deployed topology, identity model, observability flow, incident automation, continuation bridge, and human approval boundaries.
+- Marked Stage 18 complete while preserving Stage 17 as the pending live approval and rejection rehearsal.
+
 ### 2026-08-09 - Make deployment documentation environment-portable
 
 - Replaced recreated-environment Azure names, subscription and tenant IDs, endpoints, Team identifiers, public IPs, and generated suffixes with Terraform output or Azure CLI discovery commands.

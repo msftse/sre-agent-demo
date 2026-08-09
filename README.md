@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 16 is complete. Signed GitHub PR, deployment, and workflow events now resume the original Azure SRE Agent investigation and Teams timeline through a Key Vault-backed continuation bridge. Merge, review, workflow dispatch, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled, the alert is quiet, and no remediation PR exists. The user will create the final architecture proposal with Codex in Stage 18.
+Stages 1-16 are complete. Signed GitHub PR, deployment, and workflow events now resume the original Azure SRE Agent investigation and Teams timeline through a Key Vault-backed continuation bridge. Merge, review, workflow dispatch, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled, the alert is quiet, and no remediation PR exists. The user-owned Stage 18 [architecture proposal](docs/architecture/sre-agent-demo-architecture.html) is complete; the Stage 17 live approval and rejection rehearsal remains pending.
 
 ## Quick Start
 
@@ -364,7 +364,7 @@ The incident is not active. Later, deploy it from the protected workflow with `d
 
 The Azure SRE Agent identified by the nested `sre_agent` Terraform output runs on the Stable channel with native Azure Monitor incident management. Global `Review` mode and Low access provide a conservative Azure-action fallback. A dedicated UAMI has the documented monitoring/read roles for the demo resource group and AKS cluster; it has no general Azure contributor or AKS administrator role.
 
-Retrieve the current endpoint with `terraform -chdir=iac output -json sre_agent | jq -r '.endpoint'`. Stage 14 added the reusable checkout skill, and Stage 15 set Autonomous mode only on the exact Sev1 checkout response plan. GitHub permissions and branch protection allow branch/commit/PR creation while preventing merge or deployment. The user will run the `azure-architecture-proposal` skill with Codex in Stage 18.
+Retrieve the current endpoint with `terraform -chdir=iac output -json sre_agent | jq -r '.endpoint'`. Stage 14 added the reusable checkout skill, and Stage 15 set Autonomous mode only on the exact Sev1 checkout response plan. GitHub permissions and branch protection allow branch/commit/PR creation while preventing merge or deployment. The completed Stage 18 architecture proposal documents the deployed design and the planned Stage 17 rehearsal boundaries.
 
 See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation.md) for identity wiring, RBAC scopes, native alert discovery, and validation evidence.
 

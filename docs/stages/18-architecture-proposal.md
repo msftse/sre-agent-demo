@@ -2,7 +2,7 @@
 
 ## Ownership
 
-This stage is **user-owned** and will be run manually with **Codex** using the `azure-architecture-proposal` skill. The repository roadmap defines the required artifact and acceptance criteria, but the regular implementation agent must not execute this stage unless the user explicitly redirects it.
+This stage was completed by the **user** with **Codex** using the `azure-architecture-proposal` skill. The regular implementation agent did not generate the proposal.
 
 ## Goal
 
@@ -15,7 +15,7 @@ Create a polished, customer-facing architecture design for the Azure SRE Agent c
 | Proposal type | General/greenfield Azure proposal |
 | Subject | Northstar Azure SRE Agent closed-loop incident response demo |
 | Audience | Platform, SRE, application, security, and engineering leadership |
-| Source context | Repository documentation, Terraform, application code, live Azure resources, and verified Stage 1-17 evidence |
+| Source context | Repository documentation, Terraform, application code, live Azure resources, verified Stage 1-16 evidence, and the planned Stage 17 rehearsal flow |
 | Delivery owner | User with Codex |
 | Deliverable | One self-contained HTML file with all selected images embedded |
 | Planned path | `docs/architecture/sre-agent-demo-architecture.html` |
@@ -61,7 +61,7 @@ Follow the skill's architecture interpreter → layout designer → image render
 
 ## Validation
 
-Stage 18 completes only when:
+Stage 18 completion criteria:
 
 1. The HTML opens directly with no build step or external local assets.
 2. All images are embedded and render correctly on desktop and mobile widths.
@@ -74,4 +74,4 @@ Stage 18 completes only when:
 
 ## Outcome
 
-Stage 18 will provide the user-owned architecture artifact after the complete workflow has been rehearsed against the live environment. Stage 19 can then finalize learning materials and tear down the demo.
+Stage 18 is complete. The user-owned, self-contained proposal is available at [docs/architecture/sre-agent-demo-architecture.html](../architecture/sre-agent-demo-architecture.html) with three embedded architecture diagrams, security and approval boundaries, open questions, a glossary, and verified Microsoft references. It documents the implemented Stage 1-16 system and the planned Stage 17 rehearsal; it does not claim that the live rehearsal has already run. Stage 17 remains pending, and Stage 19 can follow after the remaining live exercise and final review.

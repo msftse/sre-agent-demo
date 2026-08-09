@@ -21,7 +21,7 @@ This tracker is the learning path for the Azure SRE Agent closed-loop demo. A st
 | 15 | 92-95% | Incident responder, response plan, and mandatory Teams timeline | Complete |
 | 16 | 95-97% | GitHub-to-agent-to-Teams continuation loop | Complete |
 | 17 | 97-98% | Full approval and rejection dress rehearsal | Not started |
-| 18 | 98-99% | User-owned Azure architecture proposal with Codex | Not started |
+| 18 | 98-99% | User-owned Azure architecture proposal with Codex | Complete |
 | 19 | 99-100% | Final learning materials and Terraform teardown | Not started |
 
 ## Stage Protocol
