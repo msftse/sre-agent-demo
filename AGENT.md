@@ -31,6 +31,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 12-teams-bridge.md
 │       ├── 13-github-connector.md
 │       ├── 14-checkout-skill.md
+│       ├── 15-incident-response-plan.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -60,6 +61,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 ├── scripts/
 │   ├── audit-tags.sh
 │   ├── configure-sre-agent-capabilities.sh
+│   ├── configure-sre-checkout-responder.sh
+│   ├── configure-sre-checkout-response-plan.sh
 │   ├── configure-sre-checkout-skill.sh
 │   ├── configure-sre-github-connector.sh
 │   ├── configure-sre-teams-connector.sh
@@ -71,6 +74,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
 │   ├── verify-checkout-skill.sh
+│   ├── verify-checkout-response-plan.sh
 │   ├── verify-deployment.sh
 │   ├── verify-github-connector.sh
 │   ├── verify-teams-bridge.sh
@@ -79,6 +83,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   └── verify-observability.sh
 ├── sre-agent-skills/
 │   └── northstar-checkout-remediation.md
+├── sre-agent-responders/
+│   └── northstar-checkout-responder.md
 └── src/
     ├── backend/
     │   ├── app/
@@ -146,7 +152,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 12 - Teams connector and threaded notifications:** Complete
 - **Stage 13 - GitHub connector capability validation:** Complete
 - **Stage 14 - Northstar checkout investigation and remediation skill:** Complete
-- **Stages 15-17:** Not started; see `docs/stages/README.md`
+- **Stage 15 - Incident responder, response plan, and Teams timeline:** Complete
+- **Stages 16-17:** Not started; see `docs/stages/README.md`
 - **Stage 18 - User-owned Azure architecture proposal with Codex:** Not started
 - **Stage 19 - Final learning materials and Terraform teardown:** Not started
 
@@ -333,3 +340,13 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - `scripts/configure-sre-checkout-skill.sh` derives the current agent ID and endpoint from Terraform, validates Azure CLI subscription context, and performs an idempotent native data-plane upsert.
 - `scripts/configure-sre-agent-capabilities.sh` configures Teams, GitHub, then the skill and verifies its live content. `scripts/deploy-teams-bridge.sh` invokes this bootstrap after Function health succeeds.
 - The live SRE Agent has one custom skill with nine tools and byte-identical content. Repeated bootstrap runs succeeded without starting an incident or creating GitHub changes.
+
+## Stage 15 Incident Responder
+
+- `northstar-checkout-responder` has no direct tools and exactly one allowed skill, `northstar-checkout-remediation`.
+- Its instructions require a Teams root post before source writes and threaded impact, root-cause, PR, blocked/failure, and final-RCA updates.
+- Teams root-post failure after one retry blocks branch, commit, and PR creation while allowing read-only evidence collection.
+- Active plan `northstar-checkout-response` matches only `Sev1` alerts containing `NorthstarCheckoutFailureRatioHigh`, runs in Autonomous mode, and merges recurring alerts for three hours.
+- No quickstart plan or separate incident-handler resource exists; the focused filter routes directly to the custom responder.
+- The unified capability bootstrap now configures Teams, GitHub, skill, responder, and plan in dependency order and verifies each live boundary.
+- Full bootstrap passed twice with incident traffic disabled and zero active checkout alerts.

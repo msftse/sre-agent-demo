@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 14 is complete. Azure SRE Agent has secured Teams and GitHub MCP connectors plus an automatically deployed, environment-portable checkout remediation skill. Merge, review, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled and the severity-1 checkout alert remains quiet. Activation waits until the incident responder is configured in Stage 15. The user will create the final architecture proposal with Codex in Stage 18.
+Stage 15 is complete. Azure SRE Agent has secured Teams and GitHub MCP connectors, a portable checkout skill, and an Autonomous responder that matches only the severity-1 checkout alert and maintains a mandatory Teams timeline. Merge, review, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled and the alert remains quiet. The user will create the final architecture proposal with Codex in Stage 18.
 
 ## Quick Start
 
@@ -129,6 +129,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 12-teams-bridge.md
 │       ├── 13-github-connector.md
 │       ├── 14-checkout-skill.md
+│       ├── 15-incident-response-plan.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -158,6 +159,8 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 ├── scripts/
 │   ├── audit-tags.sh
 │   ├── configure-sre-agent-capabilities.sh
+│   ├── configure-sre-checkout-responder.sh
+│   ├── configure-sre-checkout-response-plan.sh
 │   ├── configure-sre-checkout-skill.sh
 │   ├── configure-sre-github-connector.sh
 │   ├── configure-sre-teams-connector.sh
@@ -169,6 +172,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
 │   ├── verify-checkout-skill.sh
+│   ├── verify-checkout-response-plan.sh
 │   ├── verify-deployment.sh
 │   ├── verify-github-connector.sh
 │   ├── verify-teams-bridge.sh
@@ -177,6 +181,8 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── verify-observability.sh
 ├── sre-agent-skills/
 │   └── northstar-checkout-remediation.md
+├── sre-agent-responders/
+│   └── northstar-checkout-responder.md
 └── src/
     ├── backend/
     │   ├── app/
@@ -349,7 +355,7 @@ The incident is not active. Later, deploy it from the protected workflow with `d
 
 Azure SRE Agent `sre-sre-agent-demo-demo-ij2608` is running on the Stable channel with native Azure Monitor incident management. Global `Review` mode and Low access provide a conservative Azure-action fallback. A dedicated UAMI has the documented monitoring/read roles for the demo resource group and AKS cluster; it has no general Azure contributor or AKS administrator role.
 
-The agent endpoint is `https://sre-sre-agent-demo-demo-ij2608--ba3ee979.bb5fab60.swedencentral.azuresre.ai`. Stage 14 will add a reusable checkout investigation and remediation skill, and Stage 15 will set Autonomous mode only on the narrowly matched checkout response plan. GitHub permissions and branch protection will allow branch/commit/PR creation while preventing merge or deployment. The user will run the `azure-architecture-proposal` skill with Codex in Stage 18.
+The agent endpoint is `https://sre-sre-agent-demo-demo-ij2608--ba3ee979.bb5fab60.swedencentral.azuresre.ai`. Stage 14 added the reusable checkout skill, and Stage 15 set Autonomous mode only on the exact Sev1 checkout response plan. GitHub permissions and branch protection allow branch/commit/PR creation while preventing merge or deployment. The user will run the `azure-architecture-proposal` skill with Codex in Stage 18.
 
 See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation.md) for identity wiring, RBAC scopes, native alert discovery, and validation evidence.
 
@@ -392,3 +398,17 @@ Every Teams bridge deployment automatically runs the connector-and-skill bootstr
 ```
 
 See [docs/stages/14-checkout-skill.md](docs/stages/14-checkout-skill.md) for runtime discovery, tool scope, repair contract, deployment ordering, and live evidence.
+
+## Incident Responder
+
+Stage 15 deploys `northstar-checkout-responder` with no direct tools and only `northstar-checkout-remediation` in its allowed skill list. Its active Autonomous response plan matches only `Sev1` alerts whose title contains `NorthstarCheckoutFailureRatioHigh`, and recurring fires merge into one investigation for three hours.
+
+The responder must create a Teams incident root post before any source write and use the same thread for impact, root cause, PR handoff, failures, and final RCA. If Teams notification fails after one retry, branch/commit/PR creation is blocked.
+
+Validate the live responder and plan with:
+
+```bash
+./scripts/verify-checkout-response-plan.sh
+```
+
+See [docs/stages/15-incident-response-plan.md](docs/stages/15-incident-response-plan.md) for filter scope, autonomy, timeline requirements, failure handling, and approval boundaries.

@@ -9,5 +9,8 @@ readonly ROOT_DIR
 "$ROOT_DIR/scripts/configure-sre-github-connector.sh"
 "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh"
 "$ROOT_DIR/scripts/verify-checkout-skill.sh"
+"$ROOT_DIR/scripts/configure-sre-checkout-responder.sh"
+"$ROOT_DIR/scripts/configure-sre-checkout-response-plan.sh"
+"$ROOT_DIR/scripts/verify-checkout-response-plan.sh"
 
-printf '%s\n' 'Azure SRE Agent connectors and checkout skill are configured.'
+printf '%s\n' 'Azure SRE Agent connectors, checkout skill, responder, and response plan are configured.'

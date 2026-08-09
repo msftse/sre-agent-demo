@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Add autonomous checkout incident responder
+
+- Added a custom checkout responder with no direct tools and access only to the portable checkout remediation skill.
+- Added mandatory root and threaded Teams timeline instructions with a fail-closed boundary before source writes.
+- Added one active Autonomous Azure Monitor response plan matching only Sev1 `NorthstarCheckoutFailureRatioHigh` alerts with a three-hour recurrence merge window.
+- Extended automatic deployment and verification through responder and plan creation in dependency order.
+- Proved idempotent bootstrap, no quickstart plan, disabled incident traffic, and zero active checkout alerts.
+
 ### 2026-08-09 - Add portable SRE checkout skill
 
 - Added an environment-portable checkout investigation/remediation skill used only by Azure SRE Agent, with runtime discovery for all Azure resource identifiers.

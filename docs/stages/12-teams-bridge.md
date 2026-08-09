@@ -45,7 +45,7 @@ No tool can choose another Team/channel, mutate Azure, merge code, or deploy. Th
 6. Reads the connector back and validates endpoint, custom-header authentication, and all three SRE-prefixed tools without printing the credential.
 7. Deletes temporary files and unsets tokens on every exit.
 
-`scripts/deploy-teams-bridge.sh` invokes `scripts/configure-sre-agent-capabilities.sh` after Function health succeeds. The bootstrap configures Teams, GitHub, and the checkout skill in dependency order. Connector and skill creation therefore require no SRE portal work and put no secret in Git or Terraform state. Manual custom-app sideloading into Teams remains the only portal checkpoint because tenant-wide app catalog permissions were intentionally not requested.
+`scripts/deploy-teams-bridge.sh` invokes `scripts/configure-sre-agent-capabilities.sh` after Function health succeeds. The bootstrap configures Teams, GitHub, the checkout skill, its responder, and the response plan in dependency order. Connector, skill, responder, and plan creation therefore require no SRE portal work and put no secret in Git or Terraform state. Manual custom-app sideloading into Teams remains the only portal checkpoint because tenant-wide app catalog permissions were intentionally not requested.
 
 ## Deployment Lessons
 
