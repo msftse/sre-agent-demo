@@ -8,15 +8,17 @@ Give Azure SRE Agent the minimum GitHub tool surface needed to inspect Northstar
 
 Azure SRE Agent connects to GitHub's official remote MCP server at `https://api.githubcopilot.com/mcp/`. The idempotent `scripts/configure-sre-github-connector.sh` discovers the live server catalog before registering `northstar-github` through the SRE Agent data plane.
 
-Exactly five tools are visible to the agent:
+Stage 13 initially exposed five tools. Stage 16 added two narrowly scoped continuation tools, so seven are now visible to the agent:
 
 | Tool | Purpose |
 | --- | --- |
 | `search_code` | Find relevant Northstar implementation and tests |
 | `get_file_contents` | Read source from a branch or commit |
+| `pull_request_read` | Verify signed callback-reported PR state |
 | `create_branch` | Create the dedicated incident repair branch |
 | `push_files` | Commit one or more repaired files to that branch |
 | `create_pull_request` | Open the remediation PR without human preapproval |
+| `add_issue_comment` | Publish the final evidence-backed RCA after deployment verification |
 
 The connector does not expose `merge_pull_request`, pull-request review, Copilot-authored PR, general PR mutation, or branch-update tools. GitHub MCP did not advertise a workflow-dispatch tool in the discovered 47-tool catalog; the connector still uses an explicit allowlist so newly added tools cannot become available automatically.
 

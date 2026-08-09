@@ -15,6 +15,7 @@ class Settings:
     storage_table_name: str
     sre_agent_endpoint: str
     mcp_shared_key: str
+    github_webhook_secret: str
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -30,6 +31,7 @@ class Settings:
             "storage_table_name": os.getenv("STORAGE_TABLE_NAME", "teamsbridge"),
             "sre_agent_endpoint": os.getenv("SRE_AGENT_ENDPOINT", "").rstrip("/"),
             "mcp_shared_key": os.getenv("MCP_SHARED_KEY", ""),
+            "github_webhook_secret": os.getenv("GITHUB_WEBHOOK_SECRET", ""),
         }
         missing = [name for name, value in values.items() if not value]
         if missing:

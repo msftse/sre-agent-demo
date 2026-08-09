@@ -11,9 +11,11 @@ readonly EXPECTED_TOOLS=(
   RunAzCliReadCommands
   northstar-github_search_code
   northstar-github_get_file_contents
+  northstar-github_pull_request_read
   northstar-github_create_branch
   northstar-github_push_files
   northstar-github_create_pull_request
+  northstar-github_add_issue_comment
   northstar-teams_post_incident_update
   northstar-teams_reply_incident_thread
   northstar-teams_get_incident_thread

@@ -213,6 +213,7 @@ resource "azurerm_function_app_flex_consumption" "this" {
     STORAGE_TABLE_NAME               = azapi_resource.state_table.name
     SRE_AGENT_ENDPOINT               = var.sre_agent_endpoint
     MCP_SHARED_KEY                   = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=mcp-shared-key)"
+    GITHUB_WEBHOOK_SECRET            = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=github-webhook-secret)"
   }
 
   site_config {

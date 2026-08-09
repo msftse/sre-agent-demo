@@ -1,11 +1,13 @@
 import hmac
+import json
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
 import azure.functions as func
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from microsoft_teams.apps import App as TeamsApp
@@ -13,6 +15,11 @@ from microsoft_teams.apps.http.fastapi_adapter import FastAPIAdapter
 
 from bridge.boundary import TeamsBoundary
 from bridge.config import Settings
+from bridge.github_continuation import (
+    GitHubContinuationService,
+    InvalidGitHubSignature,
+)
+from bridge.github_events import IgnoredGitHubEvent
 from bridge.notifications import NotificationService
 from bridge.sre_client import SreAgentClient
 from bridge.state import BridgeState
@@ -71,6 +78,12 @@ class BridgeRuntime:
             http_server_adapter=self.teams_adapter,
         )
         self.notifications = NotificationService(self.teams, self.state)
+        self.continuation = GitHubContinuationService(
+            secret=settings.github_webhook_secret,
+            state=self.state,
+            sre=self.sre,
+            teams=self.notifications,
+        )
         self.mcp = self._create_mcp_server()
         hostname = os.getenv("WEBSITE_HOSTNAME", "localhost")
         self.mcp_app = self.mcp.streamable_http_app(
@@ -87,6 +100,11 @@ class BridgeRuntime:
             SharedKeyMiddleware(self.mcp_app, settings.mcp_shared_key),
         )
         self.web.add_api_route("/api/health", self.health, methods=["GET"])
+        self.web.add_api_route(
+            "/api/github/events",
+            self.github_event,
+            methods=["POST"],
+        )
         self.web.add_api_route("/privacy", self.privacy, methods=["GET"])
         self.web.add_api_route("/terms", self.terms, methods=["GET"])
         self.asgi = func.AsgiMiddleware(self.web)  # type: ignore[no-untyped-call]
@@ -127,6 +145,24 @@ class BridgeRuntime:
 
     async def health(self) -> dict[str, str]:
         return {"status": "ok"}
+
+    async def github_event(self, request: Request) -> JSONResponse:
+        body = await request.body()
+        try:
+            result = await self.continuation.process(
+                body=body,
+                signature=request.headers.get("x-hub-signature-256", ""),
+                delivery_id=request.headers.get("x-github-delivery", ""),
+                event_type=request.headers.get("x-github-event", ""),
+            )
+        except InvalidGitHubSignature as error:
+            raise HTTPException(status_code=401, detail="invalid signature") from error
+        except (IgnoredGitHubEvent, json.JSONDecodeError):
+            return JSONResponse({"status": "ignored"}, status_code=202)
+        return JSONResponse(
+            {"status": result.status, "event_key": result.event_key},
+            status_code=200,
+        )
 
     async def privacy(self) -> dict[str, str]:
         return {"privacy": "No message bodies are retained in routine application logs."}

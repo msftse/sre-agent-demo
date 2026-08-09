@@ -11,9 +11,11 @@ readonly EXPECTED_TOOLS=(
   RunAzCliReadCommands
   northstar-github_search_code
   northstar-github_get_file_contents
+  northstar-github_pull_request_read
   northstar-github_create_branch
   northstar-github_push_files
   northstar-github_create_pull_request
+  northstar-github_add_issue_comment
   northstar-teams_post_incident_update
   northstar-teams_reply_incident_thread
   northstar-teams_get_incident_thread
@@ -55,6 +57,8 @@ for clause in \
   'Never approve, merge, enable auto-merge, dispatch a workflow, deploy' \
   'Add a regression test for two `field-pack-28` items with `FIELD20`' \
   'total `23680`' \
+  '<!-- sre-thread-id: <current-sre-thread-id> -->' \
+  'After a successful delivery-workflow callback' \
   'Awaiting human PR review; no merge or deployment performed.'; do
   grep -F "$clause" "$SKILL_FILE" >/dev/null
 done
@@ -94,7 +98,7 @@ source_content=$(<"$SKILL_FILE")
 [[ "$live_content" == "$source_content" ]]
 unset live_content source_content
 
-printf '%s\n' 'PASS: skill source front matter and nine assigned tools validated.'
+printf '%s\n' 'PASS: skill source front matter and eleven assigned tools validated.'
 printf '%s\n' 'PASS: exact FIELD20 repair and regression-test contract validated.'
 printf '%s\n' 'PASS: merge and deployment stop clauses validated.'
 printf '%s\n' 'PASS: live Azure SRE Agent skill matches the repository source.'

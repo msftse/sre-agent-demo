@@ -24,10 +24,10 @@ Stable application facts remain explicit: repository, alert name, route, error c
 
 ## Attached Tools
 
-The skill receives nine tools only while active:
+The skill initially received nine tools. Stage 16 added PR-state read and final-RCA comment capabilities, so it now receives eleven tools only while active:
 
 - Read-only Azure CLI investigation.
-- GitHub code search, file read, branch creation, multi-file push, and pull-request creation.
+- GitHub code search, file/PR read, branch creation, multi-file push, pull-request creation, and issue/PR commenting.
 - Teams root post, threaded reply, and route lookup.
 
 It has no GitHub merge, review, workflow dispatch, deployment, or Azure write tool.
@@ -39,7 +39,7 @@ It has no GitHub merge, review, workflow dispatch, deployment, or Azure write to
 1. Configure `northstar-teams`.
 2. Configure `northstar-github`.
 3. Upsert `northstar-checkout-remediation`.
-4. Verify the live skill content and exact nine-tool assignment.
+4. Verify the live skill content and exact eleven-tool assignment.
 
 `scripts/deploy-teams-bridge.sh` invokes this bootstrap after the Function health check. A fresh environment therefore installs both connectors and the skill without SRE portal configuration. The operator must already be signed in to the Terraform subscription with Azure CLI and to the intended GitHub account with GitHub CLI.
 
@@ -69,7 +69,7 @@ The skill stops after opening the PR and returns `Awaiting human PR review; no m
 - Merge and deployment stop clauses.
 - Exact byte-for-byte equality between deployment source and live `properties.skillContent`.
 
-The unified bootstrap ran twice successfully. The live skill collection contains exactly one custom skill with nine tools and matching content. No incident, branch, commit, pull request, workflow, or deployment was started.
+The unified bootstrap ran twice successfully. Stage 16 later verified the live skill with eleven tools and matching content. No incident, branch, commit, pull request, workflow, or deployment was started during Stage 14.
 
 ## Outcome
 

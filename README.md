@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 15 is complete. Azure SRE Agent has secured Teams and GitHub MCP connectors, a portable checkout skill, and an Autonomous responder that matches only the severity-1 checkout alert and maintains a mandatory Teams timeline. Merge, review, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled and the alert remains quiet. The user will create the final architecture proposal with Codex in Stage 18.
+Stage 16 is complete. Signed GitHub PR, deployment, and workflow events now resume the original Azure SRE Agent investigation and Teams timeline through a Key Vault-backed continuation bridge. Merge, review, workflow dispatch, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled, the alert is quiet, and no remediation PR exists. The user will create the final architecture proposal with Codex in Stage 18.
 
 ## Quick Start
 
@@ -130,6 +130,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 13-github-connector.md
 │       ├── 14-checkout-skill.md
 │       ├── 15-incident-response-plan.md
+│       ├── 16-continuation-loop.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -158,6 +159,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-github-webhook.sh
 │   ├── configure-sre-agent-capabilities.sh
 │   ├── configure-sre-checkout-responder.sh
 │   ├── configure-sre-checkout-response-plan.sh
@@ -175,6 +177,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   ├── verify-checkout-response-plan.sh
 │   ├── verify-deployment.sh
 │   ├── verify-github-connector.sh
+│   ├── verify-github-continuation.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
@@ -375,7 +378,7 @@ See [docs/stages/12-teams-bridge.md](docs/stages/12-teams-bridge.md) for the ide
 
 ## GitHub Connector
 
-Stage 13 adds the idempotent `northstar-github` connector through GitHub's official remote MCP server. Its exact allowlist is `search_code`, `get_file_contents`, `create_branch`, `push_files`, and `create_pull_request`. Merge, review, general PR mutation, and deployment tools are not visible to Azure SRE Agent.
+Stage 13 added the idempotent `northstar-github` connector through GitHub's official remote MCP server. Stage 16 extended its exact allowlist to `search_code`, `get_file_contents`, `pull_request_read`, `create_branch`, `push_files`, `create_pull_request`, and `add_issue_comment`. Merge, review, general PR mutation, workflow dispatch, and deployment tools are not visible to Azure SRE Agent.
 
 The live gate verifies the connector metadata without printing its authorization header, confirms the forbidden tools remain absent, and rechecks GitHub's branch and protected-environment controls:
 
@@ -412,3 +415,19 @@ Validate the live responder and plan with:
 ```
 
 See [docs/stages/15-incident-response-plan.md](docs/stages/15-incident-response-plan.md) for filter scope, autonomy, timeline requirements, failure handling, and approval boundaries.
+
+## GitHub Continuation Loop
+
+Stage 16 adds a signed GitHub webhook at the Teams bridge. Pull-request, protected-deployment, and workflow-run events correlate through PR number and merge SHA to the original SRE thread and Teams root activity stored in Table Storage.
+
+Public-repository callbacks are accepted only for same-repository `sre/field20-checkout-*` branches targeting `main`, the exact delivery workflow/environment, and exactly one hidden SRE thread marker. Delivery IDs and per-destination completion flags prevent duplicate Teams and SRE updates while allowing partial failures to resume safely.
+
+The Function uses `github-webhook-secret` through a Key Vault reference. Deployment removes a classic empty `AzureWebJobsStorage` setting that Core Tools synthesizes during publish, preserving managed-identity storage authentication.
+
+Validate the live callback boundary with:
+
+```bash
+./scripts/verify-github-continuation.sh
+```
+
+See [docs/stages/16-continuation-loop.md](docs/stages/16-continuation-loop.md) for event scope, durable correlation, retry behavior, continuation messages, deployment hardening, and live evidence.

@@ -15,7 +15,7 @@ The responder has:
 - Exactly one allowed skill: `northstar-checkout-remediation`.
 - No handoffs.
 
-The Stage 14 skill supplies its nine temporary tools only when loaded. This prevents the responder from bypassing the skill procedure while retaining read-only Azure investigation, constrained GitHub branch/commit/PR creation, and fixed-destination Teams updates.
+The Stage 14 skill supplies its temporary tools only when loaded. Stage 16 extended that skill to eleven tools for PR-state verification and final RCA comments. This prevents the responder from bypassing the skill procedure while retaining read-only Azure investigation, constrained GitHub operations, and fixed-destination Teams updates.
 
 ## Mandatory Teams Timeline
 
@@ -88,4 +88,4 @@ The full capability bootstrap ran twice successfully. Bridge lint/type/tests/pac
 
 ## Outcome
 
-Stage 15 is complete. The dormant checkout incident now has a focused autonomous responder, mandatory Teams timeline, portable skill, and human-governed source/deployment boundaries. Stage 16 can implement the post-PR continuation loop for merge detection, protected deployment, verification, and final Teams/GitHub RCA.
+Stage 15 is complete. The dormant checkout incident now has a focused autonomous responder, mandatory Teams timeline, portable skill, and human-governed source/deployment boundaries. Stage 16 subsequently implemented the post-PR continuation loop for merge detection, protected deployment, verification, and final Teams/GitHub RCA.

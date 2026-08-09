@@ -9,9 +9,11 @@ readonly CONNECTOR_NAME="northstar-github"
 readonly REPOSITORY="msftse/sre-agent-demo"
 readonly EXPECTED_REVIEWER="ij-23"
 readonly EXPECTED_TOOLS=(
+  northstar-github_add_issue_comment
   northstar-github_create_branch
   northstar-github_create_pull_request
   northstar-github_get_file_contents
+  northstar-github_pull_request_read
   northstar-github_push_files
   northstar-github_search_code
 )
@@ -121,7 +123,7 @@ jq -e '
   and .can_approve_pull_request_reviews == false
 ' "$workflow_permissions_file" >/dev/null
 
-printf '%s\n' 'PASS: GitHub connector exposes exactly five approved tools.'
+printf '%s\n' 'PASS: GitHub connector exposes exactly seven approved tools.'
 printf '%s\n' 'PASS: merge, review, and pull-request mutation tools are unavailable.'
 printf '%s\n' 'PASS: main rejects force pushes and deletion with admin enforcement.'
 printf '%s\n' 'PASS: demo deployment requires ij-23 approval and accepts only main.'

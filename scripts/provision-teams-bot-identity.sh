@@ -8,6 +8,7 @@ usage() {
   cat <<'EOF'
 Usage:
   provision-teams-bot-identity.sh store-secrets --subscription ID --app-id ID --key-vault NAME
+  provision-teams-bot-identity.sh store-webhook-secret --subscription ID --key-vault NAME
 EOF
 }
 
@@ -40,6 +41,9 @@ cleanup() {
   if [[ -n ${mcp_file:-} ]]; then
     rm -f "$mcp_file"
   fi
+  if [[ -n ${webhook_file:-} ]]; then
+    rm -f "$webhook_file"
+  fi
 }
 trap cleanup EXIT
 
@@ -52,6 +56,7 @@ case "$action" in
     umask 077
     secret_file=$(mktemp "${TMPDIR:-/tmp}/teams-bot-secret.XXXXXX")
     mcp_file=$(mktemp "${TMPDIR:-/tmp}/teams-mcp-key.XXXXXX")
+    webhook_file=$(mktemp "${TMPDIR:-/tmp}/github-webhook-key.XXXXXX")
 
     az account set --subscription "$subscription"
     bot_secret=$(az ad app credential reset \
@@ -65,6 +70,7 @@ case "$action" in
     unset bot_secret
 
     openssl rand -hex 32 | tr -d '\n' >"$mcp_file"
+    openssl rand -hex 32 | tr -d '\n' >"$webhook_file"
     az keyvault secret set \
       --vault-name "$key_vault" \
       --name bot-client-secret \
@@ -77,7 +83,30 @@ case "$action" in
       --file "$mcp_file" \
       --query id \
       --output tsv >/dev/null
-    printf 'Stored bot-client-secret and mcp-shared-key in Key Vault %s.\n' "$key_vault"
+    az keyvault secret set \
+      --vault-name "$key_vault" \
+      --name github-webhook-secret \
+      --file "$webhook_file" \
+      --query id \
+      --output tsv >/dev/null
+    printf 'Stored bot, MCP, and GitHub webhook secrets in Key Vault %s.\n' "$key_vault"
+    ;;
+  store-webhook-secret)
+    [[ -n "$subscription" && -n "$key_vault" ]] || {
+      usage >&2
+      exit 2
+    }
+    umask 077
+    webhook_file=$(mktemp "${TMPDIR:-/tmp}/github-webhook-key.XXXXXX")
+    az account set --subscription "$subscription"
+    openssl rand -hex 32 | tr -d '\n' >"$webhook_file"
+    az keyvault secret set \
+      --vault-name "$key_vault" \
+      --name github-webhook-secret \
+      --file "$webhook_file" \
+      --query id \
+      --output tsv >/dev/null
+    printf 'Stored github-webhook-secret in Key Vault %s.\n' "$key_vault"
     ;;
   *)
     usage >&2

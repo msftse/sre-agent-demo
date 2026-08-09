@@ -32,6 +32,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 13-github-connector.md
 │       ├── 14-checkout-skill.md
 │       ├── 15-incident-response-plan.md
+│       ├── 16-continuation-loop.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -60,6 +61,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-github-webhook.sh
 │   ├── configure-sre-agent-capabilities.sh
 │   ├── configure-sre-checkout-responder.sh
 │   ├── configure-sre-checkout-response-plan.sh
@@ -77,6 +79,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   ├── verify-checkout-response-plan.sh
 │   ├── verify-deployment.sh
 │   ├── verify-github-connector.sh
+│   ├── verify-github-continuation.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
@@ -153,7 +156,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 13 - GitHub connector capability validation:** Complete
 - **Stage 14 - Northstar checkout investigation and remediation skill:** Complete
 - **Stage 15 - Incident responder, response plan, and Teams timeline:** Complete
-- **Stages 16-17:** Not started; see `docs/stages/README.md`
+- **Stage 16 - GitHub-to-agent-to-Teams continuation loop:** Complete
+- **Stage 17 - Full approval and rejection dress rehearsal:** Not started
 - **Stage 18 - User-owned Azure architecture proposal with Codex:** Not started
 - **Stage 19 - Final learning materials and Terraform teardown:** Not started
 
@@ -325,7 +329,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Stage 13 GitHub Connector
 
-- `northstar-github` connects Azure SRE Agent to GitHub's official remote MCP server and is constrained to five selected tools: source search/read, branch creation, multi-file commit, and pull-request creation.
+- `northstar-github` connects Azure SRE Agent to GitHub's official remote MCP server and is constrained to seven selected tools: source/PR read, branch creation, multi-file commit, pull-request creation, and final RCA comment.
 - Merge, review, Copilot-authored PR, general PR mutation, branch-update, and deployment capabilities are absent from the selected tool set.
 - `scripts/configure-sre-github-connector.sh` performs secret-safe MCP discovery, idempotent data-plane registration, and exact saved-tool verification without printing the GitHub credential.
 - `scripts/verify-github-connector.sh` validates the live connector and the independent main-branch and protected-environment controls.
@@ -335,11 +339,11 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 ## Stage 14 Checkout Skill
 
 - `sre-agent-skills/northstar-checkout-remediation.md` is deployment source for an Azure SRE Agent custom skill, not a repository-discoverable Copilot skill; `.github/skills` is absent.
-- The skill has nine temporary tools: read-only Azure investigation, five constrained GitHub operations, and three fixed-destination Teams operations.
+- The skill has eleven temporary tools: read-only Azure investigation, seven constrained GitHub operations, and three fixed-destination Teams operations.
 - Runtime instructions discover Azure resource names and IDs from the active incident and live relationships; no environment-specific subscription, resource group, cluster, workspace, namespace, or agent identifier is embedded.
 - `scripts/configure-sre-checkout-skill.sh` derives the current agent ID and endpoint from Terraform, validates Azure CLI subscription context, and performs an idempotent native data-plane upsert.
 - `scripts/configure-sre-agent-capabilities.sh` configures Teams, GitHub, then the skill and verifies its live content. `scripts/deploy-teams-bridge.sh` invokes this bootstrap after Function health succeeds.
-- The live SRE Agent has one custom skill with nine tools and byte-identical content. Repeated bootstrap runs succeeded without starting an incident or creating GitHub changes.
+- The live SRE Agent has one custom skill with eleven tools and byte-identical content. Repeated bootstrap runs succeeded without starting an incident or creating GitHub changes.
 
 ## Stage 15 Incident Responder
 
@@ -350,3 +354,15 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - No quickstart plan or separate incident-handler resource exists; the focused filter routes directly to the custom responder.
 - The unified capability bootstrap now configures Teams, GitHub, skill, responder, and plan in dependency order and verifies each live boundary.
 - Full bootstrap passed twice with incident traffic disabled and zero active checkout alerts.
+
+## Stage 16 Continuation Loop
+
+- A public `/api/github/events` route validates GitHub HMAC signatures from the Key Vault-backed `github-webhook-secret`; unsigned requests return 401.
+- One repository hook exposes exactly `pull_request`, `workflow_run`, and `deployment_status`; a live GitHub-signed ping returns 202.
+- Public-repository PR events require the same repository on both sides, base `main`, an `sre/field20-checkout-*` head branch, and exactly one SRE thread marker.
+- Workflow/deployment events require the exact delivery workflow, manual dispatch on `main`, `demo` environment, and a previously correlated merge SHA.
+- Table Storage persists PR and merge-SHA correlation plus delivery IDs with independent Teams/SRE completion flags for retry-safe deduplication.
+- The Function UAMI appends verified events to the original SRE thread and replies in the original Teams thread; successful delivery instructs the agent to verify release/health/FIELD20/telemetry/alert recovery and publish the final PR/Teams RCA.
+- GitHub continuation added only `pull_request_read` and `add_issue_comment`; merge, review, mutation, dispatch, and deployment tools remain absent.
+- Function publishing is hardened to remove Core Tools' empty classic `AzureWebJobsStorage` override and restart before health checks, preserving managed-identity storage.
+- Thirty-one tests, live hook/security checks, and a 60-resource no-drift plan passed; incident traffic remains disabled with zero alerts and open PRs.

@@ -9,9 +9,11 @@ readonly CONNECTOR_NAME="northstar-github"
 readonly MCP_ENDPOINT="https://api.githubcopilot.com/mcp/"
 readonly REPOSITORY="msftse/sre-agent-demo"
 readonly EXPECTED_TOOLS=(
+  add_issue_comment
   create_branch
   create_pull_request
   get_file_contents
+  pull_request_read
   push_files
   search_code
 )

@@ -14,6 +14,7 @@ TEST_SETTINGS = {
     "STORAGE_TABLE_NAME": "teamsbridge",
     "SRE_AGENT_ENDPOINT": "https://agent.example",
     "MCP_SHARED_KEY": "test-key",
+    "GITHUB_WEBHOOK_SECRET": "webhook-secret",
 }
 for name, value in TEST_SETTINGS.items():
     os.environ.setdefault(name, value)

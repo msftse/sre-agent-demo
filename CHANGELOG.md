@@ -2,6 +2,15 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Add signed GitHub continuation loop
+
+- Added a Key Vault-backed, HMAC-validated GitHub webhook for PR, workflow-run, and deployment-status events.
+- Added strict same-repository SRE-branch, main-base, workflow, environment, and thread-marker boundaries for the public repository.
+- Added durable PR/merge/SRE/Teams correlation and resumable delivery-ID deduplication in Table Storage.
+- Added existing-thread SRE continuation, Teams milestone replies, PR-state verification, and final RCA comment capability without merge or workflow-dispatch tools.
+- Hardened Function publishing against Core Tools injecting an empty classic `AzureWebJobsStorage` setting over managed identity.
+- Verified 31 tests, signed 202/unsigned 401 delivery, one exact webhook, zero Terraform drift, disabled traffic, zero alerts, and zero open PRs.
+
 ### 2026-08-09 - Add autonomous checkout incident responder
 
 - Added a custom checkout responder with no direct tools and access only to the portable checkout remediation skill.

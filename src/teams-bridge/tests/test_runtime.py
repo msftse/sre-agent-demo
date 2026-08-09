@@ -1,8 +1,14 @@
 from typing import Any
 
+import httpx
 from mcp import Client
 
 from bridge.config import Settings
+from bridge.github_continuation import (
+    ContinuationResult,
+    InvalidGitHubSignature,
+)
+from bridge.github_events import IgnoredGitHubEvent
 from bridge.runtime import BridgeRuntime, SharedKeyMiddleware
 
 
@@ -19,6 +25,7 @@ def settings() -> Settings:
         storage_table_name="teamsbridge",
         sre_agent_endpoint="https://agent.example",
         mcp_shared_key="test-key",
+        github_webhook_secret="webhook-secret",
     )
 
 
@@ -79,3 +86,54 @@ async def test_shared_key_middleware_allows_matching_key() -> None:
     )
 
     assert called
+
+
+class FakeContinuation:
+    def __init__(self, outcome: ContinuationResult | Exception) -> None:
+        self.outcome = outcome
+
+    async def process(self, **_: Any) -> ContinuationResult:
+        if isinstance(self.outcome, Exception):
+            raise self.outcome
+        return self.outcome
+
+
+async def test_github_route_returns_processed_result() -> None:
+    runtime = BridgeRuntime(settings())
+    runtime.continuation = FakeContinuation(  # type: ignore[assignment]
+        ContinuationResult(status="processed", event_key="pull_request:opened:1")
+    )
+    transport = httpx.ASGITransport(app=runtime.web)
+
+    async with httpx.AsyncClient(transport=transport, base_url="https://test") as client:
+        response = await client.post("/api/github/events", content=b"{}")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "processed"
+
+
+async def test_github_route_rejects_invalid_signature() -> None:
+    runtime = BridgeRuntime(settings())
+    runtime.continuation = FakeContinuation(  # type: ignore[assignment]
+        InvalidGitHubSignature("signature")
+    )
+    transport = httpx.ASGITransport(app=runtime.web)
+
+    async with httpx.AsyncClient(transport=transport, base_url="https://test") as client:
+        response = await client.post("/api/github/events", content=b"{}")
+
+    assert response.status_code == 401
+
+
+async def test_github_route_ignores_out_of_scope_event() -> None:
+    runtime = BridgeRuntime(settings())
+    runtime.continuation = FakeContinuation(  # type: ignore[assignment]
+        IgnoredGitHubEvent("event")
+    )
+    transport = httpx.ASGITransport(app=runtime.web)
+
+    async with httpx.AsyncClient(transport=transport, base_url="https://test") as client:
+        response = await client.post("/api/github/events", content=b"{}")
+
+    assert response.status_code == 202
+    assert response.json() == {"status": "ignored"}

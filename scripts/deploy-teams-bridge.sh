@@ -18,7 +18,7 @@ key_vault_name=$(terraform -chdir="$IAC_DIR" output -json teams_bridge | jq -r '
 messaging_endpoint=$(terraform -chdir="$IAC_DIR" output -json teams_bridge | jq -r '.messaging_endpoint')
 bot_client_id=$(terraform -chdir="$IAC_DIR" output -json teams_bridge | jq -r '.bot_client_id')
 
-for secret_name in bot-client-secret mcp-shared-key; do
+for secret_name in bot-client-secret github-webhook-secret mcp-shared-key; do
   az keyvault secret show \
     --vault-name "$key_vault_name" \
     --name "$secret_name" \
@@ -34,12 +34,39 @@ done
   func azure functionapp publish "$function_app_name" --python --build remote
 )
 
+# Core Tools synthesizes this classic connection string during publish even when
+# local.settings.json is excluded. It overrides the managed-identity components.
+az functionapp config appsettings delete \
+  --resource-group "$(terraform -chdir="$IAC_DIR" output -raw resource_group_name)" \
+  --name "$function_app_name" \
+  --setting-names AzureWebJobsStorage \
+  --output none
+
+legacy_storage_count=$(az functionapp config appsettings list \
+  --resource-group "$(terraform -chdir="$IAC_DIR" output -raw resource_group_name)" \
+  --name "$function_app_name" \
+  --query "length([?name == 'AzureWebJobsStorage'])" \
+  --output tsv)
+[[ "$legacy_storage_count" == "0" ]] || {
+  printf '%s\n' 'Legacy AzureWebJobsStorage setting remains after publish.' >&2
+  exit 1
+}
+az functionapp restart \
+  --resource-group "$(terraform -chdir="$IAC_DIR" output -raw resource_group_name)" \
+  --name "$function_app_name"
+
 function_hostname=${messaging_endpoint#https://}
 function_hostname=${function_hostname%/api/messages}
 "$ROOT_DIR/scripts/package-teams-app.sh" \
   --bot-client-id "$bot_client_id" \
   --function-hostname "$function_hostname"
 
-curl --fail-with-body --silent --show-error "https://$function_hostname/api/health" | jq -e '.status == "ok"' >/dev/null
+curl --fail-with-body --silent --show-error \
+  --retry 12 \
+  --retry-all-errors \
+  --retry-delay 5 \
+  "https://$function_hostname/api/health" \
+  | jq -e '.status == "ok"' >/dev/null
 "$ROOT_DIR/scripts/configure-sre-agent-capabilities.sh"
+"$ROOT_DIR/scripts/configure-github-webhook.sh"
 printf 'Teams bridge deployed and healthy: https://%s/api/health\n' "$function_hostname"

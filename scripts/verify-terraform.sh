@@ -2,14 +2,19 @@
 
 set -euo pipefail
 
-readonly ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
 readonly EXPECTED_SUBSCRIPTION="${TF_VAR_subscription_id:-}"
 readonly EXPECTED_TENANT="${TF_VAR_tenant_id:-}"
-readonly CORE_PLAN=$(mktemp "${TMPDIR:-/tmp}/sre-demo-core.XXXXXX.tfplan")
-readonly CORE_JSON=$(mktemp "${TMPDIR:-/tmp}/sre-demo-core.XXXXXX.json")
-readonly FULL_PLAN=$(mktemp "${TMPDIR:-/tmp}/sre-demo-full.XXXXXX.tfplan")
-readonly FULL_JSON=$(mktemp "${TMPDIR:-/tmp}/sre-demo-full.XXXXXX.json")
+CORE_PLAN=$(mktemp "${TMPDIR:-/tmp}/sre-demo-core.XXXXXX.tfplan")
+readonly CORE_PLAN
+CORE_JSON=$(mktemp "${TMPDIR:-/tmp}/sre-demo-core.XXXXXX.json")
+readonly CORE_JSON
+FULL_PLAN=$(mktemp "${TMPDIR:-/tmp}/sre-demo-full.XXXXXX.tfplan")
+readonly FULL_PLAN
+FULL_JSON=$(mktemp "${TMPDIR:-/tmp}/sre-demo-full.XXXXXX.json")
+readonly FULL_JSON
 readonly REQUIRED_PROVIDERS=(
   Microsoft.AlertsManagement
   Microsoft.App
@@ -51,8 +56,12 @@ command -v jq >/dev/null 2>&1 || { printf '%s\n' 'jq is required.' >&2; exit 1; 
 command -v uvx >/dev/null 2>&1 || { printf '%s\n' 'uvx is required for the ephemeral Checkov scan.' >&2; exit 1; }
 
 grep -F 'SecretName=bot-client-secret' "$IAC_DIR/modules/teams-bridge/main.tf" >/dev/null
+grep -F 'SecretName=github-webhook-secret' "$IAC_DIR/modules/teams-bridge/main.tf" >/dev/null
 grep -F 'SecretName=mcp-shared-key' "$IAC_DIR/modules/teams-bridge/main.tf" >/dev/null
-! grep -R 'resource "azurerm_key_vault_secret"' "$IAC_DIR" >/dev/null
+if grep -R 'resource "azurerm_key_vault_secret"' "$IAC_DIR" >/dev/null; then
+  printf '%s\n' 'Terraform must not store bridge secret values in state.' >&2
+  exit 1
+fi
 
 [[ -n "$EXPECTED_SUBSCRIPTION" ]] || {
   printf '%s\n' 'Set TF_VAR_subscription_id before running Terraform verification.' >&2

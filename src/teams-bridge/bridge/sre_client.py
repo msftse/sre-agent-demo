@@ -35,3 +35,16 @@ class SreAgentClient:
         if not thread_id:
             raise RuntimeError("SRE Agent did not return a thread ID.")
         return thread_id
+
+    async def send_message(self, *, thread_id: str, text: str) -> None:
+        token = await self.credential.get_token("https://azuresre.dev/.default")
+        response = await self.http.post(
+            f"{self.endpoint}/api/v1/threads/{thread_id}/messages",
+            headers={"Authorization": f"Bearer {token.token}"},
+            json={
+                "text": text,
+                "userId": "github-continuation",
+                "displayName": "GitHub Continuation",
+            },
+        )
+        response.raise_for_status()
