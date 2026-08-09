@@ -8,6 +8,12 @@ aks_operator_object_id = null
 github_repository_owner_id = null
 github_repository_id       = null
 
+enable_teams_bridge          = false
+teams_tenant_id              = null
+teams_team_id                = null
+teams_channel_id             = null
+teams_allowed_user_object_id = null
+
 tags = {
   Owner = "platform-engineering"
 }

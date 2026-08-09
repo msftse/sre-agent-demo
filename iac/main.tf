@@ -4,6 +4,8 @@ resource "random_string" "suffix" {
   special = false
 }
 
+data "azuread_client_config" "current" {}
+
 locals {
   suffix                  = coalesce(var.name_suffix, random_string.suffix.result)
   compact_project         = replace(var.project_name, "-", "")
@@ -23,17 +25,36 @@ locals {
     0,
     128,
   )
-  log_analytics_name = "log-${var.project_name}-${var.environment}-${local.suffix}"
-  app_insights_name  = "appi-${var.project_name}-${var.environment}-${local.suffix}"
-  monitor_name       = "amw-${var.project_name}-${var.environment}-${local.suffix}"
-  grafana_name       = "amg-${substr(local.compact_project, 0, 6)}-${var.environment}-${local.suffix}"
-  sre_agent_name     = "sre-${var.project_name}-${var.environment}-${local.suffix}"
+  log_analytics_name          = "log-${var.project_name}-${var.environment}-${local.suffix}"
+  app_insights_name           = "appi-${var.project_name}-${var.environment}-${local.suffix}"
+  monitor_name                = "amw-${var.project_name}-${var.environment}-${local.suffix}"
+  grafana_name                = "amg-${substr(local.compact_project, 0, 6)}-${var.environment}-${local.suffix}"
+  sre_agent_name              = "sre-${var.project_name}-${var.environment}-${local.suffix}"
+  teams_bridge_name           = "func-tm-${substr(local.compact_project, 0, 8)}-${var.environment}-${local.suffix}"
+  teams_bridge_storage_name   = "sttm${substr(local.compact_project, 0, 8)}${var.environment}${local.suffix}"
+  teams_bridge_key_vault_name = "kv-tm-${substr(local.compact_project, 0, 8)}-${local.suffix}"
   common_tags = merge(var.tags, {
     Environment     = var.environment
     ManagedBy       = "Terraform"
     Project         = var.project_name
     SecurityControl = "Ignore"
   })
+}
+
+resource "azuread_application" "teams_bot" {
+  count = var.enable_teams_bridge ? 1 : 0
+
+  display_name            = "Azure SRE Agent ${var.environment} ${local.suffix}"
+  sign_in_audience        = "AzureADMyOrg"
+  prevent_duplicate_names = true
+  owners                  = [data.azuread_client_config.current.object_id]
+}
+
+resource "azuread_service_principal" "teams_bot" {
+  count = var.enable_teams_bridge ? 1 : 0
+
+  client_id = azuread_application.teams_bot[0].client_id
+  owners    = [data.azuread_client_config.current.object_id]
 }
 
 module "resource_group" {
@@ -149,4 +170,44 @@ module "sre_agent" {
   subscription_id     = var.subscription_id
   tags                = local.common_tags
   upgrade_channel     = var.sre_agent_upgrade_channel
+}
+
+module "teams_bridge" {
+  count  = var.enable_teams_bridge ? 1 : 0
+  source = "./modules/teams-bridge"
+
+  allowed_user_object_id                 = var.teams_allowed_user_object_id
+  application_insights_connection_string = module.observability[0].application_insights_connection_string
+  bot_client_id                          = azuread_application.teams_bot[0].client_id
+  bot_name                               = "bot-teams-${var.project_name}-${var.environment}-${local.suffix}"
+  bot_tenant_id                          = var.tenant_id
+  function_app_name                      = local.teams_bridge_name
+  identity_name                          = "id-teams-${var.project_name}-${var.environment}-${local.suffix}"
+  key_vault_name                         = local.teams_bridge_key_vault_name
+  location                               = module.resource_group.location
+  operator_object_id                     = var.aks_operator_object_id
+  resource_group_id                      = module.resource_group.id
+  resource_group_name                    = module.resource_group.name
+  service_plan_name                      = "asp-teams-${var.project_name}-${var.environment}-${local.suffix}"
+  sre_agent_endpoint                     = module.sre_agent[0].endpoint
+  sre_agent_id                           = module.sre_agent[0].id
+  storage_account_name                   = local.teams_bridge_storage_name
+  tags                                   = local.common_tags
+  teams_channel_id                       = var.teams_channel_id
+  teams_team_id                          = var.teams_team_id
+  teams_tenant_id                        = var.teams_tenant_id
+}
+
+check "teams_bridge_prerequisites" {
+  assert {
+    condition = !var.enable_teams_bridge || (
+      var.enable_observability
+      && var.enable_sre_agent
+      && var.teams_tenant_id != null
+      && var.teams_team_id != null
+      && var.teams_channel_id != null
+      && var.teams_allowed_user_object_id != null
+    )
+    error_message = "Teams bridge requires observability, SRE Agent, and all Teams tenant/team/channel/user IDs."
+  }
 }

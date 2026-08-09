@@ -1,0 +1,60 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.22/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.22",
+  "version": "1.0.0",
+  "id": "${BOT_CLIENT_ID}",
+  "developer": {
+    "name": "Northstar SRE Demo",
+    "websiteUrl": "https://${FUNCTION_HOSTNAME}/api/health",
+    "privacyUrl": "https://${FUNCTION_HOSTNAME}/privacy",
+    "termsOfUseUrl": "https://${FUNCTION_HOSTNAME}/terms"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "Azure SRE Agent",
+    "full": "Azure SRE Agent for Northstar"
+  },
+  "description": {
+    "short": "Investigate Northstar incidents with Azure SRE Agent.",
+    "full": "Starts and follows Azure SRE Agent investigations from the approved Northstar Teams channel. Pull-request merge and deployment remain human-controlled."
+  },
+  "accentColor": "#0B1F33",
+  "bots": [
+    {
+      "botId": "${BOT_CLIENT_ID}",
+      "scopes": [
+        "team",
+        "personal"
+      ],
+      "supportsFiles": false,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": [
+            "team",
+            "personal"
+          ],
+          "commands": [
+            {
+              "title": "status",
+              "description": "Verify the Teams bridge without starting an investigation."
+            },
+            {
+              "title": "investigate",
+              "description": "Start an Azure SRE Agent investigation."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": [
+    "identity"
+  ],
+  "validDomains": [
+    "${FUNCTION_HOSTNAME}"
+  ]
+}

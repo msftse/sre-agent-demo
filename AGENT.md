@@ -28,6 +28,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 09-protected-github-delivery.md
 │       ├── 10-checkout-incident.md
 │       ├── 11-sre-agent-foundation.md
+│       ├── 12-teams-bridge.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -45,7 +46,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   │   ├── network/
 │   │   ├── observability/
 │   │   ├── resource-group/
-│   │   └── sre-agent/
+│   │   ├── sre-agent/
+│   │   └── teams-bridge/
 │   ├── .terraform.lock.hcl
 │   ├── main.tf
 │   ├── outputs.tf
@@ -54,10 +56,16 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-sre-teams-connector.sh
 │   ├── configure-github-protection.sh
+│   ├── deploy-teams-bridge.sh
+│   ├── package-teams-app.sh
 │   ├── preflight.sh
+│   ├── provision-teams-bot-identity.sh
 │   ├── publish-images.sh
+│   ├── render-teams-icons.py
 │   ├── verify-deployment.sh
+│   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
@@ -78,7 +86,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
     │   ├── pip.conf
     │   ├── pyproject.toml
     │   └── uv.lock
-    └── frontend/
+    ├── frontend/
         ├── public/
         │   └── products/
         │       ├── alpine-shell.jpg
@@ -101,6 +109,15 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
         ├── package-lock.json
         ├── package.json
         └── vite.config.ts
+    └── teams-bridge/
+        ├── appPackage/
+        ├── bridge/
+        ├── tests/
+        ├── function_app.py
+        ├── host.json
+        ├── pyproject.toml
+        ├── requirements.txt
+        └── uv.lock
 ```
 
 ## Stages
@@ -116,7 +133,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 9 - Protected GitHub Actions delivery:** Complete
 - **Stage 10 - Deterministic checkout incident and alert:** Complete
 - **Stage 11 - Azure SRE Agent and Azure Monitor incident platform:** Complete
-- **Stages 12-18:** Not started; see `docs/stages/README.md`
+- **Stage 12 - Teams connector and threaded notifications:** Complete
+- **Stages 13-18:** Not started; see `docs/stages/README.md`
 
 ## Key Decisions
 
@@ -273,3 +291,13 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Direct ARM creation produced no quickstart response plan. Live data-plane collections show zero threads, incident filters, connectors, custom agents, and plugins.
 - The 2026 API requires the UAMI resource ID in both `actionConfiguration.identity` and `knowledgeGraphConfiguration.identity`; omitting it returns `InvalidIdentity`.
 - Terraform tracks 39 resources with zero drift. Checkov passes 24 checks with zero failures, all four application pods remain Ready, traffic is disabled, and no checkout alert is active.
+
+## Stage 12 Teams Bridge
+
+- Azure Bot Service F0 forwards Teams activities to Python 3.12 Functions Flex Consumption; five Functions are registered and the host is healthy.
+- Inbound requests require Bot Connector JWT validation plus exact tenant, Team `aadGroupId`, channel, and operator boundaries. The safe `status` command proved the live inbound path without starting an investigation.
+- The bridge MCP endpoint requires `x-mcp-key`, keeps DNS-rebinding protection, and exposes only post, threaded reply, and route lookup tools for the fixed destination.
+- UAMI access is limited to keyless host storage roles, Key Vault Secrets User, and SRE Agent Standard User. The operator can rotate secrets only in the bridge vault.
+- `scripts/configure-sre-teams-connector.sh` performs secret-safe, idempotent data-plane creation/update of `northstar-teams` and verifies its exact three prefixed tools. It is called automatically after every successful bridge deployment.
+- Live outbound testing created a validation root post and same-thread reply, then read the fixed route back. No SRE investigation or checkout alert was created.
+- Terraform tracks 62 resources with zero drift; incident traffic remains disabled.

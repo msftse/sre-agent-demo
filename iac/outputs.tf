@@ -91,3 +91,16 @@ output "sre_agent" {
     principal_id                              = module.sre_agent[0].principal_id
   } : null
 }
+
+output "teams_bridge" {
+  description = "Microsoft Teams bridge endpoints and identity when enabled."
+  value = var.enable_teams_bridge ? {
+    bot_client_id         = azuread_application.teams_bot[0].client_id
+    function_app_id       = module.teams_bridge[0].function_app_id
+    function_app_name     = module.teams_bridge[0].function_app_name
+    identity_principal_id = module.teams_bridge[0].identity_principal_id
+    key_vault_name        = module.teams_bridge[0].key_vault_name
+    mcp_endpoint          = module.teams_bridge[0].mcp_endpoint
+    messaging_endpoint    = module.teams_bridge[0].messaging_endpoint
+  } : null
+}

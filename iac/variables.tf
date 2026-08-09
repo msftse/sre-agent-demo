@@ -234,3 +234,37 @@ variable "sre_agent_upgrade_channel" {
     error_message = "sre_agent_upgrade_channel must be Stable or Preview."
   }
 }
+
+variable "enable_teams_bridge" {
+  description = "Create the Stage 12 Microsoft Teams bot bridge infrastructure."
+  type        = bool
+  default     = false
+}
+
+variable "teams_tenant_id" {
+  description = "Microsoft tenant ID that hosts the target Team and bot app."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "teams_team_id" {
+  description = "Target Microsoft Team ID locked into the bridge."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "teams_channel_id" {
+  description = "Target Microsoft Teams channel ID locked into the bridge."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "teams_allowed_user_object_id" {
+  description = "Only Microsoft Entra user object ID allowed to start an investigation from Teams."
+  type        = string
+  default     = null
+  nullable    = true
+}

@@ -28,6 +28,16 @@ readonly REQUIRED_FEATURES=(
   "Microsoft.Compute|EncryptionAtHost"
 )
 
+TEAMS_PLAN_VARS=(-var='enable_teams_bridge=true')
+if [[ ! -f "$IAC_DIR/terraform.tfvars" ]]; then
+  TEAMS_PLAN_VARS+=(
+    -var='teams_tenant_id=00000000-0000-0000-0000-000000000002'
+    -var='teams_team_id=00000000-0000-0000-0000-000000000003'
+    -var='teams_channel_id=19:test@thread.tacv2'
+    -var='teams_allowed_user_object_id=00000000-0000-0000-0000-000000000004'
+  )
+fi
+
 cleanup() {
   rm -f "$CORE_PLAN" "$CORE_JSON" "$FULL_PLAN" "$FULL_JSON"
 }
@@ -39,6 +49,10 @@ command -v terraform >/dev/null 2>&1 || { printf '%s\n' 'Terraform is required.'
 command -v az >/dev/null 2>&1 || { printf '%s\n' 'Azure CLI is required.' >&2; exit 1; }
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'jq is required.' >&2; exit 1; }
 command -v uvx >/dev/null 2>&1 || { printf '%s\n' 'uvx is required for the ephemeral Checkov scan.' >&2; exit 1; }
+
+grep -F 'SecretName=bot-client-secret' "$IAC_DIR/modules/teams-bridge/main.tf" >/dev/null
+grep -F 'SecretName=mcp-shared-key' "$IAC_DIR/modules/teams-bridge/main.tf" >/dev/null
+! grep -R 'resource "azurerm_key_vault_secret"' "$IAC_DIR" >/dev/null
 
 [[ -n "$EXPECTED_SUBSCRIPTION" ]] || {
   printf '%s\n' 'Set TF_VAR_subscription_id before running Terraform verification.' >&2
@@ -111,7 +125,8 @@ terraform -chdir="$IAC_DIR" plan \
   -input=false \
   -out="$FULL_PLAN" \
   -var='enable_observability=true' \
-  -var='enable_sre_agent=true' >/dev/null
+  -var='enable_sre_agent=true' \
+  "${TEAMS_PLAN_VARS[@]}" >/dev/null
 terraform -chdir="$IAC_DIR" show -json "$FULL_PLAN" >"$FULL_JSON"
 
 audit_plan_tags() {
@@ -119,7 +134,11 @@ audit_plan_tags() {
   local missing
   missing=$(jq -r '
     .resource_changes[]
-    | select(.change.after.tags? != null and .change.after.tags.SecurityControl != "Ignore")
+    | select(
+        .change.after.tags? != null
+        and (.change.after.tags | type) == "object"
+        and .change.after.tags.SecurityControl != "Ignore"
+      )
     | .address
   ' "$plan_json")
   [[ -z "$missing" ]] || {
@@ -149,6 +168,53 @@ jq -e '
     and .actionConfiguration.mode == "Review"
     and .incidentManagementConfiguration.type == "AzMonitor"
     and .incidentManagementConfiguration.connectionName == "azmonitor"
+' "$FULL_JSON" >/dev/null
+
+jq -e '
+  .resource_changes[]
+  | select(.address == "module.teams_bridge[0].azurerm_function_app_flex_consumption.this")
+  | .change.after
+  | .runtime_name == "python"
+    and .runtime_version == "3.12"
+    and .storage_authentication_type == "UserAssignedIdentity"
+    and .https_only == true
+    and .webdeploy_publish_basic_authentication_enabled == false
+' "$FULL_JSON" >/dev/null
+
+jq -e '
+  .resource_changes[]
+  | select(.address == "module.teams_bridge[0].azapi_resource.storage_account")
+  | .change.after.body.properties
+  | .allowSharedKeyAccess == false
+    and .allowBlobPublicAccess == false
+    and .defaultToOAuthAuthentication == true
+' "$FULL_JSON" >/dev/null
+
+jq -e '
+  [
+    .resource_changes[]
+    | select(.module_address == "module.teams_bridge[0]")
+    | select(.type == "azurerm_role_assignment")
+    | .change.after.role_definition_name
+  ] as $roles
+  | [
+      "Key Vault Secrets User",
+      "SRE Agent Standard User",
+      "Storage Account Contributor",
+      "Storage Blob Data Owner",
+      "Storage Queue Data Contributor",
+      "Storage Table Data Contributor"
+    ]
+    | all(. as $role | $roles | index($role))
+  | select($roles | all(
+      . == "Key Vault Secrets User"
+      or . == "Key Vault Secrets Officer"
+      or . == "SRE Agent Standard User"
+      or . == "Storage Account Contributor"
+      or . == "Storage Blob Data Owner"
+      or . == "Storage Queue Data Contributor"
+      or . == "Storage Table Data Contributor"
+    ))
 ' "$FULL_JSON" >/dev/null
 
 jq -e '
@@ -183,15 +249,17 @@ full_resources=$(jq '[.resource_changes[] | select(.change.actions != ["no-op"])
 observability_resources=$(jq '[.resource_changes[] | select(.module_address == "module.observability[0]")] | length' "$FULL_JSON")
 aks_monitoring_resources=$(jq '[.resource_changes[] | select(.module_address == "module.aks_monitoring[0]")] | length' "$FULL_JSON")
 sre_agent_resources=$(jq '[.resource_changes[] | select(.module_address == "module.sre_agent[0]")] | length' "$FULL_JSON")
+teams_bridge_resources=$(jq '[.resource_changes[] | select(.module_address == "module.teams_bridge[0]")] | length' "$FULL_JSON")
 
 [[ "$observability_resources" == "5" ]]
 [[ "$aks_monitoring_resources" == "9" ]]
 [[ "$sre_agent_resources" == "9" ]]
+(( teams_bridge_resources >= 18 && teams_bridge_resources <= 19 ))
 (( full_resources >= core_resources ))
 
 printf 'PASS: Terraform foundation is valid and plans without applying.\n'
 printf 'Providers: AzureRM 4.81, AzureAD 3.9, AzAPI 2.11, random 3.9\n'
 printf 'Current core plan: %s resources\n' "$core_resources"
-printf 'Current full plan: %s resources (%s observability, %s AKS monitoring, %s SRE Agent)\n' \
-  "$full_resources" "$observability_resources" "$aks_monitoring_resources" "$sre_agent_resources"
+printf 'Current full plan: %s resources (%s observability, %s AKS monitoring, %s SRE Agent, %s Teams bridge)\n' \
+  "$full_resources" "$observability_resources" "$aks_monitoring_resources" "$sre_agent_resources" "$teams_bridge_resources"
 printf 'Security: zero destroys, Checkov and RBAC allowlist pass\n'

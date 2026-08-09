@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Add Teams bridge and automated SRE connector
+
+- Added a Python 3.12 Functions Flex bridge, Azure Bot F0/Teams channel, Durable workflow, keyless storage, Key Vault, UAMI, and a sideloadable Azure SRE Agent Teams package.
+- Enforced exact tenant, Team, channel, and operator boundaries on inbound activities and fixed Team matching to use the Graph `aadGroupId` field.
+- Exposed only three authenticated MCP tools for fixed-channel root posts, threaded replies, and route lookup; validated 401 without the key and exact discovery with it.
+- Added secret-safe, idempotent `northstar-teams` connector creation through the SRE Agent data plane and integrated it into every bridge deployment.
+- Verified inbound status, outbound root/reply threading, 13 tests, five live Functions, 62 Terraform resources at zero drift, disabled incident traffic, and zero active checkout alerts.
+
 ### 2026-08-09 - Deploy Azure SRE Agent foundation
 
 - Deployed a Stable Azure SRE Agent with native Azure Monitor incident discovery, global Review/Low safeguards, and demo-resource-group knowledge scope.

@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 11 is complete. Azure SRE Agent is running with native Azure Monitor incident discovery, a dedicated managed identity, and read-only Northstar investigation access. No response plan or connector is configured yet, the FIELD20 traffic generator remains disabled, and the severity-1 checkout alert remains quiet. Activation waits until Teams, GitHub, the dedicated checkout skill, and the incident responder are configured in Stages 12-15.
+Stage 12 is complete. Azure SRE Agent has a secured, automatically provisioned `northstar-teams` MCP connector backed by a real Teams bot and threaded notification bridge. The FIELD20 traffic generator remains disabled and the severity-1 checkout alert remains quiet. Activation waits until GitHub, the dedicated checkout skill, and the incident responder are configured in Stages 13-15.
 
 ## Quick Start
 
@@ -126,6 +126,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 09-protected-github-delivery.md
 │       ├── 10-checkout-incident.md
 │       ├── 11-sre-agent-foundation.md
+│       ├── 12-teams-bridge.md
 │       └── README.md
 ├── deploy/
 │   └── helm/
@@ -143,7 +144,8 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   │   ├── network/
 │   │   ├── observability/
 │   │   ├── resource-group/
-│   │   └── sre-agent/
+│   │   ├── sre-agent/
+│   │   └── teams-bridge/
 │   ├── .terraform.lock.hcl
 │   ├── main.tf
 │   ├── outputs.tf
@@ -152,10 +154,16 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-sre-teams-connector.sh
 │   ├── configure-github-protection.sh
+│   ├── deploy-teams-bridge.sh
+│   ├── package-teams-app.sh
 │   ├── preflight.sh
+│   ├── provision-teams-bot-identity.sh
 │   ├── publish-images.sh
+│   ├── render-teams-icons.py
 │   ├── verify-deployment.sh
+│   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
@@ -176,7 +184,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
     │   ├── pip.conf
     │   ├── pyproject.toml
     │   └── uv.lock
-    └── frontend/
+    ├── frontend/
         ├── public/
         │   └── products/
         │       ├── alpine-shell.jpg
@@ -199,6 +207,15 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
         ├── package-lock.json
         ├── package.json
         └── vite.config.ts
+      └── teams-bridge/
+        ├── appPackage/
+        ├── bridge/
+        ├── tests/
+        ├── function_app.py
+        ├── host.json
+        ├── pyproject.toml
+        ├── requirements.txt
+        └── uv.lock
 ```
 
 ## Delivery Approach
@@ -325,3 +342,17 @@ Azure SRE Agent `sre-sre-agent-demo-demo-ij2608` is running on the Stable channe
 The agent endpoint is `https://sre-sre-agent-demo-demo-ij2608--ba3ee979.bb5fab60.swedencentral.azuresre.ai`. Its data plane is reachable and currently has zero threads, response plans, connectors, custom agents, or plugins. Stage 14 will add a reusable checkout investigation and remediation skill. Stage 15 will set Autonomous mode only on the narrowly matched checkout response plan; GitHub permissions and branch protection will allow branch/commit/PR creation while preventing merge or deployment.
 
 See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation.md) for identity wiring, RBAC scopes, native alert discovery, and validation evidence.
+
+## Teams Bridge
+
+Stage 12 runs a Python 3.12 Azure Functions Flex Consumption bridge behind Azure Bot Service. Inbound Teams activities are restricted to the approved tenant, Team, `IJ-Test` channel, and operator. Outbound SRE updates use three authenticated MCP tools for a root notification, threaded replies, and route lookup; no tool can select another destination or perform Azure/GitHub changes.
+
+Deploying the bridge also runs `scripts/configure-sre-teams-connector.sh`, which idempotently creates or updates the SRE Agent `northstar-teams` connector. The script discovers and verifies the live MCP tools before registration, retrieves the custom-header key from Key Vault only at runtime, uses protected temporary files, and verifies the saved connector without printing the credential. Terraform state contains no bot or MCP secret.
+
+Validate source and packaging with:
+
+```bash
+./scripts/verify-teams-bridge.sh
+```
+
+See [docs/stages/12-teams-bridge.md](docs/stages/12-teams-bridge.md) for the identity model, automation flow, permission boundary, deployment lessons, and live evidence.
