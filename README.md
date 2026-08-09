@@ -14,6 +14,22 @@ Azure Monitor alert
 
 The application will contain a React storefront and a Python FastAPI checkout service. Azure Monitor managed service for Prometheus, Log Analytics, Application Insights, and Azure Managed Grafana will provide complementary metrics, runtime evidence, traces, and visualization.
 
+## Architecture and Project Flow
+
+![Azure SRE Agent closed-loop architecture and project flow](docs/architecture/images/sre-agent-closed-loop-flow.png)
+
+The project closes an incident from detection through verified recovery while preserving a mandatory human authorization boundary:
+
+1. **Detect:** the deterministic checkout regression raises the bounded failure-ratio metric and fires the Azure Monitor alert.
+2. **Investigate:** Azure SRE Agent correlates Managed Prometheus metrics, Log Analytics records, Application Insights traces, AKS health, release metadata, and deployed source.
+3. **Communicate:** the agent starts a Microsoft Teams incident thread and posts material evidence updates through the Functions continuation bridge.
+4. **Propose:** the constrained remediation skill creates a branch, adds a regression test, applies the minimum fix, and opens a GitHub pull request.
+5. **Authorize:** a person reviews and merges the pull request, then approves the protected `demo` deployment environment. Automation cannot perform either action.
+6. **Deploy:** GitHub Actions exchanges an environment-bound OIDC token for short-lived Azure access, publishes immutable image digests, and deploys them to AKS with Helm.
+7. **Verify and close:** signed GitHub events resume the original investigation. The agent verifies the deployed SHA and digest, ready replicas, successful `FIELD20` checkout, signal recovery, and alert resolution before posting the final RCA to Teams and GitHub.
+
+> **Human authorization boundary:** Azure SRE Agent can investigate and prepare a tested pull request, but it has no merge, review, workflow-dispatch, deployment, or Azure-write tool.
+
 ## Current Status
 
 Stages 1-16 are complete. Signed GitHub PR, deployment, and workflow events now resume the original Azure SRE Agent investigation and Teams timeline through a Key Vault-backed continuation bridge. Merge, review, workflow dispatch, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled, the alert is quiet, and no remediation PR exists. The user-owned Stage 18 [architecture proposal](docs/architecture/sre-agent-demo-architecture.html) is complete; the Stage 17 live approval and rejection rehearsal remains pending.
