@@ -77,4 +77,4 @@ Incident traffic: disabled
 
 ## Outcome
 
-Stage 12 is complete. Teams transport, threading, secure MCP exposure, and automated SRE connector provisioning are ready. Stage 13 can validate GitHub write capabilities; the user will create the final architecture proposal with Codex in Stage 18.
+Stage 12 is complete. Teams transport, threading, secure MCP exposure, and automated SRE connector provisioning are ready. Stage 13 subsequently validated the constrained GitHub write capabilities; the user will create the final architecture proposal with Codex in Stage 18.

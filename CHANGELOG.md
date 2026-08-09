@@ -2,6 +2,13 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-09 - Validate least-privilege GitHub connector
+
+- Added secret-safe, idempotent Azure SRE Agent registration for GitHub's official remote MCP server.
+- Exposed exactly five source-read and branch/commit/PR tools while withholding merge, review, PR mutation, and deployment capabilities.
+- Added a repeatable live verifier for connector metadata, branch enforcement, deployment approval, and workflow token restrictions.
+- Proved a live read of `README.md` from `main`, connector idempotency, and unchanged human merge/deployment boundaries without creating a branch or pull request.
+
 ### 2026-08-09 - Move architecture proposal to the end
 
 - Moved the architecture proposal from Stage 13 to user-owned Stage 18 so it can be run manually with Codex after the full workflow rehearsal.

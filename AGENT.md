@@ -29,6 +29,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 10-checkout-incident.md
 │       ├── 11-sre-agent-foundation.md
 │       ├── 12-teams-bridge.md
+│       ├── 13-github-connector.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -57,6 +58,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-sre-github-connector.sh
 │   ├── configure-sre-teams-connector.sh
 │   ├── configure-github-protection.sh
 │   ├── deploy-teams-bridge.sh
@@ -66,6 +68,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
 │   ├── verify-deployment.sh
+│   ├── verify-github-connector.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
@@ -135,7 +138,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 10 - Deterministic checkout incident and alert:** Complete
 - **Stage 11 - Azure SRE Agent and Azure Monitor incident platform:** Complete
 - **Stage 12 - Teams connector and threaded notifications:** Complete
-- **Stages 13-17:** Not started; see `docs/stages/README.md`
+- **Stage 13 - GitHub connector capability validation:** Complete
+- **Stages 14-17:** Not started; see `docs/stages/README.md`
 - **Stage 18 - User-owned Azure architecture proposal with Codex:** Not started
 - **Stage 19 - Final learning materials and Terraform teardown:** Not started
 
@@ -304,3 +308,12 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - `scripts/configure-sre-teams-connector.sh` performs secret-safe, idempotent data-plane creation/update of `northstar-teams` and verifies its exact three prefixed tools. It is called automatically after every successful bridge deployment.
 - Live outbound testing created a validation root post and same-thread reply, then read the fixed route back. No SRE investigation or checkout alert was created.
 - Terraform tracks 62 resources with zero drift; incident traffic remains disabled.
+
+## Stage 13 GitHub Connector
+
+- `northstar-github` connects Azure SRE Agent to GitHub's official remote MCP server and is constrained to five selected tools: source search/read, branch creation, multi-file commit, and pull-request creation.
+- Merge, review, Copilot-authored PR, general PR mutation, branch-update, and deployment capabilities are absent from the selected tool set.
+- `scripts/configure-sre-github-connector.sh` performs secret-safe MCP discovery, idempotent data-plane registration, and exact saved-tool verification without printing the GitHub credential.
+- `scripts/verify-github-connector.sh` validates the live connector and the independent main-branch and protected-environment controls.
+- A live `get_file_contents` call read `README.md` from `main`; no branch, commit, PR, workflow, deployment, investigation, or alert was created.
+- The demo uses the active `ij-23` GitHub CLI credential, whose scopes are broader than the selected MCP tools. Production should use a dedicated repository-scoped GitHub App or fine-grained service credential.

@@ -16,7 +16,7 @@ The application will contain a React storefront and a Python FastAPI checkout se
 
 ## Current Status
 
-Stage 12 is complete. Azure SRE Agent has a secured, automatically provisioned `northstar-teams` MCP connector backed by a real Teams bot and threaded notification bridge. The FIELD20 traffic generator remains disabled and the severity-1 checkout alert remains quiet. Activation waits until GitHub, the dedicated checkout skill, and the incident responder are configured in Stages 13-15. The user will create the final architecture proposal with Codex in Stage 18.
+Stage 13 is complete. Azure SRE Agent has secured Teams and GitHub MCP connectors; GitHub exposes only source search/read plus automatic branch, commit, and pull-request creation. Merge, review, and deployment tools remain unavailable. The FIELD20 traffic generator remains disabled and the severity-1 checkout alert remains quiet. Activation waits until the dedicated checkout skill and incident responder are configured in Stages 14-15. The user will create the final architecture proposal with Codex in Stage 18.
 
 ## Quick Start
 
@@ -155,6 +155,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-sre-github-connector.sh
 │   ├── configure-sre-teams-connector.sh
 │   ├── configure-github-protection.sh
 │   ├── deploy-teams-bridge.sh
@@ -164,6 +165,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
 │   ├── verify-deployment.sh
+│   ├── verify-github-connector.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
@@ -357,3 +359,15 @@ Validate source and packaging with:
 ```
 
 See [docs/stages/12-teams-bridge.md](docs/stages/12-teams-bridge.md) for the identity model, automation flow, permission boundary, deployment lessons, and live evidence.
+
+## GitHub Connector
+
+Stage 13 adds the idempotent `northstar-github` connector through GitHub's official remote MCP server. Its exact allowlist is `search_code`, `get_file_contents`, `create_branch`, `push_files`, and `create_pull_request`. Merge, review, general PR mutation, and deployment tools are not visible to Azure SRE Agent.
+
+The live gate verifies the connector metadata without printing its authorization header, confirms the forbidden tools remain absent, and rechecks GitHub's branch and protected-environment controls:
+
+```bash
+./scripts/verify-github-connector.sh
+```
+
+See [docs/stages/13-github-connector.md](docs/stages/13-github-connector.md) for the capability model, credential trade-off, idempotency proof, and live read validation.
