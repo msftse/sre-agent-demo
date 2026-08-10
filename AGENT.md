@@ -157,7 +157,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - **Stage 14 - Northstar checkout investigation and remediation skill:** Complete
 - **Stage 15 - Incident responder, response plan, and Teams timeline:** Complete
 - **Stage 16 - GitHub-to-agent-to-Teams continuation loop:** Complete
-- **Stage 17 - Full approval and rejection dress rehearsal:** Not started
+- **Stage 17 - Full approval and rejection dress rehearsal:** Complete
 - **Stage 18 - User-owned Azure architecture proposal with Codex:** Complete
 - **Stage 19 - Final learning materials and Terraform teardown:** Not started
 

@@ -15,7 +15,7 @@ Create a polished, customer-facing architecture design for the Azure SRE Agent c
 | Proposal type | General/greenfield Azure proposal |
 | Subject | Northstar Azure SRE Agent closed-loop incident response demo |
 | Audience | Platform, SRE, application, security, and engineering leadership |
-| Source context | Repository documentation, Terraform, application code, live Azure resources, verified Stage 1-16 evidence, and the planned Stage 17 rehearsal flow |
+| Source context | Repository documentation, Terraform, application code, live Azure resources, verified Stage 1-16 evidence, and the Stage 17 rehearsal design |
 | Delivery owner | User with Codex |
 | Deliverable | One self-contained HTML file with all selected images embedded |
 | Planned path | `docs/architecture/sre-agent-demo-architecture.html` |
@@ -74,4 +74,4 @@ Stage 18 completion criteria:
 
 ## Outcome
 
-Stage 18 is complete. The user-owned, self-contained proposal is available at [docs/architecture/sre-agent-demo-architecture.html](../architecture/sre-agent-demo-architecture.html) with three embedded architecture diagrams, security and approval boundaries, open questions, a glossary, and verified Microsoft references. It documents the implemented Stage 1-16 system and the planned Stage 17 rehearsal; it does not claim that the live rehearsal has already run. Stage 17 remains pending, and Stage 19 can follow after the remaining live exercise and final review.
+Stage 18 is complete. The user-owned, self-contained proposal is available at [docs/architecture/sre-agent-demo-architecture.html](../architecture/sre-agent-demo-architecture.html) with three embedded architecture diagrams, security and approval boundaries, open questions, a glossary, and verified Microsoft references. Stage 17 subsequently proved the documented closed loop against the live environment. Stage 19 can finalize learning materials and tear down the demo after the requested repeat E2E run.

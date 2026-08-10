@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-10 - Complete live approval and rejection rehearsal
+
+- Activated the deterministic FIELD20 incident, observed the Sev1 Azure Monitor alert, and completed an evidence-backed Azure SRE Agent investigation in the existing Teams timeline.
+- Proved automatic remediation PR creation, human rejection, reopen, user merge, separately approved recovery deployment, exact FIELD20 totals, alert resolution, and final Teams/GitHub RCA.
+- Hardened deployment verification, Teams root-thread routing, serial Azure investigation reads, signed continuation verification, and user-merge branch protection based on live findings.
+- Added automatic protected recovery startup after a merged same-repository SRE remediation PR while forcing incident traffic off and retaining explicit environment approval.
+- Recorded the immutable evidence and lessons in `docs/stages/17-approval-rejection-rehearsal.md`.
+
 ### 2026-08-10 - Connect SRE Agent traces to Application Insights
 
 - Wired the managed Application Insights application ID and sensitive connection string into the Azure SRE Agent log configuration.
