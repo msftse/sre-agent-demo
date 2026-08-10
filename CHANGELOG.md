@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-10 - Connect SRE Agent traces to Application Insights
+
+- Wired the managed Application Insights application ID and sensitive connection string into the Azure SRE Agent log configuration.
+- Preserved optional observability behavior by omitting the log configuration when Application Insights is disabled.
+- Applied one in-place SRE Agent update with zero additions or destroys and verified `Running`/`Succeeded`, the expected Application Insights AppId, and zero Terraform drift.
+- Changed incident protection to require validation plus a user-performed merge without a separate approving review; the protected deployment still requires explicit `ij-23` approval.
+- Added automatic recovery workflow startup after a merged same-repository SRE remediation PR, with incident traffic forced off and the protected environment approval retained.
+
 ### 2026-08-09 - Complete user-owned architecture proposal
 
 - Added the user-created, self-contained Azure SRE Agent architecture proposal at `docs/architecture/sre-agent-demo-architecture.html`.

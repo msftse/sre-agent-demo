@@ -41,8 +41,12 @@ if grep -Eq '(ij[0-9]{4}|/subscriptions/[0-9a-f-]{36}|rg-sre-agent-demo|aks-sre-
   exit 1
 fi
 
+# shellcheck disable=SC2016 # Backticks are literal Markdown in the skill contract.
 for discovery_clause in \
   'Never assume an Azure subscription, resource group, AKS cluster' \
+  'Run Azure CLI reads serially' \
+  'Keep exactly one `RunAzCliReadCommands` call in flight' \
+  'Prefer core `az resource`, `az rest`, and `az aks show` commands' \
   'Resolve the monitored AKS cluster and resource group from those resource IDs' \
   'Resolve linked Log Analytics, Azure Monitor workspace, and Application Insights resource IDs'; do
   grep -F "$discovery_clause" "$SKILL_FILE" >/dev/null

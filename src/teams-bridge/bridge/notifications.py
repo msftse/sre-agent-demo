@@ -27,14 +27,15 @@ class NotificationService:
 
     async def post_update(self, thread_id: str, message: str) -> dict[str, str]:
         channel = await self.state.get_channel()
-        sent = await self.teams.send(str(channel["ConversationId"]), message)
+        conversation_id = str(channel["ConversationId"]).split(";messageid=", 1)[0]
+        sent = await self.teams.send(conversation_id, message)
         activity_id = str(getattr(sent, "id", ""))
         if not activity_id:
             raise RuntimeError("Teams did not return an activity ID.")
         await self.state.save_investigation(
             {
                 "sre_thread_id": thread_id,
-                "conversation_id": str(channel["ConversationId"]),
+                "conversation_id": conversation_id,
                 "activity_id": activity_id,
                 "service_url": str(channel["ServiceUrl"]),
                 "team_id": str(channel["TeamId"]),

@@ -57,7 +57,8 @@ def test_distinguishes_merged_and_rejected_pull_requests(
     assert event.merge_sha == ("merge-123" if merged else "")
 
 
-def test_parses_correlated_workflow_completion() -> None:
+@pytest.mark.parametrize("workflow_event", ["pull_request_target", "workflow_dispatch"])
+def test_parses_correlated_workflow_completion(workflow_event: str) -> None:
     event = parse_github_event(
         delivery_id="delivery-3",
         event_type="workflow_run",
@@ -66,7 +67,7 @@ def test_parses_correlated_workflow_completion() -> None:
             "repository": repository(),
             "workflow_run": {
                 "name": "Deliver demo to AKS",
-                "event": "workflow_dispatch",
+                "event": workflow_event,
                 "head_branch": "main",
                 "head_sha": "merge-123",
                 "conclusion": "success",
@@ -122,6 +123,19 @@ def test_parses_correlated_demo_deployment_status() -> None:
                 "action": "completed",
                 "repository": repository(),
                 "workflow_run": {"name": "Other workflow"},
+            },
+        ),
+        (
+            "workflow_run",
+            {
+                "action": "completed",
+                "repository": repository(),
+                "workflow_run": {
+                    "name": "Deliver demo to AKS",
+                    "event": "pull_request",
+                    "head_branch": "main",
+                    "head_sha": "merge-123",
+                },
             },
         ),
         (

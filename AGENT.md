@@ -172,7 +172,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Terraform state: local and ignored by Git for this learning demo.
 - Every taggable Azure resource must include `SecurityControl=Ignore`.
 - Teams notifications are mandatory at incident start, during material investigation steps, and at completion with the RCA.
-- Human GitHub pull-request approval is the deployment authorization boundary.
+- Human GitHub pull-request merge is the source authorization boundary; protected-environment approval separately authorizes deployment.
 - Credentials, OAuth grants, personal access tokens, and Terraform state must never be committed.
 
 ## Verified Environment
@@ -257,7 +257,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - ACR uses Standard SKU, disables admin and anonymous access, and remains public to support the confirmed local Docker/GitHub runner push model. AKS kubelet receives `AcrPull`; GitHub OIDC identity receives `AcrPush` and AKS deployment roles.
 - GitHub federation uses the immutable environment subject `repo:msftse@259423729/sre-agent-demo@1323141369:environment:demo`, not a broad branch subject. Terraform supports legacy subjects for older repositories when immutable IDs are null.
 - Observability creates workspace-based Application Insights, Log Analytics, Azure Monitor managed Prometheus, Managed Grafana 12, and reader RBAC. AKS monitoring owns Prometheus/Container Insights DCR associations, selected control-plane diagnostics, and passwordless telemetry identity/RBAC.
-- SRE Agent uses `Microsoft.App/agents@2026-01-01` through AzAPI, Review mode, Low access, `AzMonitor`, and demo-resource-group scope. A dedicated UAMI is attached beside the platform system identity and is referenced by both action and knowledge configuration.
+- SRE Agent uses `Microsoft.App/agents@2026-01-01` through AzAPI, Review mode, Low access, `AzMonitor`, and demo-resource-group scope. Its log configuration targets the managed Application Insights component for incident traces and audit telemetry. A dedicated UAMI is attached beside the platform system identity and is referenced by both action and knowledge configuration.
 - `scripts/verify-terraform.sh` performs no apply. It validates provider prerequisites, agent mode/incident settings, the SRE RBAC allowlist, zero destroys, Checkov, and planned tags across core and full plans.
 - Checkov result: 24 passed, 0 failed, 13 explicitly reasoned skips. Skips document confirmed demo constraints (public/single-region/free/Standard/no-CMK) or features intentionally attached in later stages.
 - `scripts/audit-tags.sh` is the required post-apply live tag gate. It explicitly reports and excludes only `Microsoft.AlertsManagement/smartDetectorAlertRules`, because Azure auto-creates the Application Insights Failure Anomalies child and neither ARM nor AzureRM exposes writable tags for that type.
@@ -288,10 +288,10 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Stage 9 Protected Delivery
 
-- `scripts/configure-github-protection.sh` switches between `routine` and `incident-demo`. Routine mode permits direct implementation pushes while retaining linear history and force-push/deletion protection. Incident-demo mode additionally requires the validation check, one approval by someone other than the last pusher, stale-review dismissal, resolved conversations, and admin enforcement.
+- `scripts/configure-github-protection.sh` switches between `routine` and `incident-demo`. Routine mode permits direct implementation pushes while retaining linear history and force-push/deletion protection. Incident-demo mode additionally requires the validation check, resolved conversations, a user-performed merge, and admin enforcement; no separate approving review is required because the SRE connector authors PRs as `ij-23`.
 - PRs are reserved for fixes authored after an actual SRE Agent investigation; routine implementation stages commit directly. Enable `incident-demo` before the remediation exercise.
-- Pull requests automatically run backend, frontend, dependency-audit, and Helm validation. Deployment remains `workflow_dispatch` only.
-- The `demo` environment accepts only `main` and requires `ij-23` approval. Deployment self-review is allowed because `ij-23` is currently the sole environment reviewer; independent review is enforced at the PR boundary.
+- Pull requests automatically run backend, frontend, dependency-audit, and Helm validation. A merged same-repository `sre/field20-checkout-*` PR automatically starts recovery with traffic disabled; manual dispatch remains available for incident activation and operator recovery. Both paths require protected `demo` environment approval.
+- The `demo` environment accepts only `main` and requires `ij-23` approval. The PR merge and deployment approval are separate user actions; the agent can perform neither.
 - Workflow permissions are `contents: read` plus job-scoped `id-token: write`. Third-party actions and tool versions are pinned.
 - Images are built on the runner Docker daemon and published with `docker push`; no ACR build/import/task command is used.
 - Trivy blocks fixed critical vulnerabilities and generates SPDX SBOMs before deployment. The first run blocked `CVE-2026-31789`; the patched Alpine OpenSSL packages passed the replacement run.

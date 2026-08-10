@@ -68,14 +68,18 @@ jq -e \
   --arg git_sha "$git_sha" \
   --arg backend_image "$backend_repository@$backend_digest" \
   --arg frontend_image "$frontend_repository@$frontend_digest" '
-    (.items | length) == 2
-    and all(.items[];
+    [.items[] | select(
+      .metadata.labels["app.kubernetes.io/component"] == "backend"
+      or .metadata.labels["app.kubernetes.io/component"] == "frontend"
+    )] as $application_deployments
+    | ($application_deployments | length) == 2
+    and all($application_deployments[];
       .status.readyReplicas == .spec.replicas
       and .spec.replicas == 2
       and .spec.template.metadata.labels["sre-demo/git-sha"] == $git_sha
     )
-    and ([.items[].spec.template.spec.containers[0].image] | index($backend_image) != null)
-    and ([.items[].spec.template.spec.containers[0].image] | index($frontend_image) != null)
+    and ([$application_deployments[].spec.template.spec.containers[0].image] | index($backend_image) != null)
+    and ([$application_deployments[].spec.template.spec.containers[0].image] | index($frontend_image) != null)
   ' <<<"$deployments" >/dev/null
 
 service_account=$(kubectl get serviceaccount \

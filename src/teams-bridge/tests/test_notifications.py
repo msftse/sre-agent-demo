@@ -28,7 +28,7 @@ class FakeState:
 
     async def get_channel(self) -> dict[str, Any]:
         return {
-            "ConversationId": "conversation-1",
+            "ConversationId": "conversation-1;messageid=old-thread-root",
             "ServiceUrl": "https://smba.trafficmanager.net/teams/",
             "TeamId": "team-1",
             "ChannelId": "channel-1",

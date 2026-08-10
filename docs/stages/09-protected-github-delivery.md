@@ -2,7 +2,7 @@
 
 ## Goal
 
-Turn the validated local build and Helm procedure into a human-governed GitHub Actions delivery path. A proposed SRE Agent fix must pass automated validation and independent pull-request approval before merge. Deployment then uses short-lived Azure OIDC credentials, locally built images, critical-CVE gates, immutable ACR digests, and live AKS verification.
+Turn the validated local build and Helm procedure into a human-governed GitHub Actions delivery path. A proposed SRE Agent fix must pass automated validation before the user manually merges it. Deployment then uses short-lived Azure OIDC credentials, locally built images, critical-CVE gates, immutable ACR digests, and live AKS verification.
 
 ## Workflow
 
@@ -14,10 +14,10 @@ Pull requests to `main` run only the `Validate source and chart` job:
 2. Frontend install, tests, lint, production build, and shipped-dependency audit.
 3. Helm lint and default/Azure Monitor render checks.
 
-Deployment is intentionally separate and manual:
+Deployment remains separately authorized:
 
-1. Dispatch `Deliver demo to AKS` on `main` with `deploy=true`.
-2. Approve the protected `demo` environment as `ij-23`.
+1. Merge a validated same-repository `sre/field20-checkout-*` remediation PR to start recovery automatically with incident traffic disabled, or manually dispatch `Deliver demo to AKS` on `main` for incident activation or operator recovery.
+2. Approve the protected `demo` environment as `ij-23`; neither trigger can deploy before this approval.
 3. Exchange GitHub's environment-bound OIDC token for a short-lived Azure token.
 4. Verify the Azure subscription and tenant.
 5. Authenticate the local runner Docker daemon to ACR.
@@ -35,9 +35,7 @@ The repository is public so GitHub Free can enforce protection rules.
 
 The validated `incident-demo` branch protection profile requires:
 
-- One approving review before merge.
-- Approval by someone other than the last pusher.
-- Dismissal of stale approvals after new commits.
+- Successful `Validate source and chart` status.
 - Resolution of review conversations.
 - Linear history.
 - Enforcement for administrators.
@@ -49,7 +47,7 @@ The `demo` environment always:
 - Requires approval from `ij-23`.
 - Allows self-review at deployment time because `ij-23` is currently the sole reviewer.
 
-Independent review is therefore enforced at the PR boundary. The environment approval is a second operational confirmation, not the independent code-review control.
+The user-performed merge is the source authorization boundary and starts the recovery workflow automatically. The environment approval is a separate operational authorization, and the agent can perform neither action.
 
 Routine implementation stages use the `routine` profile so normal demo-building changes can be committed directly without creating artificial PRs. Before the SRE Agent incident exercise, switch back to the enforced profile:
 
@@ -127,11 +125,11 @@ Terraform: 29 resources, zero drift
 Checkov: 24 passed, 0 failed
 Azure tags: 21 resources audited, one explicit non-taggable exclusion
 GitHub environment: main-only plus required reviewer
-GitHub main branch: one independent approval required
+GitHub main branch: validation and user-performed merge required
 AKS deployments: 4/4 replicas ready
 Helm smoke test: succeeded
 ```
 
 ## Outcome
 
-Stage 9 is complete. The demo has a validated, repeatable human PR approval profile and a separately approved, secretless, scan-gated, immutable deployment path to AKS. Routine mode is currently active; the incident-demo profile must be enabled before the SRE Agent creates its remediation PR. Stage 10 can introduce the deterministic checkout regression and Azure Monitor alert without creating a setup PR.
+Stage 9 is complete. The demo has a validated, repeatable human merge profile and a separately approved, secretless, scan-gated, immutable deployment path to AKS. Routine mode is currently active; the incident-demo profile must be enabled before the SRE Agent creates its remediation PR. Stage 10 can introduce the deterministic checkout regression and Azure Monitor alert without creating a setup PR.

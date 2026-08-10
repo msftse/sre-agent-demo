@@ -32,12 +32,11 @@ This demo credential belongs to `ij-23` and has broader GitHub scopes than the f
 
 Routine branch protection remains active while implementation stages continue. Before the incident exercise, `scripts/configure-github-protection.sh incident-demo` will require:
 
-- One approving review from someone other than the last pusher.
 - Successful `Validate source and chart` status.
-- Dismissal of stale reviews and resolution of conversations.
+- Resolution of review conversations.
 - Admin enforcement with no force push or deletion.
 
-The `demo` environment independently accepts only `main` and requires `ij-23` approval. Repository workflow tokens default to read-only and cannot approve pull requests. The agent can therefore create the branch, commit, and PR automatically, but it cannot merge the PR or deploy the result with its selected tools.
+The user must manually merge the validated PR. The `demo` environment independently accepts only `main` and requires `ij-23` approval. Repository workflow tokens default to read-only and cannot approve pull requests. The agent can therefore create the branch, commit, and PR automatically, but it cannot merge the PR or deploy the result with its selected tools.
 
 ## Live Validation
 

@@ -26,6 +26,7 @@ shellcheck \
 
 grep -F 'x-hub-signature-256' "$ROOT_DIR/src/teams-bridge/bridge/runtime.py" >/dev/null
 grep -F 'sre/field20-checkout-' "$ROOT_DIR/src/teams-bridge/bridge/github_events.py" >/dev/null
+grep -F 'pull_request_target' "$ROOT_DIR/src/teams-bridge/bridge/github_events.py" >/dev/null
 grep -F 'workflow_dispatch' "$ROOT_DIR/src/teams-bridge/bridge/github_events.py" >/dev/null
 grep -F 'github-delivery' "$ROOT_DIR/src/teams-bridge/bridge/state.py" >/dev/null
 grep -F '/api/v1/threads/{thread_id}/messages' "$ROOT_DIR/src/teams-bridge/bridge/sre_client.py" >/dev/null
@@ -67,13 +68,14 @@ jq -e \
   '
     flatten
     | map(select(.config.url == $url))
+    | .[0].last_response.code as $last_response_code
     | length == 1
     and .[0].active == true
     and ((.[0].events | sort) == $events)
-    and .[0].last_response.code == 202
+    and ([200, 202] | index($last_response_code) != null)
   ' "$hook_file" >/dev/null
 
 printf '%s\n' 'PASS: Function uses a Key Vault webhook secret and no legacy storage override.'
 printf '%s\n' 'PASS: unsigned GitHub events return 401.'
-printf '%s\n' 'PASS: one active signed webhook exposes exactly three continuation events.'
+printf '%s\n' 'PASS: one active signed webhook exposes exactly three continuation events and its latest delivery succeeded.'
 printf '%s\n' 'PASS: PR branch/base marker, workflow, correlation, and dedup boundaries are present.'

@@ -4,6 +4,11 @@ output "application_insights_connection_string" {
   sensitive   = true
 }
 
+output "application_insights_app_id" {
+  description = "Application Insights application ID."
+  value       = azurerm_application_insights.this.app_id
+}
+
 output "application_insights_id" {
   description = "Application Insights resource ID."
   value       = azurerm_application_insights.this.id

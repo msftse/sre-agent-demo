@@ -354,9 +354,9 @@ See [docs/stages/08-managed-observability.md](docs/stages/08-managed-observabili
 
 ## Protected GitHub Delivery
 
-Pull requests to `main` run backend, frontend, and Helm validation. The repository has two protection profiles: `routine` permits direct setup-stage commits while retaining linear-history/no-force-push safeguards; `incident-demo` requires a successful validation check and one approving review from someone other than the last pusher.
+Pull requests to `main` run backend, frontend, and Helm validation. The repository has two protection profiles: `routine` permits direct setup-stage commits while retaining linear-history/no-force-push safeguards; `incident-demo` requires a successful validation check, resolved conversations, and a manual merge by the user. The SRE Agent cannot merge, review, or mutate the pull request.
 
-Deployments are manually dispatched from `main` into the protected `demo` environment. The job authenticates to Azure through the repository's immutable environment-bound OIDC subject, builds AMD64 images on the GitHub-hosted Docker daemon, pushes with Docker, rejects fixed critical vulnerabilities, creates SPDX SBOMs, and deploys only registry digests. `scripts/verify-deployment.sh` proves the release SHA, digests, replicas, workload identity, ServiceMonitor, and in-cluster health.
+Merging a validated same-repository `sre/field20-checkout-*` remediation PR automatically starts recovery from `main` with incident traffic disabled. Manual dispatch remains available for incident activation and operator recovery. Every deployment pauses at the protected `demo` environment for user approval. The job authenticates to Azure through the repository's immutable environment-bound OIDC subject, builds AMD64 images on the GitHub-hosted Docker daemon, pushes with Docker, rejects fixed critical vulnerabilities, creates SPDX SBOMs, and deploys only registry digests. `scripts/verify-deployment.sh` proves the release SHA, digests, replicas, workload identity, ServiceMonitor, and in-cluster health.
 
 The Stage 9 validation first proved that a critical frontend OpenSSL CVE blocks deployment, then proved that the patched replacement can complete end to end. See the Stage 9 record for its historical run evidence.
 
@@ -366,7 +366,7 @@ Enable the approval boundary before the SRE Agent incident exercise:
 ./scripts/configure-github-protection.sh incident-demo
 ```
 
-See [docs/stages/09-protected-github-delivery.md](docs/stages/09-protected-github-delivery.md) for approval rules, workflow steps, OIDC trust, CVE evidence, and deployed digests.
+See [docs/stages/09-protected-github-delivery.md](docs/stages/09-protected-github-delivery.md) for merge controls, workflow steps, OIDC trust, CVE evidence, and deployed digests.
 
 ## Deterministic Checkout Incident
 
@@ -378,7 +378,7 @@ The incident is not active. Later, deploy it from the protected workflow with `d
 
 ## Azure SRE Agent Foundation
 
-The Azure SRE Agent identified by the nested `sre_agent` Terraform output runs on the Stable channel with native Azure Monitor incident management. Global `Review` mode and Low access provide a conservative Azure-action fallback. A dedicated UAMI has the documented monitoring/read roles for the demo resource group and AKS cluster; it has no general Azure contributor or AKS administrator role.
+The Azure SRE Agent identified by the nested `sre_agent` Terraform output runs on the Stable channel with native Azure Monitor incident management. Its log configuration sends incident traces and agent audit telemetry to the managed Application Insights component. Global `Review` mode and Low access provide a conservative Azure-action fallback. A dedicated UAMI has the documented monitoring/read roles for the demo resource group and AKS cluster; it has no general Azure contributor or AKS administrator role.
 
 Retrieve the current endpoint with `terraform -chdir=iac output -json sre_agent | jq -r '.endpoint'`. Stage 14 added the reusable checkout skill, and Stage 15 set Autonomous mode only on the exact Sev1 checkout response plan. GitHub permissions and branch protection allow branch/commit/PR creation while preventing merge or deployment. The completed Stage 18 architecture proposal documents the deployed design and the planned Stage 17 rehearsal boundaries.
 

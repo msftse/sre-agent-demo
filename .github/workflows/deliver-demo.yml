@@ -4,6 +4,15 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - closed
   workflow_dispatch:
     inputs:
       deploy:
@@ -27,6 +36,7 @@ permissions:
 jobs:
   validate:
     name: Validate source and chart
+    if: ${{ github.event_name != 'pull_request_target' || github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -81,7 +91,20 @@ jobs:
 
   deliver:
     name: Build, scan, deploy, and verify
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy }}
+    if: >-
+      ${{
+        needs.validate.result == 'success' &&
+        (
+          (github.event_name == 'workflow_dispatch' && inputs.deploy) ||
+          (
+            github.event_name == 'pull_request_target' &&
+            github.event.action == 'closed' &&
+            github.event.pull_request.merged == true &&
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            startsWith(github.event.pull_request.head.ref, 'sre/field20-checkout-')
+          )
+        )
+      }}
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -100,7 +123,7 @@ jobs:
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
       TELEMETRY_CLIENT_ID: ${{ vars.TELEMETRY_CLIENT_ID }}
-      TRAFFIC_GENERATOR_ENABLED: ${{ inputs.incident_traffic }}
+      TRAFFIC_GENERATOR_ENABLED: ${{ github.event_name == 'workflow_dispatch' && inputs.incident_traffic || false }}
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

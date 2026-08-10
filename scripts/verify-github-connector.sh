@@ -99,7 +99,11 @@ gh api "repos/$REPOSITORY/environments/demo/deployment-branch-policies" >"$branc
 gh api "repos/$REPOSITORY/actions/permissions/workflow" >"$workflow_permissions_file"
 
 jq -e '
-  .enforce_admins.enabled == true
+  .required_status_checks.strict == true
+  and .required_status_checks.contexts == ["Validate source and chart"]
+  and .required_pull_request_reviews == null
+  and .required_conversation_resolution.enabled == true
+  and .enforce_admins.enabled == true
   and .allow_force_pushes.enabled == false
   and .allow_deletions.enabled == false
 ' "$branch_protection_file" >/dev/null
@@ -125,6 +129,6 @@ jq -e '
 
 printf '%s\n' 'PASS: GitHub connector exposes exactly seven approved tools.'
 printf '%s\n' 'PASS: merge, review, and pull-request mutation tools are unavailable.'
-printf '%s\n' 'PASS: main rejects force pushes and deletion with admin enforcement.'
+printf '%s\n' 'PASS: main requires validation and user merge with no separate approving review.'
 printf '%s\n' 'PASS: demo deployment requires ij-23 approval and accepts only main.'
 printf '%s\n' 'PASS: workflow tokens are read-only and cannot approve pull requests.'

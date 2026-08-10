@@ -23,6 +23,21 @@ variable "subscription_id" {
   type        = string
 }
 
+variable "application_insights_app_id" {
+  description = "Optional Application Insights application ID used for SRE Agent traces."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "application_insights_connection_string" {
+  description = "Optional Application Insights connection string used for SRE Agent traces."
+  type        = string
+  default     = null
+  nullable    = true
+  sensitive   = true
+}
+
 variable "aks_id" {
   description = "AKS cluster resource ID used for read-only Kubernetes investigation."
   type        = string

@@ -117,7 +117,10 @@ def _parse_workflow_run(
     workflow_run = payload.get("workflow_run", {})
     if str(workflow_run.get("name", "")) != EXPECTED_WORKFLOW:
         raise IgnoredGitHubEvent("workflow")
-    if str(workflow_run.get("event", "")) != "workflow_dispatch":
+    if str(workflow_run.get("event", "")) not in {
+        "pull_request_target",
+        "workflow_dispatch",
+    }:
         raise IgnoredGitHubEvent("workflow_event")
     if str(workflow_run.get("head_branch", "")) != "main":
         raise IgnoredGitHubEvent("workflow_branch")

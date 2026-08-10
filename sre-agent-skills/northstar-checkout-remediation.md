@@ -33,6 +33,8 @@ Do not use this skill for unrelated checkout errors until evidence identifies th
 
 Never assume an Azure subscription, resource group, AKS cluster, namespace, workspace, Application Insights component, agent, or deployment name from a previous environment.
 
+Run Azure CLI reads serially. Keep exactly one `RunAzCliReadCommands` call in flight, wait for its terminal result before starting another, and never delegate concurrent Azure CLI calls to parallel workers. Prefer core `az resource`, `az rest`, and `az aks show` commands over extension-backed discovery commands. If a command remains `Running` without output, do not launch more reads; retry that lookup once with a narrower core command, then report the blocked read if it still does not complete.
+
 1. Read the subscription, alert-rule scope, affected resource IDs, labels, and dimensions from the active incident.
 2. Resolve the monitored AKS cluster and resource group from those resource IDs and Azure Resource Graph relationships. If more than one cluster matches, stop and report the ambiguity.
 3. Resolve the Kubernetes namespace, service, deployment, and pods from alert labels and matching Prometheus series. Confirm them against AKS inventory before querying logs.
@@ -84,7 +86,7 @@ Before creating a branch, provide a compact evidence table with:
 - Change only the minimum backend source and test files required by evidence.
 - Add the regression test before or in the same commit as the repair.
 - Do not claim tests ran inside GitHub unless a check or tool result proves it.
-- The PR body must state that merge requires human approval and deployment requires a separate protected-environment approval.
+- The PR body must state that merge requires human action and deployment requires a separate protected-environment approval.
 - The PR body must contain exactly one `sre-thread-id` marker for signed callback correlation.
 - If branch creation, file push, or PR creation fails, report the failed tool and preserve all gathered evidence; do not broaden permissions.
 

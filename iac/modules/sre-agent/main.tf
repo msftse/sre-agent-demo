@@ -24,7 +24,7 @@ resource "azapi_resource" "this" {
   }
 
   body = {
-    properties = {
+    properties = merge({
       actionConfiguration = {
         accessLevel = "Low"
         identity    = azurerm_user_assigned_identity.this.id
@@ -39,7 +39,14 @@ resource "azapi_resource" "this" {
         managedResources = var.managed_resource_ids
       }
       upgradeChannel = var.upgrade_channel
-    }
+      }, var.application_insights_app_id != null && var.application_insights_connection_string != null ? {
+      logConfiguration = {
+        applicationInsightsConfiguration = {
+          appId            = var.application_insights_app_id
+          connectionString = var.application_insights_connection_string
+        }
+      }
+    } : {})
   }
 }
 

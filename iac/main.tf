@@ -158,8 +158,10 @@ module "sre_agent" {
   count  = var.enable_sre_agent ? 1 : 0
   source = "./modules/sre-agent"
 
-  aks_id   = module.aks.id
-  location = module.resource_group.location
+  aks_id                                 = module.aks.id
+  application_insights_app_id            = var.enable_observability ? module.observability[0].application_insights_app_id : null
+  application_insights_connection_string = var.enable_observability ? module.observability[0].application_insights_connection_string : null
+  location                               = module.resource_group.location
   managed_resource_ids = [
     module.resource_group.id,
   ]

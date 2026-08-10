@@ -23,13 +23,7 @@ if [[ "$mode" == "incident-demo" ]]; then
     strict: true,
     contexts: [$context]
   }')
-  required_pull_request_reviews='{
-    "dismissal_restrictions": {},
-    "dismiss_stale_reviews": true,
-    "require_code_owner_reviews": false,
-    "required_approving_review_count": 1,
-    "require_last_push_approval": true
-  }'
+  required_pull_request_reviews=null
   conversation_resolution=true
 else
   required_status_checks=null
