@@ -7,6 +7,7 @@ readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
 readonly REPOSITORY="msftse/sre-agent-demo"
 readonly EXPECTED_EVENTS=(deployment_status pull_request workflow_run)
+readonly DELIVERY_WORKFLOW="$ROOT_DIR/.github/workflows/deliver-demo.yml"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
@@ -30,6 +31,9 @@ grep -F 'pull_request_target' "$ROOT_DIR/src/teams-bridge/bridge/github_events.p
 grep -F 'workflow_dispatch' "$ROOT_DIR/src/teams-bridge/bridge/github_events.py" >/dev/null
 grep -F 'github-delivery' "$ROOT_DIR/src/teams-bridge/bridge/state.py" >/dev/null
 grep -F '/api/v1/threads/{thread_id}/messages' "$ROOT_DIR/src/teams-bridge/bridge/sre_client.py" >/dev/null
+grep -F 'deploy_sha:' "$DELIVERY_WORKFLOW" >/dev/null
+grep -F "git merge-base --is-ancestor \"\$DEPLOY_SHA\" origin/main" "$DELIVERY_WORKFLOW" >/dev/null
+[[ $(grep -Fc 'fetch-depth: 0' "$DELIVERY_WORKFLOW") -eq 2 ]]
 
 teams_output=$(terraform -chdir="$IAC_DIR" output -json teams_bridge)
 resource_group=$(terraform -chdir="$IAC_DIR" output -raw resource_group_name)
@@ -79,3 +83,4 @@ printf '%s\n' 'PASS: Function uses a Key Vault webhook secret and no legacy stor
 printf '%s\n' 'PASS: unsigned GitHub events return 401.'
 printf '%s\n' 'PASS: one active signed webhook exposes exactly three continuation events and its latest delivery succeeded.'
 printf '%s\n' 'PASS: PR branch/base marker, workflow, correlation, and dedup boundaries are present.'
+printf '%s\n' 'PASS: manual recovery pins only full-history commits already contained in main.'

@@ -20,6 +20,11 @@ on:
         required: true
         type: boolean
         default: false
+      deploy_sha:
+        description: Optional full commit SHA already contained in main
+        required: false
+        type: string
+        default: ""
       incident_traffic:
         description: Run deterministic FIELD20 checkout traffic after deployment
         required: true
@@ -34,7 +39,7 @@ permissions:
   contents: read
 
 env:
-  DEPLOY_SHA: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.merge_commit_sha || github.sha }}
+  DEPLOY_SHA: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.merge_commit_sha || inputs.deploy_sha || github.sha }}
 
 jobs:
   validate:
@@ -47,6 +52,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 0
 
       - name: Set up Python and uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
@@ -134,6 +140,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          fetch-depth: 0
 
       - name: Validate deployment configuration
         run: |
@@ -161,6 +168,10 @@ jobs:
           }
           [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || {
             printf 'Deployment SHA is invalid: %s.\n' "$DEPLOY_SHA" >&2
+            exit 1
+          }
+          git merge-base --is-ancestor "$DEPLOY_SHA" origin/main || {
+            printf 'Deployment SHA is not contained in main: %s.\n' "$DEPLOY_SHA" >&2
             exit 1
           }
 
