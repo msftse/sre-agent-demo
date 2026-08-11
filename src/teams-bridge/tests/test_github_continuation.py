@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 import pytest
+from azure.core.exceptions import ResourceNotFoundError
 
 from bridge.github_continuation import (
     GitHubContinuationService,
@@ -43,11 +44,25 @@ class FakeState:
         self.saved.append(values)
 
     async def get_merge_correlation(self, merge_sha: str) -> dict[str, Any]:
-        assert merge_sha == "merge-123"
+        if merge_sha != "merge-123":
+            raise ResourceNotFoundError("merge correlation not found")
         return {
             "SreThreadId": "thread-1",
+            "TeamsThreadId": "incident-1",
             "PrNumber": 42,
             "PrUrl": "https://github.com/msftse/sre-agent-demo/pull/42",
+            "HeadSha": "head-123",
+            "MergeSha": "merge-123",
+        }
+
+    async def get_head_correlation(self, head_sha: str) -> dict[str, Any]:
+        assert head_sha == "head-123"
+        return {
+            "SreThreadId": "thread-1",
+            "TeamsThreadId": "incident-1",
+            "PrNumber": 42,
+            "PrUrl": "https://github.com/msftse/sre-agent-demo/pull/42",
+            "HeadSha": "head-123",
             "MergeSha": "merge-123",
         }
 
@@ -86,12 +101,15 @@ def pull_request_body() -> bytes:
             "number": 42,
             "repository": {"full_name": "msftse/sre-agent-demo"},
             "pull_request": {
-                "body": "<!-- sre-thread-id: thread-1 -->",
+                "body": (
+                    "<!-- sre-thread-id: thread-1 -->\n"
+                    "<!-- teams-thread-id: incident-1 -->"
+                ),
                 "html_url": "https://github.com/msftse/sre-agent-demo/pull/42",
                 "merged": False,
                 "head": {
                     "sha": "head-123",
-                    "ref": "sre/field20-checkout-thread-1",
+                    "ref": "sre/field20-checkout-incident-1",
                     "repo": {"full_name": "msftse/sre-agent-demo"},
                 },
                 "base": {
@@ -132,7 +150,9 @@ async def test_processes_and_deduplicates_pull_request() -> None:
     assert processed.status == "processed"
     assert duplicate.status == "duplicate"
     assert state.saved[0]["pr_number"] == 42
-    assert teams.messages[0][0] == "thread-1"
+    assert state.saved[0]["teams_thread_id"] == "incident-1"
+    assert teams.messages[0][0] == "incident-1"
+    assert sre.messages[0][0] == "thread-1"
     assert "Awaiting human review" in teams.messages[0][1]
     assert "without merging, approving, or dispatching" in sre.messages[0][1]
 
@@ -224,6 +244,41 @@ async def test_continues_successful_workflow_for_correlated_merge() -> None:
 
     assert result.status == "processed"
     assert "verify the deployed SHA" in sre.messages[0][1]
+
+
+async def test_continues_automatic_workflow_from_correlated_pr_head() -> None:
+    state = FakeState()
+    sre = FakeSre()
+    service = GitHubContinuationService(
+        secret="secret",
+        state=state,
+        sre=sre,
+        teams=FakeTeams(),
+    )
+    body = json.dumps(
+        {
+            "action": "completed",
+            "repository": {"full_name": "msftse/sre-agent-demo"},
+            "workflow_run": {
+                "name": "Deliver demo to AKS",
+                "event": "pull_request_target",
+                "head_branch": "sre/field20-checkout-incident-1",
+                "head_sha": "head-123",
+                "conclusion": "success",
+            },
+        },
+        separators=(",", ":"),
+    ).encode()
+
+    result = await service.process(
+        body=body,
+        signature=signed(body),
+        delivery_id="delivery-auto",
+        event_type="workflow_run",
+    )
+
+    assert result.status == "processed"
+    assert "Release SHA: merge-123" in sre.messages[0][1]
 
 
 async def test_redelivery_skips_teams_after_sre_failure() -> None:

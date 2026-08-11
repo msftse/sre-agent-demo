@@ -47,6 +47,10 @@ for discovery_clause in \
   'Run Azure CLI reads serially' \
   'Keep exactly one `RunAzCliReadCommands` call in flight' \
   'Prefer core `az resource`, `az rest`, and `az aks show` commands' \
+  'Convert the Log Analytics ARM resource ID to its query identifier' \
+  'Pass that customer ID, not the ARM resource ID or workspace name' \
+  'query `AppRequests`, `AppDependencies`, and `AppExceptions` through the same Log Analytics customer ID' \
+  'Do not declare telemetry query capability unavailable unless at least one correctly formed query' \
   'Resolve the monitored AKS cluster and resource group from those resource IDs' \
   'Resolve linked Log Analytics, Azure Monitor workspace, and Application Insights resource IDs'; do
   grep -F "$discovery_clause" "$SKILL_FILE" >/dev/null
@@ -61,7 +65,13 @@ for clause in \
   'Never approve, merge, enable auto-merge, dispatch a workflow, deploy' \
   'Add a regression test for two `field-pack-28` items with `FIELD20`' \
   'total `23680`' \
-  '<!-- sre-thread-id: <current-sre-thread-id> -->' \
+  '<!-- sre-thread-id: <current-sre-thread-resource-id> -->' \
+  '<!-- teams-thread-id: <current-incident-id> -->' \
+  'The SRE marker must be the canonical chat thread resource ID' \
+  'not the Azure alert ID or `incidentStatus.incidentId`' \
+  'The Teams marker must equal the branch suffix' \
+  'must resolve through `get_incident_thread`' \
+  'an empty auxiliary SRE incident thread is not valid SRE correlation' \
   'After a successful delivery-workflow callback' \
   'Awaiting human PR review; no merge or deployment performed.'; do
   grep -F "$clause" "$SKILL_FILE" >/dev/null

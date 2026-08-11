@@ -66,20 +66,33 @@ class BridgeState:
         self,
         *,
         thread_id: str,
+        teams_thread_id: str,
         pr_number: int,
         pr_url: str,
         head_sha: str,
         merge_sha: str = "",
     ) -> None:
+        correlation = {
+            "SreThreadId": thread_id,
+            "TeamsThreadId": teams_thread_id,
+            "PrNumber": pr_number,
+            "PrUrl": pr_url,
+            "HeadSha": head_sha,
+            "MergeSha": merge_sha,
+        }
         await self.table.upsert_entity(
             {
                 "PartitionKey": "pull-request",
                 "RowKey": str(pr_number),
-                "SreThreadId": thread_id,
-                "PrNumber": pr_number,
-                "PrUrl": pr_url,
-                "HeadSha": head_sha,
-                "MergeSha": merge_sha,
+                **correlation,
+            },
+            mode=UpdateMode.MERGE,
+        )
+        await self.table.upsert_entity(
+            {
+                "PartitionKey": "head-sha",
+                "RowKey": head_sha,
+                **correlation,
             },
             mode=UpdateMode.MERGE,
         )
@@ -88,11 +101,7 @@ class BridgeState:
                 {
                     "PartitionKey": "merge-sha",
                     "RowKey": merge_sha,
-                    "SreThreadId": thread_id,
-                    "PrNumber": pr_number,
-                    "PrUrl": pr_url,
-                    "HeadSha": head_sha,
-                    "MergeSha": merge_sha,
+                    **correlation,
                 },
                 mode=UpdateMode.MERGE,
             )
@@ -103,6 +112,10 @@ class BridgeState:
 
     async def get_merge_correlation(self, merge_sha: str) -> dict[str, Any]:
         entity = await self.table.get_entity("merge-sha", merge_sha)
+        return dict(entity)
+
+    async def get_head_correlation(self, head_sha: str) -> dict[str, Any]:
+        entity = await self.table.get_entity("head-sha", head_sha)
         return dict(entity)
 
     async def claim_delivery(self, delivery_id: str) -> bool:

@@ -33,6 +33,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  DEPLOY_SHA: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.merge_commit_sha || github.sha }}
+
 jobs:
   validate:
     name: Validate source and chart
@@ -42,6 +45,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
       - name: Set up Python and uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
@@ -127,6 +132,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
       - name: Validate deployment configuration
         run: |
@@ -140,6 +147,7 @@ jobs:
             RESOURCE_GROUP
             TELEMETRY_CLIENT_ID
             TRAFFIC_GENERATOR_ENABLED
+            DEPLOY_SHA
           )
           for variable_name in "${required[@]}"; do
             [[ -n "${!variable_name:-}" ]] || {
@@ -149,6 +157,10 @@ jobs:
           done
           [[ "$GITHUB_REF" == "refs/heads/main" ]] || {
             printf 'Only main can deploy to demo; got %s.\n' "$GITHUB_REF" >&2
+            exit 1
+          }
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            printf 'Deployment SHA is invalid: %s.\n' "$DEPLOY_SHA" >&2
             exit 1
           }
 
@@ -170,7 +182,7 @@ jobs:
       - name: Build and push immutable images
         run: |
           output_file="$RUNNER_TEMP/publish-images.out"
-          GIT_SHA="$GITHUB_SHA" ./scripts/publish-images.sh \
+          GIT_SHA="$DEPLOY_SHA" ./scripts/publish-images.sh \
             --registry "$ACR_LOGIN_SERVER" \
             >"$output_file"
           cat "$output_file"
@@ -199,13 +211,13 @@ jobs:
       - name: Scan images and generate SBOMs
         run: |
           trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 \
-            "$backend_repository:$GITHUB_SHA"
+            "$backend_repository:$DEPLOY_SHA"
           trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 \
-            "$frontend_repository:$GITHUB_SHA"
+            "$frontend_repository:$DEPLOY_SHA"
           trivy image --format spdx-json --output "$RUNNER_TEMP/backend.spdx.json" \
-            "$backend_repository:$GITHUB_SHA"
+            "$backend_repository:$DEPLOY_SHA"
           trivy image --format spdx-json --output "$RUNNER_TEMP/frontend.spdx.json" \
-            "$frontend_repository:$GITHUB_SHA"
+            "$frontend_repository:$DEPLOY_SHA"
           jq -e '.packages | length > 0' "$RUNNER_TEMP/backend.spdx.json" >/dev/null
           jq -e '.packages | length > 0' "$RUNNER_TEMP/frontend.spdx.json" >/dev/null
 
@@ -249,7 +261,7 @@ jobs:
             --set-string "backend.image.digest=$backend_digest" \
             --set-string "frontend.image.repository=$frontend_repository" \
             --set-string "frontend.image.digest=$frontend_digest" \
-            --set-string "release.gitSha=$GITHUB_SHA" \
+            --set-string "release.gitSha=$DEPLOY_SHA" \
             --set-string "release.imageDigest=$backend_digest"
 
       - name: Verify AKS deployment
@@ -257,7 +269,7 @@ jobs:
           ./scripts/verify-deployment.sh \
             --release northstar \
             --namespace northstar \
-            --git-sha "$GITHUB_SHA" \
+            --git-sha "$DEPLOY_SHA" \
             --backend-repository "$backend_repository" \
             --backend-digest "$backend_digest" \
             --frontend-repository "$frontend_repository" \
@@ -269,7 +281,7 @@ jobs:
           cat >>"$GITHUB_STEP_SUMMARY" <<EOF
           ## Demo deployment
 
-          - Git SHA: \`$GITHUB_SHA\`
+          - Git SHA: \`$DEPLOY_SHA\`
           - Backend: \`$backend_repository@$backend_digest\`
           - Frontend: \`$frontend_repository@$frontend_digest\`
           - AKS: \`$RESOURCE_GROUP/$AKS_NAME\`

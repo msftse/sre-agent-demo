@@ -5,6 +5,9 @@ from typing import Any
 EXPECTED_REPOSITORY = "msftse/sre-agent-demo"
 EXPECTED_WORKFLOW = "Deliver demo to AKS"
 THREAD_MARKER = re.compile(r"<!--\s*sre-thread-id:\s*([A-Za-z0-9._:-]+)\s*-->")
+TEAMS_THREAD_MARKER = re.compile(
+    r"<!--\s*teams-thread-id:\s*([A-Za-z0-9._:-]+)\s*-->"
+)
 
 
 class IgnoredGitHubEvent(ValueError):
@@ -18,6 +21,7 @@ class ContinuationEvent:
     action: str
     repository: str
     sre_thread_id: str
+    teams_thread_id: str
     pr_number: int
     pr_url: str
     head_sha: str
@@ -77,11 +81,15 @@ def _parse_pull_request(
     markers = THREAD_MARKER.findall(body)
     if len(markers) != 1:
         raise IgnoredGitHubEvent("thread_marker")
+    teams_markers = TEAMS_THREAD_MARKER.findall(body)
+    if len(teams_markers) != 1:
+        raise IgnoredGitHubEvent("teams_thread_marker")
     head = pull_request.get("head", {})
     base = pull_request.get("base", {})
     if str(head.get("repo", {}).get("full_name", "")) != EXPECTED_REPOSITORY:
         raise IgnoredGitHubEvent("head_repository")
-    if not str(head.get("ref", "")).startswith("sre/field20-checkout-"):
+    head_ref = str(head.get("ref", ""))
+    if head_ref != f"sre/field20-checkout-{teams_markers[0]}":
         raise IgnoredGitHubEvent("head_branch")
     if str(base.get("repo", {}).get("full_name", "")) != EXPECTED_REPOSITORY:
         raise IgnoredGitHubEvent("base_repository")
@@ -99,6 +107,7 @@ def _parse_pull_request(
         action=action,
         repository=repository,
         sre_thread_id=markers[0],
+        teams_thread_id=teams_markers[0],
         pr_number=int(payload.get("number", 0)),
         pr_url=str(pull_request.get("html_url", "")),
         head_sha=str(pull_request.get("head", {}).get("sha", "")),
@@ -117,17 +126,31 @@ def _parse_workflow_run(
     workflow_run = payload.get("workflow_run", {})
     if str(workflow_run.get("name", "")) != EXPECTED_WORKFLOW:
         raise IgnoredGitHubEvent("workflow")
-    if str(workflow_run.get("event", "")) not in {
+    workflow_event = str(workflow_run.get("event", ""))
+    if workflow_event not in {
         "pull_request_target",
         "workflow_dispatch",
     }:
         raise IgnoredGitHubEvent("workflow_event")
-    if str(workflow_run.get("head_branch", "")) != "main":
+    head_branch = str(workflow_run.get("head_branch", ""))
+    head_sha = str(workflow_run.get("head_sha", ""))
+    if workflow_event == "workflow_dispatch":
+        if head_branch != "main":
+            raise IgnoredGitHubEvent("workflow_branch")
+    elif not head_branch.startswith("sre/field20-checkout-"):
         raise IgnoredGitHubEvent("workflow_branch")
     if action not in {"requested", "in_progress", "completed"}:
         raise IgnoredGitHubEvent("workflow_action")
     if correlation is None:
         raise IgnoredGitHubEvent("correlation")
+    if workflow_event == "workflow_dispatch":
+        if head_sha != str(correlation["MergeSha"]):
+            raise IgnoredGitHubEvent("workflow_sha")
+    elif (
+        head_sha != str(correlation["HeadSha"])
+        or not str(correlation["MergeSha"])
+    ):
+        raise IgnoredGitHubEvent("workflow_sha")
 
     return ContinuationEvent(
         delivery_id=delivery_id,
@@ -135,9 +158,10 @@ def _parse_workflow_run(
         action=action,
         repository=repository,
         sre_thread_id=str(correlation["SreThreadId"]),
+        teams_thread_id=str(correlation["TeamsThreadId"]),
         pr_number=int(correlation["PrNumber"]),
         pr_url=str(correlation["PrUrl"]),
-        head_sha=str(workflow_run.get("head_sha", "")),
+        head_sha=str(correlation["MergeSha"]),
         merge_sha=str(correlation["MergeSha"]),
         conclusion=str(workflow_run.get("conclusion") or ""),
     )
@@ -165,6 +189,7 @@ def _parse_deployment_status(
         action=action,
         repository=repository,
         sre_thread_id=str(correlation["SreThreadId"]),
+        teams_thread_id=str(correlation["TeamsThreadId"]),
         pr_number=int(correlation["PrNumber"]),
         pr_url=str(correlation["PrUrl"]),
         head_sha=str(deployment.get("sha", "")),

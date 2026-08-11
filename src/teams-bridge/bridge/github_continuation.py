@@ -30,6 +30,7 @@ class ContinuationState(Protocol):
         self,
         *,
         thread_id: str,
+        teams_thread_id: str,
         pr_number: int,
         pr_url: str,
         head_sha: str,
@@ -37,6 +38,8 @@ class ContinuationState(Protocol):
     ) -> None: ...
 
     async def get_merge_correlation(self, merge_sha: str) -> dict[str, Any]: ...
+
+    async def get_head_correlation(self, head_sha: str) -> dict[str, Any]: ...
 
 
 class SreContinuation(Protocol):
@@ -101,6 +104,7 @@ class GitHubContinuationService:
         if event.event_type == "pull_request":
             await self.state.save_pull_request(
                 thread_id=event.sre_thread_id,
+                teams_thread_id=event.teams_thread_id,
                 pr_number=event.pr_number,
                 pr_url=event.pr_url,
                 head_sha=event.head_sha,
@@ -108,7 +112,7 @@ class GitHubContinuationService:
             )
         teams_message, sre_message = _messages(event)
         if not teams_sent:
-            await self.teams.reply_update(event.sre_thread_id, teams_message)
+            await self.teams.reply_update(event.teams_thread_id, teams_message)
             await self.state.mark_delivery(delivery_id, teams_sent=True)
         if not sre_sent:
             await self.sre.send_message(
@@ -130,14 +134,24 @@ class GitHubContinuationService:
     ) -> dict[str, Any] | None:
         if event_type == "workflow_run":
             sha = str(payload.get("workflow_run", {}).get("head_sha", ""))
+            allow_head_sha = (
+                str(payload.get("workflow_run", {}).get("event", ""))
+                == "pull_request_target"
+            )
         elif event_type == "deployment_status":
             sha = str(payload.get("deployment", {}).get("sha", ""))
+            allow_head_sha = True
         else:
             return None
         if not sha:
             return None
         try:
             return await self.state.get_merge_correlation(sha)
+        except ResourceNotFoundError:
+            if not allow_head_sha:
+                return None
+        try:
+            return await self.state.get_head_correlation(sha)
         except ResourceNotFoundError:
             return None
 
