@@ -21,10 +21,10 @@ env:
 
 jobs:
   prepare:
-    name: Prepare governed incident PR
+    name: Prepare and merge incident PR
     if: ${{ inputs.confirm }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Check out protected baseline
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -110,7 +110,7 @@ jobs:
 
           Human controls remain mandatory:
 
-          - Merge this PR to authorize the incident source change.
+          - Running the starter authorizes this setup PR to merge after required validation passes.
           - Approve the protected \`demo\` deployment to activate the faulty release and deterministic traffic.
           - Review and merge the later Azure SRE Agent remediation PR.
           - Approve the protected recovery deployment.
@@ -121,13 +121,43 @@ jobs:
 
           printf 'url=%s\n' "$pr_url" >>"$GITHUB_OUTPUT"
 
-      - name: Publish operator checkpoint
+      - name: Wait for validation and merge setup PR
+        env:
+          GH_TOKEN: ${{ secrets.STAGE17_GITHUB_TOKEN }}
+          PR_URL: ${{ steps.pull_request.outputs.url }}
+          SCENARIO_BRANCH: ${{ steps.scenario.outputs.branch }}
+        run: |
+          head_branch=$(gh pr view "$PR_URL" --json headRefName --jq .headRefName)
+          base_branch=$(gh pr view "$PR_URL" --json baseRefName --jq .baseRefName)
+          [[ "$head_branch" == "$SCENARIO_BRANCH" && "$base_branch" == main ]] || {
+            printf 'Setup PR identity changed; refusing automatic merge.\n' >&2
+            exit 1
+          }
+
+          check_count=0
+          for _ in {1..30}; do
+            check_count=$(gh pr checks "$PR_URL" \
+              --json name \
+              --jq '[.[] | select(.name == "Validate source and chart")] | length')
+            (( check_count >= 1 )) && break
+            sleep 5
+          done
+          (( check_count >= 1 )) || {
+            printf 'Required validation check did not start.\n' >&2
+            exit 1
+          }
+
+          gh pr checks "$PR_URL" --watch --fail-fast --interval 10
+          gh pr merge "$PR_URL" --squash --delete-branch
+
+      - name: Publish deployment checkpoint
         env:
           PR_URL: ${{ steps.pull_request.outputs.url }}
         run: |
           {
-            printf '## Stage 17 setup PR created\n\n'
-            printf -- '- Review and merge: %s\n' "$PR_URL"
-            printf -- '- Opening the PR started source and chart validation.\n'
-            printf -- '- Merging starts protected incident deployment with traffic enabled.\n'
+            printf '## Stage 17 setup merged\n\n'
+            printf -- '- Setup PR: %s\n' "$PR_URL"
+            printf -- '- Required source and chart validation passed.\n'
+            printf -- '- The setup PR was merged automatically by the starter.\n'
+            printf -- '- Approve the protected demo deployment to activate the incident.\n'
           } >>"$GITHUB_STEP_SUMMARY"

@@ -41,6 +41,8 @@ grep -F 'SCENARIO_FIX_SHA: 925ff4f6ebb53790e9ce584b10c073b7c4144e97' "$STAGE17_W
 grep -F "git revert --no-commit \"\$SCENARIO_FIX_SHA\"" "$STAGE17_WORKFLOW" >/dev/null
 grep -F 'gh pr create' "$STAGE17_WORKFLOW" >/dev/null
 grep -F "GH_TOKEN: \${{ secrets.STAGE17_GITHUB_TOKEN }}" "$STAGE17_WORKFLOW" >/dev/null
+grep -F "gh pr checks \"\$PR_URL\" --watch --fail-fast" "$STAGE17_WORKFLOW" >/dev/null
+grep -F "gh pr merge \"\$PR_URL\" --squash --delete-branch" "$STAGE17_WORKFLOW" >/dev/null
 
 repository_secrets=$(gh secret list --repo "$REPOSITORY" --json name)
 jq -e 'any(.[]; .name == "STAGE17_GITHUB_TOKEN")' <<<"$repository_secrets" >/dev/null
@@ -95,4 +97,4 @@ printf '%s\n' 'PASS: one active signed webhook exposes exactly three continuatio
 printf '%s\n' 'PASS: PR branch/base marker, workflow, correlation, and dedup boundaries are present.'
 printf '%s\n' 'PASS: manual recovery pins only full-history commits already contained in main.'
 printf '%s\n' 'PASS: Stage 17 setup and SRE recovery branches map to traffic-on and traffic-off delivery.'
-printf '%s\n' 'PASS: the operator-scoped starter credential exists; branch protection still requires human merge.'
+printf '%s\n' 'PASS: the starter merges only after required validation; SRE remediation still requires human merge.'
