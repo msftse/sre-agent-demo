@@ -6,21 +6,22 @@ Exercise the complete live incident path from deterministic FIELD20 failures thr
 
 ## Repeatable Browser Start
 
-The current browser-led entry point is **Actions > Start Demo > Run workflow**. Select **Confirm creation of the intentional FIELD20 regression PR**, then run the workflow.
+The current browser-led entry point is **Actions > Start Demo > Run workflow**. Select **Confirm direct publication of the intentional FIELD20 regression to main**, then run the workflow.
 
-The starter fails closed when a setup/remediation PR or delivery is already active. Otherwise it:
+The starter fails closed when any PR or delivery is already active. Otherwise it:
 
 1. Discovers the latest merged `sre/field20-checkout-*` remediation and verifies its merge commit remains in `main` history.
-2. Creates `demo/incident-<run-id>` by inverting only that remediation.
+2. Creates one local incident commit by inverting only that remediation.
 3. Asserts that exactly the backend service and checkout test changed.
-4. Opens a setup PR whose normal pull-request event starts `Validate source and chart` for its head commit.
-5. Waits for the required check and automatically merges that setup PR only after validation succeeds.
+4. Runs Ruff, strict mypy, and the backend test suite against the intentional regression.
+5. Temporarily applies `routine` protection, pushes the commit directly to `main`, and restores `incident-demo` protection even on failure.
+6. Dispatches `Deliver Demo to AKS` with the exact incident SHA and traffic enabled.
 
 The workflow dispatch authorizes the intentional source regression and its automatic deployment through the main-only `demo` environment.
 
 Azure Monitor and Azure SRE Agent then take over. The agent investigates and creates `sre/field20-checkout-<incident-id>`. The operator reviews and merges that remediation PR. `Deliver Demo to AKS` starts recovery automatically. Recovery forces traffic off, deploys the remediation merge SHA, and returns the application to service. The Helm test submits a valid FIELD20 checkout, verifies `29600 / 5920 / 0 / 23680`, and emits queryable trace evidence. The successful delivery callback resumes the SRE Agent, which verifies alert recovery and publishes the final Teams and PR RCA.
 
-Repository prerequisite: configure secret `STAGE17_GITHUB_TOKEN` with an operator-scoped credential that can create and merge the generated setup PR in this repository. Organization policy blocks PR creation by the default workflow token. The starter waits for required validation and merges only its `demo/incident-*` setup PR. The later SRE remediation PR still requires human merge. Prefer a fine-grained token or GitHub App in production.
+Repository prerequisite: configure secret `STAGE17_GITHUB_TOKEN` with an operator-scoped credential that can update branch protection, push to `main`, and dispatch Actions in this repository. The later SRE remediation PR is the only PR and still requires human merge. Prefer a fine-grained token or GitHub App in production.
 
 ## Activation
 

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: Confirm creation of the intentional FIELD20 regression PR
+        description: Confirm direct publication of the intentional FIELD20 regression to main
         required: true
         type: boolean
         default: false
@@ -16,11 +16,13 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
+  actions: read
+  pull-requests: read
 
 jobs:
   prepare:
-    name: Prepare and merge incident PR
+    name: Publish incident and start delivery
     if: ${{ inputs.confirm }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -30,6 +32,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Verify demo is idle and resolve latest fix
         id: baseline
@@ -39,13 +42,10 @@ jobs:
           active_prs=$(gh pr list \
             --repo "$GITHUB_REPOSITORY" \
             --state open \
-            --json headRefName \
-            --jq '[.[] | select(
-              (.headRefName | startswith("demo/incident-"))
-              or (.headRefName | startswith("sre/field20-checkout-"))
-            )] | length')
+            --json number \
+            --jq 'length')
           [[ "$active_prs" == 0 ]] || {
-            printf 'A demo setup or remediation PR is already open.\n' >&2
+            printf 'A pull request is already open.\n' >&2
             exit 1
           }
 
@@ -79,8 +79,6 @@ jobs:
         env:
           SCENARIO_FIX_SHA: ${{ steps.baseline.outputs.scenario_fix_sha }}
         run: |
-          branch="demo/incident-${GITHUB_RUN_ID}"
-          git switch --create "$branch"
           git revert --no-commit "$SCENARIO_FIX_SHA"
 
           changed_files=$(git diff --cached --name-only)
@@ -98,82 +96,73 @@ jobs:
           git config user.email github-actions@github.com
           git add src/backend/app/service.py src/backend/tests/test_api.py
           git commit -m "test: activate FIELD20 incident"
-          git push origin "$branch"
-          printf 'branch=%s\n' "$branch" >>"$GITHUB_OUTPUT"
+          printf 'sha=%s\n' "$(git rev-parse HEAD)" >>"$GITHUB_OUTPUT"
 
-      - name: Open setup PR
-        id: pull_request
+      - name: Set up Python and uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: 3.12.13
+          enable-cache: true
+
+      - name: Validate intentional regression
+        working-directory: src/backend
+        run: |
+          uv sync --locked --all-groups
+          uv run ruff check .
+          uv run mypy app tests
+          uv run pytest
+
+      - name: Push intentional regression to main
         env:
           GH_TOKEN: ${{ secrets.STAGE17_GITHUB_TOKEN }}
-          SCENARIO_BRANCH: ${{ steps.scenario.outputs.branch }}
         run: |
           [[ -n "$GH_TOKEN" ]] || {
             printf 'Repository secret STAGE17_GITHUB_TOKEN is required.\n' >&2
             exit 1
           }
 
-          pr_url=$(gh pr create \
-            --repo "$GITHUB_REPOSITORY" \
-            --base main \
-            --head "$SCENARIO_BRANCH" \
-            --title 'demo: activate FIELD20 incident' \
-            --body "$(cat <<EOF
-          ## Demo incident setup
+          git fetch origin main
+          [[ "$(git rev-parse HEAD^)" == "$(git rev-parse origin/main)" ]] || {
+            printf 'main changed while the incident commit was prepared.\n' >&2
+            exit 1
+          }
 
-          This PR intentionally restores the known FIELD20 checkout regression and removes its regression test.
+          restore_protection() {
+            ./scripts/configure-github-protection.sh incident-demo
+          }
+          trap restore_protection EXIT
+          ./scripts/configure-github-protection.sh routine
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
+          restore_protection
+          trap - EXIT
 
-          Human controls remain mandatory:
-
-          - Running the starter authorizes this setup PR to merge after required validation passes.
-          - Review and merge the later Azure SRE Agent remediation PR.
-          - Deployments run automatically from merged, validated \`main\` commits.
-
-          Started by [workflow run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}).
-          EOF
-          )")
-
-          printf 'url=%s\n' "$pr_url" >>"$GITHUB_OUTPUT"
-
-      - name: Wait for validation and merge setup PR
+      - name: Restore incident protection
+        if: ${{ always() }}
         env:
           GH_TOKEN: ${{ secrets.STAGE17_GITHUB_TOKEN }}
-          PR_URL: ${{ steps.pull_request.outputs.url }}
-          SCENARIO_BRANCH: ${{ steps.scenario.outputs.branch }}
-        run: |
-          head_branch=$(gh pr view "$PR_URL" --json headRefName --jq .headRefName)
-          base_branch=$(gh pr view "$PR_URL" --json baseRefName --jq .baseRefName)
-          [[ "$head_branch" == "$SCENARIO_BRANCH" && "$base_branch" == main ]] || {
-            printf 'Setup PR identity changed; refusing automatic merge.\n' >&2
-            exit 1
-          }
+        run: ./scripts/configure-github-protection.sh incident-demo
 
-          check_count=0
-          for _ in {1..30}; do
-            check_count=$(gh pr checks "$PR_URL" \
-              --json name \
-              --jq '[.[] | select(.name == "Validate source and chart")] | length' \
-              2>/dev/null || printf '0')
-            (( check_count >= 1 )) && break
-            sleep 5
-          done
-          (( check_count >= 1 )) || {
-            printf 'Required validation check did not start.\n' >&2
-            exit 1
-          }
-
-          gh pr checks "$PR_URL" --watch --fail-fast --interval 10
-          gh pr merge "$PR_URL" --squash --delete-branch
-
-      - name: Publish deployment checkpoint
+      - name: Start incident delivery
         env:
-          PR_URL: ${{ steps.pull_request.outputs.url }}
+          GH_TOKEN: ${{ secrets.STAGE17_GITHUB_TOKEN }}
+          SCENARIO_SHA: ${{ steps.scenario.outputs.sha }}
+        run: |
+          gh workflow run deliver-demo.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f deploy=true \
+            -f deploy_sha="$SCENARIO_SHA" \
+            -f incident_traffic=true
+
+      - name: Publish delivery checkpoint
+        env:
+          SCENARIO_SHA: ${{ steps.scenario.outputs.sha }}
         run: |
           {
-            printf '## Demo setup merged\n\n'
-            printf -- '- Setup PR: %s\n' "$PR_URL"
-            printf -- '- Required source and chart validation passed.\n'
-            printf -- '- The setup PR was merged automatically by the starter.\n'
-            printf -- '- Deliver Demo to AKS deploys the incident automatically.\n'
+            printf '## Demo incident published\n\n'
+            printf -- '- Incident commit: %s\n' "$SCENARIO_SHA"
+            printf -- '- The regression was validated and pushed directly to main.\n'
+            printf -- '- Deliver Demo to AKS was dispatched with incident traffic enabled.\n'
             printf -- '- Azure Monitor and Azure SRE Agent take over after FIELD20 failures begin.\n'
-            printf -- '- Merge the later SRE remediation PR; deliver-demo then runs recovery automatically.\n'
+            printf -- '- The later SRE remediation PR is the only PR and still requires human merge.\n'
           } >>"$GITHUB_STEP_SUMMARY"
