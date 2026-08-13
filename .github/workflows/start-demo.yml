@@ -12,14 +12,11 @@ on:
         default: false
 
 concurrency:
-  group: stage17-incident-setup
+  group: demo-incident-setup
   cancel-in-progress: false
 
 permissions:
   contents: write
-
-env:
-  SCENARIO_FIX_SHA: 925ff4f6ebb53790e9ce584b10c073b7c4144e97
 
 jobs:
   prepare:
@@ -34,7 +31,8 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Verify rehearsal is idle
+      - name: Verify demo is idle and resolve latest fix
+        id: baseline
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -43,11 +41,11 @@ jobs:
             --state open \
             --json headRefName \
             --jq '[.[] | select(
-              (.headRefName | startswith("demo/stage17-incident-"))
+              (.headRefName | startswith("demo/incident-"))
               or (.headRefName | startswith("sre/field20-checkout-"))
             )] | length')
           [[ "$active_prs" == 0 ]] || {
-            printf 'A Stage 17 setup or remediation PR is already open.\n' >&2
+            printf 'A demo setup or remediation PR is already open.\n' >&2
             exit 1
           }
 
@@ -62,12 +60,26 @@ jobs:
             exit 1
           }
 
-          git merge-base --is-ancestor "$SCENARIO_FIX_SHA" HEAD
+          scenario_fix_sha=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state merged \
+            --limit 100 \
+            --json headRefName,mergedAt,mergeCommit \
+            --jq '[.[] | select(.headRefName | startswith("sre/field20-checkout-"))]
+              | sort_by(.mergedAt) | reverse | .[0].mergeCommit.oid // ""')
+          [[ "$scenario_fix_sha" =~ ^[0-9a-f]{40}$ ]] || {
+            printf 'No merged SRE FIELD20 remediation PR was found.\n' >&2
+            exit 1
+          }
+          git merge-base --is-ancestor "$scenario_fix_sha" HEAD
+          printf 'scenario_fix_sha=%s\n' "$scenario_fix_sha" >>"$GITHUB_OUTPUT"
 
       - name: Create intentional regression commit
         id: scenario
+        env:
+          SCENARIO_FIX_SHA: ${{ steps.baseline.outputs.scenario_fix_sha }}
         run: |
-          branch="demo/stage17-incident-${GITHUB_RUN_ID}"
+          branch="demo/incident-${GITHUB_RUN_ID}"
           git switch --create "$branch"
           git revert --no-commit "$SCENARIO_FIX_SHA"
 
@@ -85,7 +97,7 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add src/backend/app/service.py src/backend/tests/test_api.py
-          git commit -m "test: activate Stage 17 FIELD20 incident"
+          git commit -m "test: activate FIELD20 incident"
           git push origin "$branch"
           printf 'branch=%s\n' "$branch" >>"$GITHUB_OUTPUT"
 
@@ -104,9 +116,9 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --base main \
             --head "$SCENARIO_BRANCH" \
-            --title 'demo: activate Stage 17 FIELD20 incident' \
+            --title 'demo: activate FIELD20 incident' \
             --body "$(cat <<EOF
-          ## Stage 17 incident setup
+          ## Demo incident setup
 
           This PR intentionally restores the known FIELD20 checkout regression and removes its regression test.
 
@@ -157,7 +169,7 @@ jobs:
           PR_URL: ${{ steps.pull_request.outputs.url }}
         run: |
           {
-            printf '## Stage 17 setup merged\n\n'
+            printf '## Demo setup merged\n\n'
             printf -- '- Setup PR: %s\n' "$PR_URL"
             printf -- '- Required source and chart validation passed.\n'
             printf -- '- The setup PR was merged automatically by the starter.\n'

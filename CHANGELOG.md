@@ -2,14 +2,15 @@
 
 This append-only log records implementation changes by date.
 
-### 2026-08-13 - Add repeatable Stage 17 starter
+### 2026-08-13 - Add repeatable demo starter
 
 - Removed the `demo` environment reviewer gate so validated incident and recovery merges deploy automatically; retained the main-only branch policy and environment-bound OIDC identity.
 - Added a manually dispatched `Start Demo` workflow at `.github/workflows/start-demo.yml` that creates a governed intentional-regression PR, waits for required validation, and merges only that setup PR automatically.
 - Fixed the initial PR-check registration race by treating GitHub's transient `no checks reported` exit as zero checks and continuing the bounded poll.
-- Routed starter-merged `demo/stage17-incident-*` PRs to protected traffic-on deployment and retained human-merged, traffic-off protected recovery for SRE remediation PRs.
+- Fixed repeated runs by discovering and inverting the latest merged SRE remediation instead of pinning the first remediation SHA.
+- Routed starter-merged `demo/incident-*` PRs to main-only traffic-on deployment and retained human-merged, traffic-off recovery for SRE remediation PRs.
 - Added recovery-only FIELD20 smoke verification with exact totals and privacy-bounded trace metadata for autonomous final RCA evidence.
-- Preserved human approval for incident deployment, SRE remediation merge, and recovery deployment; the starter dispatch authorizes only the setup PR merge.
+- Preserved human merge for the SRE remediation PR; validated incident and recovery merges deploy automatically through the main-only `demo` environment.
 
 ### 2026-08-10 - Complete live approval and rejection rehearsal
 

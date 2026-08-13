@@ -10,8 +10,8 @@ The current browser-led entry point is **Actions > Start Demo > Run workflow**. 
 
 The starter fails closed when a setup/remediation PR or delivery is already active. Otherwise it:
 
-1. Verifies the known remediation commit remains in `main` history.
-2. Creates `demo/stage17-incident-<run-id>` by inverting only that remediation.
+1. Discovers the latest merged `sre/field20-checkout-*` remediation and verifies its merge commit remains in `main` history.
+2. Creates `demo/incident-<run-id>` by inverting only that remediation.
 3. Asserts that exactly the backend service and checkout test changed.
 4. Opens a setup PR whose normal pull-request event starts `Validate source and chart` for its head commit.
 5. Waits for the required check and automatically merges that setup PR only after validation succeeds.
@@ -20,7 +20,7 @@ The workflow dispatch authorizes the intentional source regression and its autom
 
 Azure Monitor and Azure SRE Agent then take over. The agent investigates and creates `sre/field20-checkout-<incident-id>`. The operator reviews and merges that remediation PR. `Deliver Demo to AKS` starts recovery automatically. Recovery forces traffic off, deploys the remediation merge SHA, and returns the application to service. The Helm test submits a valid FIELD20 checkout, verifies `29600 / 5920 / 0 / 23680`, and emits queryable trace evidence. The successful delivery callback resumes the SRE Agent, which verifies alert recovery and publishes the final Teams and PR RCA.
 
-Repository prerequisite: configure secret `STAGE17_GITHUB_TOKEN` with an operator-scoped credential that can create and merge the generated setup PR in this repository. Organization policy blocks PR creation by the default workflow token. The starter waits for required validation and merges only its `demo/stage17-incident-*` setup PR. The later SRE remediation PR still requires human merge. Prefer a fine-grained token or GitHub App in production.
+Repository prerequisite: configure secret `STAGE17_GITHUB_TOKEN` with an operator-scoped credential that can create and merge the generated setup PR in this repository. Organization policy blocks PR creation by the default workflow token. The starter waits for required validation and merges only its `demo/incident-*` setup PR. The later SRE remediation PR still requires human merge. Prefer a fine-grained token or GitHub App in production.
 
 ## Activation
 

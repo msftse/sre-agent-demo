@@ -35,9 +35,10 @@ grep -F '/api/v1/threads/{thread_id}/messages' "$ROOT_DIR/src/teams-bridge/bridg
 grep -F 'deploy_sha:' "$DELIVERY_WORKFLOW" >/dev/null
 grep -F "git merge-base --is-ancestor \"\$DEPLOY_SHA\" origin/main" "$DELIVERY_WORKFLOW" >/dev/null
 [[ $(grep -Fc 'fetch-depth: 0' "$DELIVERY_WORKFLOW") -eq 2 ]]
-grep -F "startsWith(github.event.pull_request.head.ref, 'demo/stage17-incident-')" "$DELIVERY_WORKFLOW" >/dev/null
+grep -F "startsWith(github.event.pull_request.head.ref, 'demo/incident-')" "$DELIVERY_WORKFLOW" >/dev/null
 grep -F "startsWith(github.event.pull_request.head.ref, 'sre/field20-checkout-')" "$DELIVERY_WORKFLOW" >/dev/null
-grep -F 'SCENARIO_FIX_SHA: 925ff4f6ebb53790e9ce584b10c073b7c4144e97' "$STAGE17_WORKFLOW" >/dev/null
+grep -F 'startswith("sre/field20-checkout-")' "$STAGE17_WORKFLOW" >/dev/null
+grep -F 'sort_by(.mergedAt) | reverse | .[0].mergeCommit.oid' "$STAGE17_WORKFLOW" >/dev/null
 grep -F "git revert --no-commit \"\$SCENARIO_FIX_SHA\"" "$STAGE17_WORKFLOW" >/dev/null
 grep -F 'gh pr create' "$STAGE17_WORKFLOW" >/dev/null
 grep -F "GH_TOKEN: \${{ secrets.STAGE17_GITHUB_TOKEN }}" "$STAGE17_WORKFLOW" >/dev/null
@@ -97,5 +98,5 @@ printf '%s\n' 'PASS: unsigned GitHub events return 401.'
 printf '%s\n' 'PASS: one active signed webhook exposes exactly three continuation events and its latest delivery succeeded.'
 printf '%s\n' 'PASS: PR branch/base marker, workflow, correlation, and dedup boundaries are present.'
 printf '%s\n' 'PASS: manual recovery pins only full-history commits already contained in main.'
-printf '%s\n' 'PASS: Stage 17 setup and SRE recovery branches map to traffic-on and traffic-off delivery.'
+printf '%s\n' 'PASS: demo setup and SRE recovery branches map to traffic-on and traffic-off delivery.'
 printf '%s\n' 'PASS: the starter merges only after required validation; SRE remediation still requires human merge.'
