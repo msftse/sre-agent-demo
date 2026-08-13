@@ -1,4 +1,6 @@
-name: Start Stage 17 incident
+name: start-demo
+
+run-name: start-demo
 
 on:
   workflow_dispatch:
@@ -160,4 +162,6 @@ jobs:
             printf -- '- Required source and chart validation passed.\n'
             printf -- '- The setup PR was merged automatically by the starter.\n'
             printf -- '- Approve the protected demo deployment to activate the incident.\n'
+            printf -- '- Azure Monitor and Azure SRE Agent take over after FIELD20 failures begin.\n'
+            printf -- '- Merge the later SRE remediation PR; deliver-demo then runs recovery automatically.\n'
           } >>"$GITHUB_STEP_SUMMARY"

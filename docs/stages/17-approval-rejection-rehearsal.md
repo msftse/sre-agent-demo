@@ -6,7 +6,7 @@ Exercise the complete live incident path from deterministic FIELD20 failures thr
 
 ## Repeatable Browser Start
 
-The current browser-led entry point is **Actions > Start Stage 17 incident > Run workflow**. Select **Confirm creation of the intentional FIELD20 regression PR**, then run the workflow.
+The current browser-led entry point is **Actions > start-demo > Run workflow**. Select **Confirm creation of the intentional FIELD20 regression PR**, then run the workflow.
 
 The starter fails closed when a setup/remediation PR or delivery is already active. Otherwise it:
 
@@ -20,7 +20,7 @@ The workflow dispatch authorizes the intentional source regression. The operator
 
 1. Approve the protected `demo` deployment, which deploys the setup merge SHA with deterministic traffic enabled.
 
-Azure Monitor and Azure SRE Agent then take over. The agent investigates and creates `sre/field20-checkout-<incident-id>`. The operator reviews and merges that remediation PR and separately approves its protected recovery deployment. Recovery forces traffic off. The Helm test submits a valid FIELD20 checkout, verifies `29600 / 5920 / 0 / 23680`, and emits queryable trace evidence before the agent publishes the final Teams and PR RCA.
+Azure Monitor and Azure SRE Agent then take over. The agent investigates and creates `sre/field20-checkout-<incident-id>`. The operator reviews and merges that remediation PR. `deliver-demo` starts automatically and waits for the operator's protected recovery deployment approval. Recovery forces traffic off, deploys the remediation merge SHA, and returns the application to service. The Helm test submits a valid FIELD20 checkout, verifies `29600 / 5920 / 0 / 23680`, and emits queryable trace evidence. The successful delivery callback resumes the SRE Agent, which verifies alert recovery and publishes the final Teams and PR RCA.
 
 Repository prerequisite: configure secret `STAGE17_GITHUB_TOKEN` with an operator-scoped credential that can create and merge the generated setup PR in this repository. Organization policy blocks PR creation by the default workflow token. The starter waits for required validation and merges only its `demo/stage17-incident-*` setup PR. The later SRE remediation PR still requires human merge. Prefer a fine-grained token or GitHub App in production.
 
