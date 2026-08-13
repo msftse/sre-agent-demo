@@ -2,7 +2,7 @@
 
 ## Goal
 
-Exercise the complete live incident path from deterministic FIELD20 failures through Azure Monitor, Azure SRE Agent, Teams, an automatically created remediation pull request, explicit human rejection and merge decisions, protected deployment approval, verified recovery, and final RCA.
+Exercise the complete live incident path from deterministic FIELD20 failures through Azure Monitor, Azure SRE Agent, Teams, an automatically created remediation pull request, explicit human rejection and merge decisions, automatic main-only deployment, verified recovery, and final RCA.
 
 ## Repeatable Browser Start
 
@@ -75,10 +75,10 @@ The live exercise exposed and repaired four integration gaps:
 - Deployment verification now evaluates only backend and frontend application deployments, allowing the optional traffic generator.
 - Teams root notifications strip an old `;messageid=` suffix before creating a new channel thread.
 - Azure investigation reads run serially to avoid concurrent command timeouts.
-- A merged same-repository `sre/field20-checkout-*` PR now starts recovery automatically with traffic disabled; the protected environment still requires user approval. Manual dispatch remains available for incident activation and operator recovery.
+- A merged same-repository `sre/field20-checkout-*` PR starts recovery automatically with traffic disabled; the `demo` environment has no reviewer gate and accepts only `main`. Manual dispatch remains available for incident activation and operator recovery.
 
 Azure SRE Agent logging is also connected to the managed Application Insights component. Terraform applied one in-place agent update with zero additions or destroys and reports zero drift.
 
 ## Outcome
 
-Stage 17 is complete. Detection, investigation, communication, automatic PR preparation, rejection, reopen, user merge, protected deployment approval, recovery verification, alert resolution, and final RCA were all proven against the live environment. The application is healthy on the merged fix and ready to be reset to a dormant regression baseline for a clean repeat E2E run.
+Stage 17 is complete. Detection, investigation, communication, automatic PR preparation, rejection, reopen, user merge, automatic main-only deployment, recovery verification, alert resolution, and final RCA were all proven against the live environment. The application is healthy on the merged fix and ready to be reset to a dormant regression baseline for a clean repeat E2E run.

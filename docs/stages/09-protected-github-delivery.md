@@ -130,4 +130,4 @@ Helm smoke test: succeeded
 
 ## Outcome
 
-Stage 9 is complete. The demo has a validated, repeatable human merge profile and a separately approved, secretless, scan-gated, immutable deployment path to AKS. Routine mode is currently active; the incident-demo profile must be enabled before the SRE Agent creates its remediation PR. Stage 10 can introduce the deterministic checkout regression and Azure Monitor alert without creating a setup PR.
+Stage 9 is complete. The demo has a validated, repeatable human merge profile and a secretless, scan-gated, immutable, main-only deployment path to AKS. Routine mode is currently active; the incident-demo profile must be enabled before the SRE Agent creates its remediation PR. Stage 10 can introduce the deterministic checkout regression and Azure Monitor alert without creating a setup PR.

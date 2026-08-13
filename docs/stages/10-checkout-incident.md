@@ -70,7 +70,7 @@ deploy=true
 incident_traffic=true
 ```
 
-That one approved deployment builds and scans the exact regression commit, deploys immutable image digests, and starts deterministic traffic. Stage 10 does **not** dispatch this workflow.
+That deployment builds and scans the exact regression commit, deploys immutable image digests, and starts deterministic traffic. Stage 10 does **not** dispatch this workflow.
 
 ## Verification
 
