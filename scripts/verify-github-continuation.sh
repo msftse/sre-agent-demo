@@ -41,6 +41,7 @@ grep -F 'SCENARIO_FIX_SHA: 925ff4f6ebb53790e9ce584b10c073b7c4144e97' "$STAGE17_W
 grep -F "git revert --no-commit \"\$SCENARIO_FIX_SHA\"" "$STAGE17_WORKFLOW" >/dev/null
 grep -F 'gh pr create' "$STAGE17_WORKFLOW" >/dev/null
 grep -F "GH_TOKEN: \${{ secrets.STAGE17_GITHUB_TOKEN }}" "$STAGE17_WORKFLOW" >/dev/null
+grep -F "2>/dev/null || printf '0'" "$STAGE17_WORKFLOW" >/dev/null
 grep -F "gh pr checks \"\$PR_URL\" --watch --fail-fast" "$STAGE17_WORKFLOW" >/dev/null
 grep -F "gh pr merge \"\$PR_URL\" --squash --delete-branch" "$STAGE17_WORKFLOW" >/dev/null
 
