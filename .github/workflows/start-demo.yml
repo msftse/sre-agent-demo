@@ -113,9 +113,8 @@ jobs:
           Human controls remain mandatory:
 
           - Running the starter authorizes this setup PR to merge after required validation passes.
-          - Approve the protected \`demo\` deployment to activate the faulty release and deterministic traffic.
           - Review and merge the later Azure SRE Agent remediation PR.
-          - Approve the protected recovery deployment.
+          - Deployments run automatically from merged, validated \`main\` commits.
 
           Started by [workflow run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}).
           EOF
@@ -162,7 +161,7 @@ jobs:
             printf -- '- Setup PR: %s\n' "$PR_URL"
             printf -- '- Required source and chart validation passed.\n'
             printf -- '- The setup PR was merged automatically by the starter.\n'
-            printf -- '- Approve the protected demo deployment to activate the incident.\n'
+            printf -- '- Deliver Demo to AKS deploys the incident automatically.\n'
             printf -- '- Azure Monitor and Azure SRE Agent take over after FIELD20 failures begin.\n'
             printf -- '- Merge the later SRE remediation PR; deliver-demo then runs recovery automatically.\n'
           } >>"$GITHUB_STEP_SUMMARY"

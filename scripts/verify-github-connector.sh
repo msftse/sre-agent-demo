@@ -7,7 +7,6 @@ readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
 readonly CONNECTOR_NAME="northstar-github"
 readonly REPOSITORY="msftse/sre-agent-demo"
-readonly EXPECTED_REVIEWER="ij-23"
 readonly EXPECTED_TOOLS=(
   northstar-github_add_issue_comment
   northstar-github_create_branch
@@ -108,12 +107,8 @@ jq -e '
   and .allow_deletions.enabled == false
 ' "$branch_protection_file" >/dev/null
 
-jq -e --arg reviewer "$EXPECTED_REVIEWER" '
-  any(
-    .protection_rules[];
-    .type == "required_reviewers"
-    and any(.reviewers[]; .reviewer.login == $reviewer)
-  )
+jq -e '
+  all(.protection_rules[]; .type != "required_reviewers")
 ' "$environment_file" >/dev/null
 
 jq -e '
@@ -130,5 +125,5 @@ jq -e '
 printf '%s\n' 'PASS: GitHub connector exposes exactly seven approved tools.'
 printf '%s\n' 'PASS: merge, review, and pull-request mutation tools are unavailable.'
 printf '%s\n' 'PASS: main requires validation and user merge with no separate approving review.'
-printf '%s\n' 'PASS: demo deployment requires ij-23 approval and accepts only main.'
+printf '%s\n' 'PASS: demo deployment has no reviewer gate and accepts only main.'
 printf '%s\n' 'PASS: workflow tokens are read-only and cannot approve pull requests.'

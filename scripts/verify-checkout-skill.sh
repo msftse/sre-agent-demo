@@ -74,6 +74,8 @@ for clause in \
   'The Teams marker must equal the branch suffix' \
   'must resolve through `get_incident_thread`' \
   'an empty auxiliary SRE incident thread is not valid SRE correlation' \
+  'wait for the automatic main-only deployment' \
+  'starts automatic deployment from the main-only `demo` environment' \
   'After a successful delivery-workflow callback' \
   'Awaiting human PR review; no merge or deployment performed.'; do
   grep -F "$clause" "$SKILL_FILE" >/dev/null

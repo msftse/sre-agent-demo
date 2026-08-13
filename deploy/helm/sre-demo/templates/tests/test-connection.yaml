@@ -45,10 +45,10 @@ spec:
             --data '{"email":"recovery-verifier@example.com","discount_code":"FIELD20","items":[{"product_id":"field-pack-28","quantity":2}]}' \
             --output /tmp/field20-checkout.json \
             http://{{ include "sre-demo.fullname" . }}-frontend:{{ .Values.frontend.service.port }}/api/checkout
-          grep --fixed-strings '"subtotal_cents":29600' /tmp/field20-checkout.json
-          grep --fixed-strings '"discount_cents":5920' /tmp/field20-checkout.json
-          grep --fixed-strings '"shipping_cents":0' /tmp/field20-checkout.json
-          grep --fixed-strings '"total_cents":23680' /tmp/field20-checkout.json
+          grep -F '"subtotal_cents":29600' /tmp/field20-checkout.json
+          grep -F '"discount_cents":5920' /tmp/field20-checkout.json
+          grep -F '"shipping_cents":0' /tmp/field20-checkout.json
+          grep -F '"total_cents":23680' /tmp/field20-checkout.json
           {{- end }}
       resources:
         requests:

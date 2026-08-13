@@ -58,7 +58,7 @@ Autonomy ends after GitHub branch, commit, and PR creation. The responder and sk
 - Azure restart, scale, patch, or configuration writes.
 - Alert-rule and GitHub-protection changes.
 
-The Stage 9 incident-demo branch protection and protected `demo` environment remain the enforcement layers for human merge and deployment approval.
+The Stage 9 incident-demo branch protection enforces human remediation merge; the `demo` environment restricts automatic deployment to `main`.
 
 ## Automatic Deployment
 

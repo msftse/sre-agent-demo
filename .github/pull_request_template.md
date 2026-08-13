@@ -14,4 +14,4 @@ Describe the problem, proposed change, and expected operational effect.
 
 - [ ] I reviewed the implementation and evidence
 - [ ] I approve this change for merge into `main`
-- [ ] I understand that deployment remains a separate, protected `demo` environment action
+- [ ] I understand that merging an authorized remediation PR starts automatic `demo` deployment

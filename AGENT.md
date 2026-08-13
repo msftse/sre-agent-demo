@@ -173,7 +173,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Terraform state: local and ignored by Git for this learning demo.
 - Every taggable Azure resource must include `SecurityControl=Ignore`.
 - Teams notifications are mandatory at incident start, during material investigation steps, and at completion with the RCA.
-- Human GitHub pull-request merge is the source authorization boundary; protected-environment approval separately authorizes deployment.
+- Human merge of the SRE remediation PR is the source authorization boundary; validated `main` merges deploy automatically through the main-only `demo` environment.
 - Credentials, OAuth grants, personal access tokens, and Terraform state must never be committed.
 
 ## Verified Environment
@@ -292,9 +292,9 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - `scripts/configure-github-protection.sh` switches between `routine` and `incident-demo`. Routine mode permits direct implementation pushes while retaining linear history and force-push/deletion protection. Incident-demo mode additionally requires the validation check, resolved conversations, and admin enforcement; no separate approving review is required because the SRE connector authors PRs as `ij-23`.
 - PRs are reserved for fixes authored after an actual SRE Agent investigation; routine implementation stages commit directly. Enable `incident-demo` before the remediation exercise.
 - `Start Demo` (`.github/workflows/start-demo.yml`) is the browser entry point. It inverts known fix `925ff4f` into a `demo/stage17-incident-*` setup PR after proving no setup/remediation PR or delivery is active. `GITHUB_TOKEN` pushes the branch; repository secret `STAGE17_GITHUB_TOKEN` creates and merges only the validated setup PR under organization policy.
-- The starter waits for required validation and automatically merges only its generated setup PR; the manual dispatch is the source authorization for incident setup. Human merge of a same-repository `sre/field20-checkout-*` PR starts protected recovery with traffic disabled. Both paths deploy the merge SHA and require `demo` approval.
+- The starter waits for required validation and automatically merges only its generated setup PR; the manual dispatch is the source authorization for incident setup. Human merge of a same-repository `sre/field20-checkout-*` PR starts automatic recovery with traffic disabled. Both paths deploy the merge SHA through the main-only `demo` environment without a reviewer gate.
 - The starter credential should be fine-grained or GitHub App based and limited to setup branch and PR operations in this repository. It has no review call and does not match or merge SRE remediation branches.
-- The `demo` environment accepts only `main` and requires `ij-23` approval. The SRE remediation PR merge and recovery deployment approval are separate user actions; the agent can perform neither.
+- The `demo` environment accepts only `main` and has no reviewer gate. The SRE remediation PR merge remains the user action; the agent cannot merge it or dispatch deployment.
 - Workflow permissions are `contents: read` plus job-scoped `id-token: write`. Third-party actions and tool versions are pinned.
 - Images are built on the runner Docker daemon and published with `docker push`; no ACR build/import/task command is used.
 - Trivy blocks fixed critical vulnerabilities and generates SPDX SBOMs before deployment. The first run blocked `CVE-2026-31789`; the patched Alpine OpenSSL packages passed the replacement run.

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Resume the original Azure SRE Agent investigation after human GitHub decisions and protected deployment events. Preserve one SRE thread and one Teams timeline from alert through PR, merge/rejection, deployment, verification, and final RCA without giving the agent merge, approval, or workflow-dispatch authority.
+Resume the original Azure SRE Agent investigation after human GitHub decisions and protected deployment events. Preserve one SRE thread and one Teams timeline from alert through PR, merge/rejection, deployment, verification, and final RCA without giving the agent merge or workflow-dispatch authority.
 
 ## Signed GitHub Callback
 
@@ -100,4 +100,4 @@ Validated outcomes:
 
 ## Outcome
 
-Stage 16 is complete. Verified GitHub decisions and delivery events can now resume the exact SRE investigation and Teams timeline without weakening human merge or deployment approval. Stage 17 can activate the deterministic incident and rehearse success and rejection paths end to end.
+Stage 16 is complete. Verified GitHub decisions and delivery events can now resume the exact SRE investigation and Teams timeline without weakening the human remediation-merge boundary or main-only deployment restriction. Stage 17 can activate the deterministic incident and rehearse success and rejection paths end to end.

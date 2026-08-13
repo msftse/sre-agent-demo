@@ -14,18 +14,17 @@ Pull requests to `main` run only the `Validate source and chart` job:
 2. Frontend install, tests, lint, production build, and shipped-dependency audit.
 3. Helm lint and default/Azure Monitor render checks.
 
-Deployment remains separately authorized:
+Deployment follows validated merge authorization:
 
 1. Merge a validated same-repository `sre/field20-checkout-*` remediation PR to start recovery automatically with incident traffic disabled, or manually dispatch `Deliver Demo to AKS` on `main` for incident activation or operator recovery.
-2. Approve the protected `demo` environment as `ij-23`; neither trigger can deploy before this approval.
-3. Exchange GitHub's environment-bound OIDC token for a short-lived Azure token.
-4. Verify the Azure subscription and tenant.
-5. Authenticate the local runner Docker daemon to ACR.
-6. Build AMD64 images locally and publish them with `docker push`.
-7. Block deployment on fixed critical vulnerabilities and generate SPDX SBOMs.
-8. Connect to Entra-integrated AKS through pinned kubectl, kubelogin, and Helm versions.
-9. Atomically deploy immutable image digests.
-10. Verify replicas, full Git SHA, exact digests, telemetry identity, ServiceMonitor, and Helm smoke tests.
+2. Exchange GitHub's environment-bound OIDC token for a short-lived Azure token.
+3. Verify the Azure subscription and tenant.
+4. Authenticate the local runner Docker daemon to ACR.
+5. Build AMD64 images locally and publish them with `docker push`.
+6. Block deployment on fixed critical vulnerabilities and generate SPDX SBOMs.
+7. Connect to Entra-integrated AKS through pinned kubectl, kubelogin, and Helm versions.
+8. Atomically deploy immutable image digests.
+9. Verify replicas, full Git SHA, exact digests, telemetry identity, ServiceMonitor, and Helm smoke tests.
 
 The deployment job has only `contents: read` and `id-token: write`. All third-party actions are pinned by commit SHA. Concurrent demo deployments are serialized and never cancelled in progress.
 
@@ -44,10 +43,9 @@ The validated `incident-demo` branch protection profile requires:
 The `demo` environment always:
 
 - Accepts deployments only from `main`.
-- Requires approval from `ij-23`.
-- Allows self-review at deployment time because `ij-23` is currently the sole reviewer.
+- Has no required reviewer or wait timer.
 
-The user-performed merge is the source authorization boundary and starts the recovery workflow automatically. The environment approval is a separate operational authorization, and the agent can perform neither action.
+The user-performed SRE remediation merge is the source authorization boundary and starts recovery automatically. The agent can neither merge the PR nor dispatch the workflow.
 
 Routine implementation stages use the `routine` profile so normal demo-building changes can be committed directly without creating artificial PRs. Before the SRE Agent incident exercise, switch back to the enforced profile:
 
@@ -124,7 +122,7 @@ Shell scripts: ShellCheck and bash syntax passed
 Terraform: 29 resources, zero drift
 Checkov: 24 passed, 0 failed
 Azure tags: 21 resources audited, one explicit non-taggable exclusion
-GitHub environment: main-only plus required reviewer
+GitHub environment: main-only with automatic deployment
 GitHub main branch: validation and user-performed merge required
 AKS deployments: 4/4 replicas ready
 Helm smoke test: succeeded

@@ -35,7 +35,7 @@ The proposal should include only sections relevant to this demo:
 6. Managed Prometheus, Log Analytics, Application Insights, and Grafana signal flow.
 7. Azure Monitor alert discovery and Azure SRE Agent investigation flow.
 8. Teams bot, Functions Flex bridge, Key Vault, storage, and automated MCP connector.
-9. GitHub connector, checkout skill, response plan, pull-request boundary, deployment approval, verification, and RCA continuation.
+9. GitHub connector, checkout skill, response plan, pull-request boundary, automatic main-only deployment, verification, and RCA continuation.
 10. Security/trust-boundary table that distinguishes autonomous actions from human approvals.
 11. Phased build and demonstration sequence aligned to the implementation stages.
 12. Open questions and glossary.
@@ -44,8 +44,8 @@ The proposal should include only sections relevant to this demo:
 
 Generate only diagrams that materially teach the design. At minimum, the proposal needs:
 
-- **Closed-loop operating model:** alert → investigation → Teams timeline → source fix PR → human merge → protected deployment → verification/RCA.
-- **Identity and approval boundaries:** Azure UAMIs/RBAC, Bot Connector identity, MCP custom-header authentication, GitHub permissions, branch protection, and environment approval.
+- **Closed-loop operating model:** alert → investigation → Teams timeline → source fix PR → human merge → automatic main-only deployment → verification/RCA.
+- **Identity and authorization boundaries:** Azure UAMIs/RBAC, Bot Connector identity, MCP custom-header authentication, GitHub permissions, branch protection, and environment branch policy.
 - **Azure deployment topology:** AKS application and observability resources, Azure SRE Agent, Teams bridge resources, and external GitHub/Teams boundaries.
 
 Follow the skill's architecture interpreter → layout designer → image renderer/validator workflow. Do not render diagrams directly from prose. The final selected diagrams must be presentation-resolution PNGs embedded into the HTML as data URIs.
