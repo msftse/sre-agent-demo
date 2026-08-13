@@ -1,0 +1,136 @@
+name: Start Stage 17 incident
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Confirm creation of the intentional FIELD20 regression PR
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: stage17-incident-setup
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+env:
+  SCENARIO_FIX_SHA: 925ff4f6ebb53790e9ce584b10c073b7c4144e97
+
+jobs:
+  prepare:
+    name: Prepare governed incident PR
+    if: ${{ inputs.confirm }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out protected baseline
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify rehearsal is idle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          active_prs=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --json headRefName \
+            --jq '[.[] | select(
+              (.headRefName | startswith("demo/stage17-incident-"))
+              or (.headRefName | startswith("sre/field20-checkout-"))
+            )] | length')
+          [[ "$active_prs" == 0 ]] || {
+            printf 'A Stage 17 setup or remediation PR is already open.\n' >&2
+            exit 1
+          }
+
+          active_deliveries=$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow deliver-demo.yml \
+            --limit 20 \
+            --json status \
+            --jq '[.[] | select(.status != "completed")] | length')
+          [[ "$active_deliveries" == 0 ]] || {
+            printf 'A demo delivery workflow is already active.\n' >&2
+            exit 1
+          }
+
+          git merge-base --is-ancestor "$SCENARIO_FIX_SHA" HEAD
+
+      - name: Create intentional regression commit
+        id: scenario
+        run: |
+          branch="demo/stage17-incident-${GITHUB_RUN_ID}"
+          git switch --create "$branch"
+          git revert --no-commit "$SCENARIO_FIX_SHA"
+
+          changed_files=$(git diff --cached --name-only)
+          [[ "$changed_files" == $'src/backend/app/service.py\nsrc/backend/tests/test_api.py' ]] || {
+            printf 'Scenario changed unexpected files:\n%s\n' "$changed_files" >&2
+            exit 1
+          }
+          grep -F 'code="discount_calculation_failed"' src/backend/app/service.py >/dev/null
+          if grep -F 'test_checkout_applies_valid_field20_discount' src/backend/tests/test_api.py >/dev/null; then
+            printf 'The FIELD20 recovery test was not removed.\n' >&2
+            exit 1
+          fi
+
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add src/backend/app/service.py src/backend/tests/test_api.py
+          git commit -m "test: activate Stage 17 FIELD20 incident"
+          git push origin "$branch"
+          printf 'branch=%s\n' "$branch" >>"$GITHUB_OUTPUT"
+
+      - name: Open setup PR and start validation
+        id: pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SCENARIO_BRANCH: ${{ steps.scenario.outputs.branch }}
+        run: |
+          pr_url=$(gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$SCENARIO_BRANCH" \
+            --title 'demo: activate Stage 17 FIELD20 incident' \
+            --body "$(cat <<EOF
+          ## Stage 17 incident setup
+
+          This PR intentionally restores the known FIELD20 checkout regression and removes its regression test.
+
+          Human controls remain mandatory:
+
+          - Merge this PR to authorize the incident source change.
+          - Approve the protected \`demo\` deployment to activate the faulty release and deterministic traffic.
+          - Review and merge the later Azure SRE Agent remediation PR.
+          - Approve the protected recovery deployment.
+
+          Started by [workflow run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}).
+          EOF
+          )")
+
+          gh workflow run deliver-demo.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$SCENARIO_BRANCH" \
+            -f deploy=false \
+            -f incident_traffic=false
+
+          printf 'url=%s\n' "$pr_url" >>"$GITHUB_OUTPUT"
+
+      - name: Publish operator checkpoint
+        env:
+          PR_URL: ${{ steps.pull_request.outputs.url }}
+        run: |
+          {
+            printf '## Stage 17 setup PR created\n\n'
+            printf -- '- Review and merge: %s\n' "$PR_URL"
+            printf -- '- Validation was dispatched explicitly for the setup branch.\n'
+            printf -- '- Merging starts protected incident deployment with traffic enabled.\n'
+          } >>"$GITHUB_STEP_SUMMARY"

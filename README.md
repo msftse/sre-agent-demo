@@ -356,7 +356,9 @@ See [docs/stages/08-managed-observability.md](docs/stages/08-managed-observabili
 
 Pull requests to `main` run backend, frontend, and Helm validation. The repository has two protection profiles: `routine` permits direct setup-stage commits while retaining linear-history/no-force-push safeguards; `incident-demo` requires a successful validation check, resolved conversations, and a manual merge by the user. The SRE Agent cannot merge, review, or mutate the pull request.
 
-Merging a validated same-repository `sre/field20-checkout-*` remediation PR automatically starts recovery from `main` with incident traffic disabled. Manual dispatch remains available for incident activation and operator recovery. Every deployment pauses at the protected `demo` environment for user approval. The job authenticates to Azure through the repository's immutable environment-bound OIDC subject, builds AMD64 images on the GitHub-hosted Docker daemon, pushes with Docker, rejects fixed critical vulnerabilities, creates SPDX SBOMs, and deploys only registry digests. `scripts/verify-deployment.sh` proves the release SHA, digests, replicas, workload identity, ServiceMonitor, and in-cluster health.
+The manually dispatched `Start Stage 17 incident` workflow creates a `demo/stage17-incident-*` setup branch and PR by inverting the known remediation commit. It cannot merge the PR. Human merge starts protected incident deployment with deterministic traffic enabled. A later merged `sre/field20-checkout-*` remediation PR automatically starts recovery with traffic disabled. Every deployment pauses at the protected `demo` environment for user approval. The job authenticates to Azure through the repository's immutable environment-bound OIDC subject, builds AMD64 images on the GitHub-hosted Docker daemon, pushes with Docker, rejects fixed critical vulnerabilities, creates SPDX SBOMs, and deploys only registry digests. `scripts/verify-deployment.sh` proves the release SHA, digests, replicas, workload identity, ServiceMonitor, and in-cluster health.
+
+The repository setting **Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests** must be enabled for the starter to open its setup PR. The workflow receives no review or merge API calls, and `incident-demo` branch protection still requires the user-performed merge.
 
 The Stage 9 validation first proved that a critical frontend OpenSSL CVE blocks deployment, then proved that the patched replacement can complete end to end. See the Stage 9 record for its historical run evidence.
 
@@ -374,7 +376,7 @@ The prepared regression affects only valid `FIELD20` checkout: discount validati
 
 The disabled traffic generator submits a qualifying FIELD20 request every five seconds and continues after failures. Azure Monitor evaluates the checkout 5xx ratio every minute, requires more than 50% failures plus active traffic across two minutes, and auto-resolves after recovery. Azure SRE Agent discovers the alert through its native subscription scanner; no action group is required.
 
-The incident is not active. Later, deploy it from the protected workflow with `deploy=true` and `incident_traffic=true`. See [docs/stages/10-checkout-incident.md](docs/stages/10-checkout-incident.md).
+The incident is not active. Start it in GitHub under **Actions > Start Stage 17 incident > Run workflow**, select **Confirm creation**, and run it. Review and merge the generated setup PR, then approve its protected `demo` deployment. See [docs/stages/17-approval-rejection-rehearsal.md](docs/stages/17-approval-rejection-rehearsal.md).
 
 ## Azure SRE Agent Foundation
 

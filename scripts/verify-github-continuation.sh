@@ -8,6 +8,7 @@ readonly IAC_DIR="$ROOT_DIR/iac"
 readonly REPOSITORY="msftse/sre-agent-demo"
 readonly EXPECTED_EVENTS=(deployment_status pull_request workflow_run)
 readonly DELIVERY_WORKFLOW="$ROOT_DIR/.github/workflows/deliver-demo.yml"
+readonly STAGE17_WORKFLOW="$ROOT_DIR/.github/workflows/start-stage17-incident.yml"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
@@ -34,6 +35,15 @@ grep -F '/api/v1/threads/{thread_id}/messages' "$ROOT_DIR/src/teams-bridge/bridg
 grep -F 'deploy_sha:' "$DELIVERY_WORKFLOW" >/dev/null
 grep -F "git merge-base --is-ancestor \"\$DEPLOY_SHA\" origin/main" "$DELIVERY_WORKFLOW" >/dev/null
 [[ $(grep -Fc 'fetch-depth: 0' "$DELIVERY_WORKFLOW") -eq 2 ]]
+grep -F "startsWith(github.event.pull_request.head.ref, 'demo/stage17-incident-')" "$DELIVERY_WORKFLOW" >/dev/null
+grep -F "startsWith(github.event.pull_request.head.ref, 'sre/field20-checkout-')" "$DELIVERY_WORKFLOW" >/dev/null
+grep -F 'SCENARIO_FIX_SHA: 925ff4f6ebb53790e9ce584b10c073b7c4144e97' "$STAGE17_WORKFLOW" >/dev/null
+grep -F "git revert --no-commit \"\$SCENARIO_FIX_SHA\"" "$STAGE17_WORKFLOW" >/dev/null
+grep -F 'gh pr create' "$STAGE17_WORKFLOW" >/dev/null
+grep -F 'gh workflow run deliver-demo.yml' "$STAGE17_WORKFLOW" >/dev/null
+
+workflow_permissions=$(gh api "repos/$REPOSITORY/actions/permissions/workflow")
+jq -e '.can_approve_pull_request_reviews == true' <<<"$workflow_permissions" >/dev/null
 
 teams_output=$(terraform -chdir="$IAC_DIR" output -json teams_bridge)
 resource_group=$(terraform -chdir="$IAC_DIR" output -raw resource_group_name)
@@ -84,3 +94,5 @@ printf '%s\n' 'PASS: unsigned GitHub events return 401.'
 printf '%s\n' 'PASS: one active signed webhook exposes exactly three continuation events and its latest delivery succeeded.'
 printf '%s\n' 'PASS: PR branch/base marker, workflow, correlation, and dedup boundaries are present.'
 printf '%s\n' 'PASS: manual recovery pins only full-history commits already contained in main.'
+printf '%s\n' 'PASS: Stage 17 setup and SRE recovery branches map to traffic-on and traffic-off delivery.'
+printf '%s\n' 'PASS: Actions may create the governed setup PR; branch protection still requires human merge.'

@@ -64,6 +64,8 @@ done
 for clause in \
   'Never approve, merge, enable auto-merge, dispatch a workflow, deploy' \
   'Add a regression test for two `field-pack-28` items with `FIELD20`' \
+  'helm-field20-recovery-<deployed-git-sha>' \
+  'checkout.discount_code == "FIELD20"' \
   'total `23680`' \
   '<!-- sre-thread-id: <current-sre-thread-resource-id> -->' \
   '<!-- teams-thread-id: <current-incident-id> -->' \

@@ -65,7 +65,7 @@ Verified GitHub continuation events can resume this thread after the initial PR 
 2. If the PR closes without merge, post the rejected outcome to the existing Teams thread and stop. Do not deploy or create another remediation branch.
 3. If a human merges the PR, post the merge SHA to Teams and wait for a separately approved deployment. Never dispatch the workflow.
 4. For deployment failure or cancellation, preserve evidence, reply in Teams, and stop without claiming recovery.
-5. After a successful delivery-workflow callback, verify the deployed Git SHA and image digest, healthy replicas, successful valid FIELD20 checkout, correlated logs/traces, falling failure ratio, and alert recovery.
+5. After a successful delivery-workflow callback, verify the deployed Git SHA and image digest, healthy replicas, successful valid FIELD20 checkout, correlated logs/traces, falling failure ratio, and alert recovery. The recovery-only Helm test uses operation ID `helm-field20-recovery-<deployed-git-sha>` and submits two `field-pack-28` items; correlate its HTTP 200 request/log with the `checkout.calculate` span attribute `checkout.discount_code == "FIELD20"`, then verify totals `29600 / 5920 / 0 / 23680`. Do not require or query customer email or request bodies.
 6. Add one final RCA comment to the existing PR with `add_issue_comment`. Include incident impact, evidence, root cause, fix, human merge, deployed release identity, verification, and rollback. Do not modify the PR otherwise.
 7. Post the same final outcome to the existing Teams incident thread and return explicit resolution status.
 

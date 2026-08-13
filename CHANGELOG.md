@@ -2,6 +2,13 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-13 - Add repeatable Stage 17 starter
+
+- Added a manually dispatched `Start Stage 17 incident` workflow that creates a governed intentional-regression PR and explicitly starts its validation.
+- Routed human-merged `demo/stage17-incident-*` PRs to protected traffic-on deployment and retained traffic-off protected recovery for SRE remediation PRs.
+- Added recovery-only FIELD20 smoke verification with exact totals and privacy-bounded trace metadata for autonomous final RCA evidence.
+- Preserved separate human merge and protected `demo` approval boundaries for both incident activation and recovery.
+
 ### 2026-08-10 - Complete live approval and rejection rehearsal
 
 - Activated the deterministic FIELD20 incident, observed the Sev1 Azure Monitor alert, and completed an evidence-backed Azure SRE Agent investigation in the existing Teams timeline.

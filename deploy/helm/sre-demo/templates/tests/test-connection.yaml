@@ -38,6 +38,18 @@ spec:
         - |
           curl --fail --silent http://backend:{{ .Values.backend.service.port }}/health/ready
           curl --fail --silent http://{{ include "sre-demo.fullname" . }}-frontend:{{ .Values.frontend.service.port }}/healthz
+          {{- if not .Values.trafficGenerator.enabled }}
+          curl --fail --silent \
+            --header 'Content-Type: application/json' \
+            --header 'X-Operation-ID: helm-field20-recovery-{{ .Values.release.gitSha }}' \
+            --data '{"email":"recovery-verifier@example.com","discount_code":"FIELD20","items":[{"product_id":"field-pack-28","quantity":2}]}' \
+            --output /tmp/field20-checkout.json \
+            http://{{ include "sre-demo.fullname" . }}-frontend:{{ .Values.frontend.service.port }}/api/checkout
+          grep --fixed-strings '"subtotal_cents":29600' /tmp/field20-checkout.json
+          grep --fixed-strings '"discount_cents":5920' /tmp/field20-checkout.json
+          grep --fixed-strings '"shipping_cents":0' /tmp/field20-checkout.json
+          grep --fixed-strings '"total_cents":23680' /tmp/field20-checkout.json
+          {{- end }}
       resources:
         requests:
           cpu: 5m

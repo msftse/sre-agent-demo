@@ -35,7 +35,6 @@ def test_checkout_metrics_and_trace_spans() -> None:
     with TestClient(application) as client:
         response = client.post(
             "/api/checkout",
-            headers={"traceparent": f"00-{trace_id}-1234567890abcdef-01"},
             json={
                 "email": "explorer@example.com",
                 "items": [{"product_id": "field-pack-28", "quantity": 1}],
@@ -43,9 +42,10 @@ def test_checkout_metrics_and_trace_spans() -> None:
         )
         rejected = client.post(
             "/api/checkout",
+            headers={"traceparent": f"00-{trace_id}-1234567890abcdef-01"},
             json={
                 "email": "explorer@example.com",
-                "discount_code": "NOT-A-CODE",
+                "discount_code": "FIELD20",
                 "items": [{"product_id": "field-pack-28", "quantity": 1}],
             },
         )
@@ -54,15 +54,18 @@ def test_checkout_metrics_and_trace_spans() -> None:
     spans = exporter.get_finished_spans()
     assert response.status_code == 200
     assert rejected.status_code == 422
-    assert response.headers["x-trace-id"] == trace_id
+    assert rejected.headers["x-trace-id"] == trace_id
     assert 'northstar_checkout_attempts_total{outcome="confirmed"} 1.0' in metrics.text
     assert 'northstar_checkout_attempts_total{outcome="rejected"} 1.0' in metrics.text
     assert {span.name for span in spans} >= {"POST /api/checkout", "checkout.calculate"}
-    confirmed_spans = [span for span in spans if f"{span.context.trace_id:032x}" == trace_id]
-    assert {span.name for span in confirmed_spans} == {
+    correlated_spans = [span for span in spans if f"{span.context.trace_id:032x}" == trace_id]
+    assert {span.name for span in correlated_spans} == {
         "POST /api/checkout",
         "checkout.calculate",
     }
+    checkout_span = next(span for span in correlated_spans if span.name == "checkout.calculate")
+    assert checkout_span.attributes is not None
+    assert checkout_span.attributes["checkout.discount_code"] == "FIELD20"
     rejected_checkout = next(
         span
         for span in spans
@@ -70,7 +73,7 @@ def test_checkout_metrics_and_trace_spans() -> None:
     )
     exception_event = next(event for event in rejected_checkout.events if event.name == "exception")
     assert exception_event.attributes is not None
-    assert exception_event.attributes["exception.message"] == "That code is not active."
+    assert "$200.00" in str(exception_event.attributes["exception.message"])
 
 
 def test_json_formatter_includes_correlation_and_release_fields() -> None:

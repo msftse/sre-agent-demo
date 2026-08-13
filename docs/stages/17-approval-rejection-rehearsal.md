@@ -4,6 +4,26 @@
 
 Exercise the complete live incident path from deterministic FIELD20 failures through Azure Monitor, Azure SRE Agent, Teams, an automatically created remediation pull request, explicit human rejection and merge decisions, protected deployment approval, verified recovery, and final RCA.
 
+## Repeatable Browser Start
+
+The current browser-led entry point is **Actions > Start Stage 17 incident > Run workflow**. Select **Confirm creation of the intentional FIELD20 regression PR**, then run the workflow.
+
+The starter fails closed when a setup/remediation PR or delivery is already active. Otherwise it:
+
+1. Verifies the known remediation commit remains in `main` history.
+2. Creates `demo/stage17-incident-<run-id>` by inverting only that remediation.
+3. Asserts that exactly the backend service and checkout test changed.
+4. Opens a setup PR and explicitly dispatches `Validate source and chart` for its head commit.
+
+The operator then performs two actions in GitHub:
+
+1. Review and merge the setup PR to authorize the intentional source regression.
+2. Approve the protected `demo` deployment, which deploys that merge SHA with deterministic traffic enabled.
+
+Azure Monitor and Azure SRE Agent then take over. The agent investigates and creates `sre/field20-checkout-<incident-id>`. The operator reviews and merges that remediation PR and separately approves its protected recovery deployment. Recovery forces traffic off. The Helm test submits a valid FIELD20 checkout, verifies `29600 / 5920 / 0 / 23680`, and emits queryable trace evidence before the agent publishes the final Teams and PR RCA.
+
+Repository prerequisite: enable **Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests**. The starter uses the create-PR capability only; it has no review or merge step, and branch protection enforces human merge.
+
 ## Activation
 
 The incident activation workflow deployed the prepared regression with deterministic traffic enabled. The first attempt correctly stopped when AKS was unavailable; after the cluster restarted, the approved retry deployed Helm revision 7 and started one traffic-generator replica.

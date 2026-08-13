@@ -290,7 +290,9 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 - `scripts/configure-github-protection.sh` switches between `routine` and `incident-demo`. Routine mode permits direct implementation pushes while retaining linear history and force-push/deletion protection. Incident-demo mode additionally requires the validation check, resolved conversations, a user-performed merge, and admin enforcement; no separate approving review is required because the SRE connector authors PRs as `ij-23`.
 - PRs are reserved for fixes authored after an actual SRE Agent investigation; routine implementation stages commit directly. Enable `incident-demo` before the remediation exercise.
-- Pull requests automatically run backend, frontend, dependency-audit, and Helm validation. A merged same-repository `sre/field20-checkout-*` PR automatically starts recovery with traffic disabled; manual dispatch remains available for incident activation and operator recovery. Both paths require protected `demo` environment approval.
+- `Start Stage 17 incident` is the browser entry point. It inverts known fix `925ff4f` into a `demo/stage17-incident-*` setup PR after proving no setup/remediation PR or delivery is active. It explicitly dispatches validation because `GITHUB_TOKEN`-created PR events do not recursively start workflows.
+- Human merge of a setup PR starts protected delivery with traffic enabled. Human merge of a same-repository `sre/field20-checkout-*` PR starts protected recovery with traffic disabled. Both paths deploy the merge SHA and require `demo` approval.
+- Repository Actions must allow workflow-created PRs. The starter has `contents: write` and `pull-requests: write`, but performs no review or merge call; `incident-demo` protection remains the source authorization boundary.
 - The `demo` environment accepts only `main` and requires `ij-23` approval. The PR merge and deployment approval are separate user actions; the agent can perform neither.
 - Workflow permissions are `contents: read` plus job-scoped `id-token: write`. Third-party actions and tool versions are pinned.
 - Images are built on the runner Docker daemon and published with `docker push`; no ACR build/import/task command is used.
@@ -302,6 +304,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - `checkout()` intentionally returns HTTP 500 with `discount_calculation_failed` only after a valid `FIELD20` quote. Existing tests pass because valid FIELD20 checkout is the deliberate missing case.
 - The traffic generator defaults off. When enabled, it submits two `field-pack-28` items with FIELD20 every five seconds and continues after failures.
 - The delivery workflow exposes `incident_traffic`; the live incident uses `deploy=true` and `incident_traffic=true` only after SRE Agent and Teams are connected.
+- Recovery-mode Helm tests submit one FIELD20 checkout, assert exact totals, and emit a stable operation ID. The backend span records only `FIELD20` versus `other`, never email or request bodies, so the agent can independently verify recovery in Application Insights.
 - Managed Prometheus alert `NorthstarCheckoutFailureRatioHigh` is severity 1, requires more than 50% checkout 5xx plus active traffic across two minutes, and auto-resolves after five healthy minutes.
 - Azure SRE Agent discovers fired alerts through the native Azure Monitor scanner; the temporary empty action group was removed in Stage 11.
 - The healthy Stage 9 image remains deployed, traffic is disabled, and no Stage 10 alert is firing.

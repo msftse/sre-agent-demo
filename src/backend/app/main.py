@@ -123,11 +123,15 @@ def create_app(span_exporter: SpanExporter | None = None) -> FastAPI:
         tags=["checkout"],
     )
     async def create_checkout(request: CheckoutRequest) -> CheckoutResponse:
+        discount_code = (request.discount_code or "").strip().upper()
         with telemetry.tracer.start_as_current_span(
             "checkout.calculate",
             attributes={
                 "checkout.item_types": len(request.items),
                 "checkout.discount_requested": request.discount_code is not None,
+                "checkout.discount_code": (
+                    "FIELD20" if discount_code == "FIELD20" else "other"
+                ),
             },
         ):
             try:
