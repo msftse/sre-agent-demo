@@ -13,7 +13,7 @@ The starter fails closed when a setup/remediation PR or delivery is already acti
 1. Verifies the known remediation commit remains in `main` history.
 2. Creates `demo/stage17-incident-<run-id>` by inverting only that remediation.
 3. Asserts that exactly the backend service and checkout test changed.
-4. Opens a setup PR and explicitly dispatches `Validate source and chart` for its head commit.
+4. Opens a setup PR whose normal pull-request event starts `Validate source and chart` for its head commit.
 
 The operator then performs two actions in GitHub:
 
@@ -22,7 +22,7 @@ The operator then performs two actions in GitHub:
 
 Azure Monitor and Azure SRE Agent then take over. The agent investigates and creates `sre/field20-checkout-<incident-id>`. The operator reviews and merges that remediation PR and separately approves its protected recovery deployment. Recovery forces traffic off. The Helm test submits a valid FIELD20 checkout, verifies `29600 / 5920 / 0 / 23680`, and emits queryable trace evidence before the agent publishes the final Teams and PR RCA.
 
-Repository prerequisite: enable **Settings > Actions > General > Workflow permissions > Allow GitHub Actions to create and approve pull requests**. The starter uses the create-PR capability only; it has no review or merge step, and branch protection enforces human merge.
+Repository prerequisite: configure secret `STAGE17_GITHUB_TOKEN` with an operator-scoped credential that can create a PR in this repository. Organization policy blocks PR creation by the default workflow token. The starter uses the secret only in `gh pr create`; it has no review or merge step, and branch protection enforces human merge. Prefer a fine-grained token or GitHub App in production.
 
 ## Activation
 

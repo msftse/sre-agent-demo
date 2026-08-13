@@ -40,10 +40,10 @@ grep -F "startsWith(github.event.pull_request.head.ref, 'sre/field20-checkout-')
 grep -F 'SCENARIO_FIX_SHA: 925ff4f6ebb53790e9ce584b10c073b7c4144e97' "$STAGE17_WORKFLOW" >/dev/null
 grep -F "git revert --no-commit \"\$SCENARIO_FIX_SHA\"" "$STAGE17_WORKFLOW" >/dev/null
 grep -F 'gh pr create' "$STAGE17_WORKFLOW" >/dev/null
-grep -F 'gh workflow run deliver-demo.yml' "$STAGE17_WORKFLOW" >/dev/null
+grep -F "GH_TOKEN: \${{ secrets.STAGE17_GITHUB_TOKEN }}" "$STAGE17_WORKFLOW" >/dev/null
 
-workflow_permissions=$(gh api "repos/$REPOSITORY/actions/permissions/workflow")
-jq -e '.can_approve_pull_request_reviews == true' <<<"$workflow_permissions" >/dev/null
+repository_secrets=$(gh secret list --repo "$REPOSITORY" --json name)
+jq -e 'any(.[]; .name == "STAGE17_GITHUB_TOKEN")' <<<"$repository_secrets" >/dev/null
 
 teams_output=$(terraform -chdir="$IAC_DIR" output -json teams_bridge)
 resource_group=$(terraform -chdir="$IAC_DIR" output -raw resource_group_name)
@@ -95,4 +95,4 @@ printf '%s\n' 'PASS: one active signed webhook exposes exactly three continuatio
 printf '%s\n' 'PASS: PR branch/base marker, workflow, correlation, and dedup boundaries are present.'
 printf '%s\n' 'PASS: manual recovery pins only full-history commits already contained in main.'
 printf '%s\n' 'PASS: Stage 17 setup and SRE recovery branches map to traffic-on and traffic-off delivery.'
-printf '%s\n' 'PASS: Actions may create the governed setup PR; branch protection still requires human merge.'
+printf '%s\n' 'PASS: the operator-scoped starter credential exists; branch protection still requires human merge.'

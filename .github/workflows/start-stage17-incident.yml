@@ -14,9 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  actions: write
   contents: write
-  pull-requests: write
 
 env:
   SCENARIO_FIX_SHA: 925ff4f6ebb53790e9ce584b10c073b7c4144e97
@@ -89,12 +87,17 @@ jobs:
           git push origin "$branch"
           printf 'branch=%s\n' "$branch" >>"$GITHUB_OUTPUT"
 
-      - name: Open setup PR and start validation
+      - name: Open setup PR
         id: pull_request
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.STAGE17_GITHUB_TOKEN }}
           SCENARIO_BRANCH: ${{ steps.scenario.outputs.branch }}
         run: |
+          [[ -n "$GH_TOKEN" ]] || {
+            printf 'Repository secret STAGE17_GITHUB_TOKEN is required.\n' >&2
+            exit 1
+          }
+
           pr_url=$(gh pr create \
             --repo "$GITHUB_REPOSITORY" \
             --base main \
@@ -116,12 +119,6 @@ jobs:
           EOF
           )")
 
-          gh workflow run deliver-demo.yml \
-            --repo "$GITHUB_REPOSITORY" \
-            --ref "$SCENARIO_BRANCH" \
-            -f deploy=false \
-            -f incident_traffic=false
-
           printf 'url=%s\n' "$pr_url" >>"$GITHUB_OUTPUT"
 
       - name: Publish operator checkpoint
@@ -131,6 +128,6 @@ jobs:
           {
             printf '## Stage 17 setup PR created\n\n'
             printf -- '- Review and merge: %s\n' "$PR_URL"
-            printf -- '- Validation was dispatched explicitly for the setup branch.\n'
+            printf -- '- Opening the PR started source and chart validation.\n'
             printf -- '- Merging starts protected incident deployment with traffic enabled.\n'
           } >>"$GITHUB_STEP_SUMMARY"
