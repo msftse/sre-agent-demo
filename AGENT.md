@@ -9,7 +9,8 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 ├── .github/
 │   ├── pull_request_template.md
 │   └── workflows/
-│       └── deliver-demo.yml
+│       ├── deliver-demo.yml
+│       └── start-demo.yml
 ├── .editorconfig
 ├── .gitignore
 ├── AGENT.md
@@ -290,7 +291,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 - `scripts/configure-github-protection.sh` switches between `routine` and `incident-demo`. Routine mode permits direct implementation pushes while retaining linear history and force-push/deletion protection. Incident-demo mode additionally requires the validation check, resolved conversations, and admin enforcement; no separate approving review is required because the SRE connector authors PRs as `ij-23`.
 - PRs are reserved for fixes authored after an actual SRE Agent investigation; routine implementation stages commit directly. Enable `incident-demo` before the remediation exercise.
-- `start-demo` is the browser entry point. It inverts known fix `925ff4f` into a `demo/stage17-incident-*` setup PR after proving no setup/remediation PR or delivery is active. `GITHUB_TOKEN` pushes the branch; repository secret `STAGE17_GITHUB_TOKEN` creates and merges only the validated setup PR under organization policy.
+- `Start Demo` (`.github/workflows/start-demo.yml`) is the browser entry point. It inverts known fix `925ff4f` into a `demo/stage17-incident-*` setup PR after proving no setup/remediation PR or delivery is active. `GITHUB_TOKEN` pushes the branch; repository secret `STAGE17_GITHUB_TOKEN` creates and merges only the validated setup PR under organization policy.
 - The starter waits for required validation and automatically merges only its generated setup PR; the manual dispatch is the source authorization for incident setup. Human merge of a same-repository `sre/field20-checkout-*` PR starts protected recovery with traffic disabled. Both paths deploy the merge SHA and require `demo` approval.
 - The starter credential should be fine-grained or GitHub App based and limited to setup branch and PR operations in this repository. It has no review call and does not match or merge SRE remediation branches.
 - The `demo` environment accepts only `main` and requires `ij-23` approval. The SRE remediation PR merge and recovery deployment approval are separate user actions; the agent can perform neither.

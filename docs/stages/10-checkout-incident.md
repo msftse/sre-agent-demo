@@ -106,7 +106,7 @@ Do not run this until Stage 11 has connected Azure SRE Agent and Stage 12 has co
    ./scripts/configure-github-protection.sh incident-demo
    ```
 
-2. Dispatch `Deliver demo to AKS` from `main` with `deploy=true` and `incident_traffic=true`.
+2. Dispatch `Deliver Demo to AKS` from `main` with `deploy=true` and `incident_traffic=true`.
 3. Approve the protected `demo` environment deployment.
 4. Verify pods remain Ready while FIELD20 checkouts return 500.
 5. Observe the Managed Prometheus alert fire and begin the SRE Agent flow.

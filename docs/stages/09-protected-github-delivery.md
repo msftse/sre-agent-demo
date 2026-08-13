@@ -16,7 +16,7 @@ Pull requests to `main` run only the `Validate source and chart` job:
 
 Deployment remains separately authorized:
 
-1. Merge a validated same-repository `sre/field20-checkout-*` remediation PR to start recovery automatically with incident traffic disabled, or manually dispatch `Deliver demo to AKS` on `main` for incident activation or operator recovery.
+1. Merge a validated same-repository `sre/field20-checkout-*` remediation PR to start recovery automatically with incident traffic disabled, or manually dispatch `Deliver Demo to AKS` on `main` for incident activation or operator recovery.
 2. Approve the protected `demo` environment as `ij-23`; neither trigger can deploy before this approval.
 3. Exchange GitHub's environment-bound OIDC token for a short-lived Azure token.
 4. Verify the Azure subscription and tenant.

@@ -4,7 +4,7 @@ This append-only log records implementation changes by date.
 
 ### 2026-08-13 - Add repeatable Stage 17 starter
 
-- Added a manually dispatched `start-demo` workflow that creates a governed intentional-regression PR, waits for required validation, and merges only that setup PR automatically.
+- Added a manually dispatched `Start Demo` workflow at `.github/workflows/start-demo.yml` that creates a governed intentional-regression PR, waits for required validation, and merges only that setup PR automatically.
 - Routed starter-merged `demo/stage17-incident-*` PRs to protected traffic-on deployment and retained human-merged, traffic-off protected recovery for SRE remediation PRs.
 - Added recovery-only FIELD20 smoke verification with exact totals and privacy-bounded trace metadata for autonomous final RCA evidence.
 - Preserved human approval for incident deployment, SRE remediation merge, and recovery deployment; the starter dispatch authorizes only the setup PR merge.

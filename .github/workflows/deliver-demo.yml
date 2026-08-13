@@ -1,4 +1,4 @@
-name: Deliver demo to AKS
+name: Deliver Demo to AKS
 
 on:
   pull_request:

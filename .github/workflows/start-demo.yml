@@ -1,6 +1,6 @@
-name: start-demo
+name: Start Demo
 
-run-name: start-demo
+run-name: Start Demo
 
 on:
   workflow_dispatch:

@@ -225,7 +225,7 @@ async def test_continues_successful_workflow_for_correlated_merge() -> None:
             "action": "completed",
             "repository": {"full_name": "msftse/sre-agent-demo"},
             "workflow_run": {
-                "name": "Deliver demo to AKS",
+                "name": "Deliver Demo to AKS",
                 "event": "workflow_dispatch",
                 "head_branch": "main",
                 "head_sha": "merge-123",
@@ -260,7 +260,7 @@ async def test_continues_automatic_workflow_from_correlated_pr_head() -> None:
             "action": "completed",
             "repository": {"full_name": "msftse/sre-agent-demo"},
             "workflow_run": {
-                "name": "Deliver demo to AKS",
+                "name": "Deliver Demo to AKS",
                 "event": "pull_request_target",
                 "head_branch": "sre/field20-checkout-incident-1",
                 "head_sha": "head-123",

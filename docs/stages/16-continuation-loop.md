@@ -27,7 +27,7 @@ A signed event is necessary but not sufficient because this is a public reposito
 - Head branch beginning `sre/field20-checkout-`.
 - Exactly one hidden `<!-- sre-thread-id: ... -->` marker in the PR body.
 
-Workflow continuation requires the exact `Deliver demo to AKS` workflow, a trusted `workflow_dispatch` or merged-PR `pull_request_target` event, and the `main` head branch. The automatic workflow itself also requires a merged same-repository `sre/field20-checkout-*` PR and forces incident traffic off. Deployment continuation requires the `demo` environment. All post-merge events must match a merge SHA previously stored from the correlated PR.
+Workflow continuation requires the exact `Deliver Demo to AKS` workflow, a trusted `workflow_dispatch` or merged-PR `pull_request_target` event, and the `main` head branch. The automatic workflow itself also requires a merged same-repository `sre/field20-checkout-*` PR and forces incident traffic off. Deployment continuation requires the `demo` environment. All post-merge events must match a merge SHA previously stored from the correlated PR.
 
 ## Durable Correlation
 

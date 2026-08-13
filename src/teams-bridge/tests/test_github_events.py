@@ -77,7 +77,7 @@ def test_parses_correlated_workflow_completion(workflow_event: str) -> None:
             "action": "completed",
             "repository": repository(),
             "workflow_run": {
-                "name": "Deliver demo to AKS",
+                "name": "Deliver Demo to AKS",
                 "event": workflow_event,
                 "head_branch": head_branch,
                 "head_sha": head_sha,
@@ -148,7 +148,7 @@ def test_parses_correlated_demo_deployment_status() -> None:
                 "action": "completed",
                 "repository": repository(),
                 "workflow_run": {
-                    "name": "Deliver demo to AKS",
+                    "name": "Deliver Demo to AKS",
                     "event": "pull_request",
                     "head_branch": "main",
                     "head_sha": "merge-123",

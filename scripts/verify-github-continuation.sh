@@ -8,7 +8,7 @@ readonly IAC_DIR="$ROOT_DIR/iac"
 readonly REPOSITORY="msftse/sre-agent-demo"
 readonly EXPECTED_EVENTS=(deployment_status pull_request workflow_run)
 readonly DELIVERY_WORKFLOW="$ROOT_DIR/.github/workflows/deliver-demo.yml"
-readonly STAGE17_WORKFLOW="$ROOT_DIR/.github/workflows/start-stage17-incident.yml"
+readonly STAGE17_WORKFLOW="$ROOT_DIR/.github/workflows/start-demo.yml"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 

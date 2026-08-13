@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 EXPECTED_REPOSITORY = "msftse/sre-agent-demo"
-EXPECTED_WORKFLOW = "Deliver demo to AKS"
+EXPECTED_WORKFLOW = "Deliver Demo to AKS"
 THREAD_MARKER = re.compile(r"<!--\s*sre-thread-id:\s*([A-Za-z0-9._:-]+)\s*-->")
 TEAMS_THREAD_MARKER = re.compile(
     r"<!--\s*teams-thread-id:\s*([A-Za-z0-9._:-]+)\s*-->"
