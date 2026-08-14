@@ -86,12 +86,15 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
 ├── azure-sre-agent/
-│   ├── sre-agent-responders/
-│   │   └── northstar-checkout-responder.md
-│   ├── sre-agent-skills/
+│   ├── pricing/
+│   │   └── azure-sre-agent-pricing.md
+│   ├── response-templates/
+│   │   └── northstar-checkout-rca.md
+│   ├── skills/
 │   │   └── northstar-checkout-remediation.md
-│   └── templates/
-│       └── northstar-checkout-rca.md
+│   └── subagents/
+│       └── sre-agent-responders/
+│           └── northstar-checkout-responder.md
 └── src/
     ├── backend/
     │   ├── app/
@@ -344,8 +347,9 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Stage 14 Checkout Skill
 
-- `azure-sre-agent/sre-agent-skills/northstar-checkout-remediation.md` is deployment source for an Azure SRE Agent custom skill, not a repository-discoverable Copilot skill; `.github/skills` is absent.
-- `azure-sre-agent/templates/northstar-checkout-rca.md` is composed into live skill content. Completed RCAs preserve its headings and render the same evidence-backed body in GitHub and Teams.
+- `azure-sre-agent/skills/northstar-checkout-remediation.md` is deployment source for an Azure SRE Agent custom skill, not a repository-discoverable Copilot skill; `.github/skills` is absent.
+- `azure-sre-agent/response-templates/northstar-checkout-rca.md` is composed into live skill content. Completed RCAs preserve its headings and render the same evidence-backed body in GitHub and Teams.
+- `azure-sre-agent/subagents/sre-agent-responders/northstar-checkout-responder.md` supplies the focused custom-agent instructions used by the checkout response plan.
 - The skill has eleven temporary tools: read-only Azure investigation, seven constrained GitHub operations, and three fixed-destination Teams operations.
 - Runtime instructions discover Azure resource names and IDs from the active incident and live relationships; no environment-specific subscription, resource group, cluster, workspace, namespace, or agent identifier is embedded.
 - `scripts/configure-sre-checkout-skill.sh` derives the current agent ID and endpoint from Terraform, validates Azure CLI subscription context, and performs an idempotent native data-plane upsert.

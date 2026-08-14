@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
-readonly RESPONDER_FILE="$ROOT_DIR/azure-sre-agent/sre-agent-responders/northstar-checkout-responder.md"
+readonly RESPONDER_FILE="$ROOT_DIR/azure-sre-agent/subagents/sre-agent-responders/northstar-checkout-responder.md"
 readonly RESPONDER_NAME="northstar-checkout-responder"
 readonly PLAN_NAME="northstar-checkout-response"
 readonly ALERT_TITLE="NorthstarCheckoutFailureRatioHigh"

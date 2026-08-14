@@ -6,9 +6,9 @@ Install a reusable Azure SRE Agent custom skill that investigates the Northstar 
 
 ## Runtime Ownership
 
-The skill runs only inside Azure SRE Agent. Its deployment source is stored at `azure-sre-agent/sre-agent-skills/northstar-checkout-remediation.md`, outside `.github/skills`, so GitHub Copilot and repository agents do not discover or execute it as a project skill.
+The skill runs only inside Azure SRE Agent. Its deployment source is stored at `azure-sre-agent/skills/northstar-checkout-remediation.md`, outside `.github/skills`, so GitHub Copilot and repository agents do not discover or execute it as a project skill.
 
-`scripts/configure-sre-checkout-skill.sh` composes that source with `azure-sre-agent/templates/northstar-checkout-rca.md` and sends the result to the current agent's `/api/v2/extendedAgent/skills/northstar-checkout-remediation` data-plane resource. The script derives the agent ID and endpoint from Terraform outputs and verifies that the active Azure CLI subscription matches the resource ID. It contains no fixed tenant, subscription, resource group, agent, cluster, workspace, or namespace identifier.
+`scripts/configure-sre-checkout-skill.sh` composes that source with `azure-sre-agent/response-templates/northstar-checkout-rca.md` and sends the result to the current agent's `/api/v2/extendedAgent/skills/northstar-checkout-remediation` data-plane resource. The script derives the agent ID and endpoint from Terraform outputs and verifies that the active Azure CLI subscription matches the resource ID. It contains no fixed tenant, subscription, resource group, agent, cluster, workspace, or namespace identifier.
 
 ## Runtime Discovery
 

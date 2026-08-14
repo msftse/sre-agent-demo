@@ -4,8 +4,8 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
-readonly SKILL_FILE="$ROOT_DIR/azure-sre-agent/sre-agent-skills/northstar-checkout-remediation.md"
-readonly RCA_TEMPLATE_FILE="$ROOT_DIR/azure-sre-agent/templates/northstar-checkout-rca.md"
+readonly SKILL_FILE="$ROOT_DIR/azure-sre-agent/skills/northstar-checkout-remediation.md"
+readonly RCA_TEMPLATE_FILE="$ROOT_DIR/azure-sre-agent/response-templates/northstar-checkout-rca.md"
 readonly SKILL_NAME="northstar-checkout-remediation"
 readonly SKILL_DESCRIPTION="Use for Northstar checkout HTTP 5xx incidents, FIELD20 discount failures, discount_calculation_failed errors, or the NorthstarCheckoutFailureRatioHigh alert on AKS."
 readonly EXPECTED_TOOLS=(

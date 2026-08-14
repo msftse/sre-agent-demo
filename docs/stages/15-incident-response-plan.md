@@ -6,7 +6,7 @@ Automatically route only the prepared severity-1 Northstar checkout alert to a f
 
 ## Custom Responder
 
-Azure SRE Agent custom responder `northstar-checkout-responder` is deployed from `azure-sre-agent/sre-agent-responders/northstar-checkout-responder.md`.
+Azure SRE Agent custom responder `northstar-checkout-responder` is deployed from `azure-sre-agent/subagents/sre-agent-responders/northstar-checkout-responder.md`.
 
 The responder has:
 

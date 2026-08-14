@@ -2,6 +2,18 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-14 - Document Azure SRE Agent pricing
+
+- Added `azure-sre-agent/pricing/azure-sre-agent-pricing.md` with the AAU billing model, token conversion rates, fixed and variable cost formulas, scenario estimates, allocation controls, related-cost caveats, optimization guidance, and official sources.
+- Recorded the live demo agent's 10,000-AAU active-flow allocation and its public-price planning ceiling without treating the allocation as expected spend.
+- Linked the pricing guide from `README.md` and added it to the synchronized project trees.
+
+### 2026-08-14 - Refine Azure SRE Agent asset hierarchy
+
+- Moved responder sources under `azure-sre-agent/subagents/sre-agent-responders/`.
+- Renamed the custom-skill folder to `azure-sre-agent/skills/` and the RCA template folder to `azure-sre-agent/response-templates/`.
+- Updated deployment scripts, live verifiers, project trees, and Stage 14/15 documentation to use the new paths.
+
 ### 2026-08-14 - Standardize Azure SRE Agent RCA assets
 
 - Moved custom skill and responder sources under `azure-sre-agent/` while preserving their Azure resource names and capability boundaries.

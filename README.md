@@ -200,12 +200,15 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   ├── verify-containers.sh
 │   └── verify-observability.sh
 ├── azure-sre-agent/
-│   ├── sre-agent-responders/
-│   │   └── northstar-checkout-responder.md
-│   ├── sre-agent-skills/
+│   ├── pricing/
+│   │   └── azure-sre-agent-pricing.md
+│   ├── response-templates/
+│   │   └── northstar-checkout-rca.md
+│   ├── skills/
 │   │   └── northstar-checkout-remediation.md
-│   └── templates/
-│       └── northstar-checkout-rca.md
+│   └── subagents/
+│       └── sre-agent-responders/
+│           └── northstar-checkout-responder.md
 └── src/
     ├── backend/
     │   ├── app/
@@ -418,9 +421,11 @@ See [docs/stages/13-github-connector.md](docs/stages/13-github-connector.md) for
 
 ## Checkout Remediation Skill
 
-Stage 14 installs `northstar-checkout-remediation` as an Azure SRE Agent custom skill. Its source is under `azure-sre-agent/sre-agent-skills/`; it is deliberately outside `.github/skills` and cannot be discovered as a GitHub Copilot project skill.
+Stage 14 installs `northstar-checkout-remediation` as an Azure SRE Agent custom skill. Its source is under `azure-sre-agent/skills/`; it is deliberately outside `.github/skills` and cannot be discovered as a GitHub Copilot project skill.
 
-The deployment script composes `azure-sre-agent/templates/northstar-checkout-rca.md` into the live skill content. Every completed incident RCA therefore uses the same headings and evidence fields in the GitHub PR comment and Microsoft Teams timeline. Unverified recoveries use the template's `Deferred` status instead of claiming resolution.
+The deployment script composes `azure-sre-agent/response-templates/northstar-checkout-rca.md` into the live skill content. Every completed incident RCA therefore uses the same headings and evidence fields in the GitHub PR comment and Microsoft Teams timeline. Unverified recoveries use the template's `Deferred` status instead of claiming resolution.
+
+For the AAU billing model, fixed and variable cost formulas, model token rates, this environment's 10,000-AAU allocation, scenario estimates, spending controls, and optimization guidance, see [Azure SRE Agent pricing and cost management](azure-sre-agent/pricing/azure-sre-agent-pricing.md).
 
 The skill resolves all Azure resource names and IDs from the active incident and live resource relationships, then correlates metrics, AKS health, logs, traces, release identity, and deployed source before proposing the FIELD20 repair. It can create a branch, commit, and PR, but must stop for human review.
 

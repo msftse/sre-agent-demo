@@ -5,8 +5,8 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
-readonly SKILL_FILE="$ROOT_DIR/azure-sre-agent/sre-agent-skills/northstar-checkout-remediation.md"
-readonly RCA_TEMPLATE_FILE="$ROOT_DIR/azure-sre-agent/templates/northstar-checkout-rca.md"
+readonly SKILL_FILE="$ROOT_DIR/azure-sre-agent/skills/northstar-checkout-remediation.md"
+readonly RCA_TEMPLATE_FILE="$ROOT_DIR/azure-sre-agent/response-templates/northstar-checkout-rca.md"
 readonly SKILL_NAME="northstar-checkout-remediation"
 readonly EXPECTED_TOOLS=(
   RunAzCliReadCommands
