@@ -2,12 +2,21 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-14 - Make repeated SRE investigations self-correlating
+
+- Disabled response-plan alert merging so each repeated FIELD20 alert starts a distinct autonomous investigation.
+- Added deterministic Azure incident-to-canonical-SRE-thread resolution in the Teams bridge and persisted both identifiers for continuation.
+- Updated the remediation skill to use the `sre_thread_id` returned by the Teams tool instead of requiring manual operator input.
+- Validated Ruff, strict mypy, 40 bridge tests, Function registration, packaging, live Function health, exact connector tools, skill publication, and response-plan configuration.
+- Proved the correction with alert `2020b15d-4eda-5ef1-b9e5-803567f40033`: distinct SRE thread `bc1fdf64-fe8a-458c-b6fa-7fa22a588d1c`, durable Teams correlation, and automatically created human-gated remediation PR #9.
+
 ### 2026-08-13 - Add repeatable demo starter
 
 - Removed the `demo` environment reviewer gate so validated incident and recovery merges deploy automatically; retained the main-only branch policy and environment-bound OIDC identity.
 - Added a manually dispatched `Start Demo` workflow at `.github/workflows/start-demo.yml` that validates and publishes one intentional-regression commit directly to `main`, then dispatches incident delivery.
 - Fixed repeated runs by discovering and inverting the latest merged SRE remediation instead of pinning the first remediation SHA.
 - Removed the setup PR so the SRE remediation is the only PR; Start Demo temporarily uses `routine` protection for one direct push and always restores `incident-demo`.
+- Disabled response-plan alert merging so a repeated demo cannot be absorbed into a recently resolved investigation without invoking the responder.
 - Added recovery-only FIELD20 smoke verification with exact totals and privacy-bounded trace metadata for autonomous final RCA evidence.
 - Preserved human merge for the SRE remediation PR; validated incident and recovery merges deploy automatically through the main-only `demo` environment.
 

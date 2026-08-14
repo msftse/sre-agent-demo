@@ -41,10 +41,13 @@ class BridgeState:
         )
 
     async def save_investigation(self, request: Mapping[str, str]) -> None:
+        teams_thread_id = request.get("teams_thread_id", request["sre_thread_id"])
         await self.table.upsert_entity(
             {
                 "PartitionKey": "investigation",
-                "RowKey": request["sre_thread_id"],
+                "RowKey": teams_thread_id,
+                "SreThreadId": request["sre_thread_id"],
+                "TeamsThreadId": teams_thread_id,
                 "ConversationId": request["conversation_id"],
                 "RootActivityId": request["activity_id"],
                 "ServiceUrl": request["service_url"],

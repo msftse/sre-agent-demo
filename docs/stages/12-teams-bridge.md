@@ -28,6 +28,8 @@ Outbound MCP requires `x-mcp-key`, retains DNS-rebinding protection, and allows 
 - `reply_incident_thread`
 - `get_incident_thread`
 
+For autonomous Azure Monitor incidents, `post_incident_update` resolves the current canonical SRE chat thread from the Azure incident ID. The bridge persists both IDs and returns `sre_thread_id`; the remediation skill uses that value for the hidden PR continuation marker instead of guessing from the alert ID.
+
 No tool can choose another Team/channel, mutate Azure, merge code, or deploy. The Function UAMI has Storage Account Contributor plus Blob/Queue/Table data roles, Key Vault Secrets User, and SRE Agent Standard User. The configured operator has Key Vault Secrets Officer only on this bridge vault for credential rotation.
 
 ## Automated Connector Creation
@@ -57,7 +59,7 @@ No tool can choose another Team/channel, mutate Azure, merge code, or deploy. Th
 Validated after deployment:
 
 ```text
-Bridge tests: 13 passed
+Bridge tests: 40 passed
 Ruff: passed
 mypy strict: passed
 Functions: five registered and host Running
@@ -66,6 +68,7 @@ MCP without key: HTTP 401
 MCP with key: exactly three tools
 Inbound Teams status mention: ready response received
 Outbound MCP: root post, threaded reply, and stored-route read-back succeeded
+Incident correlation: Azure incident ID resolved to one canonical SRE thread ID
 SRE connector: connected, CustomHeaders, exact three prefixed tools
 Terraform: zero drift; tracked count recorded from the current state
 Checkout alert instances: 0

@@ -42,10 +42,9 @@ Active response plan `northstar-checkout-response` uses:
 | Title contains | `NorthstarCheckoutFailureRatioHigh` |
 | Responder | `northstar-checkout-responder` |
 | Mode | `Autonomous` |
-| Recurrence merge | Enabled |
-| Merge window | 3 hours |
+| Recurrence merge | Disabled |
 
-The exact title plus severity filter prevents unrelated alerts from using the autonomous path. The three-hour merge window reuses/reopens the existing investigation for repeated fires instead of creating duplicate threads and consuming unnecessary tokens.
+The exact title plus severity filter prevents unrelated alerts from using the autonomous path. Recurrence merging is disabled so every repeatable demo run creates a fresh investigation and invokes the responder, even when a previous incident was resolved recently.
 
 No default `quickstart_handler` exists, so the checkout alert cannot be processed twice.
 
@@ -81,7 +80,7 @@ The Stage 9 incident-demo branch protection enforces human remediation merge; th
 - Mandatory Teams timeline and failure boundary clauses.
 - Active `Autonomous` mode.
 - Exact `Sev1` and alert-title match.
-- Three-hour recurrence merge.
+- Recurrence merging disabled for distinct investigations.
 - Exactly one response filter and no quickstart or obsolete handler.
 
 The full capability bootstrap ran twice successfully. Bridge lint/type/tests/package validation passed with 13 tests. At completion, deterministic traffic remained disabled and zero checkout alerts were active, so no investigation, branch, commit, PR, workflow, or deployment was triggered.

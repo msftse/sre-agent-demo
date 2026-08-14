@@ -63,8 +63,7 @@ jq -n \
     isEnabled: true,
     handlingAgent: $responder,
     agentMode: "Autonomous",
-    mergeEnabled: true,
-    mergeWindowHours: 3
+    mergeEnabled: false
   }' >"$request_file"
 
 plan_url="${sre_endpoint%/}/api/v1/incidentplayground/filters/$PLAN_NAME"
@@ -113,8 +112,7 @@ jq -e \
     and .isEnabled == true
     and .handlingAgent == $responder
     and .agentMode == "Autonomous"
-    and .mergeEnabled == true
-    and .mergeWindowHours == 3
+    and .mergeEnabled == false
   ' "$response_file" >/dev/null
 
 printf 'Azure SRE Agent response plan configured: %s\n' "$PLAN_NAME"

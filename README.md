@@ -389,7 +389,7 @@ See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation
 
 ## Teams Bridge
 
-Stage 12 runs a Python 3.12 Azure Functions Flex Consumption bridge behind Azure Bot Service. Inbound Teams activities are restricted to the approved tenant, Team, `IJ-Test` channel, and operator. Outbound SRE updates use three authenticated MCP tools for a root notification, threaded replies, and route lookup; no tool can select another destination or perform Azure/GitHub changes.
+Stage 12 runs a Python 3.12 Azure Functions Flex Consumption bridge behind Azure Bot Service. Inbound Teams activities are restricted to the approved tenant, Team, `IJ-Test` channel, and operator. Outbound SRE updates use three authenticated MCP tools for a root notification, threaded replies, and route lookup; no tool can select another destination or perform Azure/GitHub changes. For autonomous alerts, the bridge resolves the Azure incident ID to exactly one canonical SRE chat thread and returns that ID for durable PR continuation markers.
 
 Deploying the bridge also runs `scripts/configure-sre-agent-capabilities.sh`. This idempotently configures the Teams connector, GitHub connector, and checkout skill in dependency order, then verifies the live skill. The Teams script retrieves its custom-header key from Key Vault only at runtime, uses protected temporary files, and never prints the credential. Terraform state contains no bot, MCP, or GitHub credential.
 
@@ -429,7 +429,7 @@ See [docs/stages/14-checkout-skill.md](docs/stages/14-checkout-skill.md) for run
 
 ## Incident Responder
 
-Stage 15 deploys `northstar-checkout-responder` with no direct tools and only `northstar-checkout-remediation` in its allowed skill list. Its active Autonomous response plan matches only `Sev1` alerts whose title contains `NorthstarCheckoutFailureRatioHigh`, and recurring fires merge into one investigation for three hours.
+Stage 15 deploys `northstar-checkout-responder` with no direct tools and only `northstar-checkout-remediation` in its allowed skill list. Its active Autonomous response plan matches only `Sev1` alerts whose title contains `NorthstarCheckoutFailureRatioHigh`. Alert merging is disabled so each demo run starts a distinct investigation and invokes the responder.
 
 The responder must create a Teams incident root post before any source write and use the same thread for impact, root cause, PR handoff, failures, and final RCA. If Teams notification fails after one retry, branch/commit/PR creation is blocked.
 

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import httpx
+import pytest
 
 from bridge.sre_client import SreAgentClient
 
@@ -75,3 +76,141 @@ async def test_sends_continuation_message_to_existing_thread() -> None:
     )
 
     assert credential.scope == "https://azuresre.dev/.default"
+
+
+async def test_finds_thread_by_incident_id() -> None:
+    credential = Credential()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["Authorization"] == "Bearer token"
+        assert request.url.path == "/api/v1/threads"
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "id": "sre-1",
+                    "status": {
+                        "incidentStatus": {
+                            "incidentId": "incident-1",
+                            "status": "acknowledged",
+                        }
+                    },
+                },
+                {
+                    "id": "sre-2",
+                    "status": {
+                        "incidentStatus": {
+                            "incidentId": "incident-2",
+                            "status": "resolved",
+                        }
+                    },
+                },
+            ],
+        )
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=credential,  # type: ignore[arg-type]
+        http_client=http,
+    )
+
+    thread_id = await client.find_thread_by_incident_id("incident-1")
+
+    assert thread_id == "sre-1"
+    assert credential.scope == "https://azuresre.dev/.default"
+
+
+async def test_finds_thread_by_incident_id_across_pages() -> None:
+    credential = Credential()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "page" not in request.url.params:
+            return httpx.Response(
+                200,
+                json={
+                    "value": [],
+                    "nextLink": "https://agent.example/api/v1/threads?page=2",
+                },
+            )
+        assert request.url.params["page"] == "2"
+        return httpx.Response(
+            200,
+            json={
+                "value": [
+                    {
+                        "id": "sre-1",
+                        "status": {"incidentStatus": {"incidentId": "incident-1"}},
+                    }
+                ]
+            },
+        )
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=credential,  # type: ignore[arg-type]
+        http_client=http,
+    )
+
+    assert await client.find_thread_by_incident_id("incident-1") == "sre-1"
+
+
+async def test_rejects_cross_origin_thread_pagination() -> None:
+    credential = Credential()
+    requested_hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested_hosts.append(request.url.host)
+        return httpx.Response(
+            200,
+            json={
+                "value": [],
+                "nextLink": "https://untrusted.example/api/v1/threads?page=2",
+            },
+        )
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=credential,  # type: ignore[arg-type]
+        http_client=http,
+    )
+
+    with pytest.raises(RuntimeError, match="pagination changed origin"):
+        await client.find_thread_by_incident_id("incident-1")
+
+    assert requested_hosts == ["agent.example"]
+
+
+@pytest.mark.parametrize("matching_threads", [0, 2])
+async def test_rejects_missing_or_ambiguous_incident_threads(
+    matching_threads: int,
+) -> None:
+    credential = Credential()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v1/threads"
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "id": f"sre-{index}",
+                    "status": {"incidentStatus": {"incidentId": "incident-1"}},
+                }
+                for index in range(matching_threads)
+            ],
+        )
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=credential,  # type: ignore[arg-type]
+        http_client=http,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=f"Expected one SRE thread for incident incident-1, found {matching_threads}",
+    ):
+        await client.find_thread_by_incident_id("incident-1")

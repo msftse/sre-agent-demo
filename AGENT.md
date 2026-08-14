@@ -353,13 +353,14 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - `northstar-checkout-responder` has no direct tools and exactly one allowed skill, `northstar-checkout-remediation`.
 - Its instructions require a Teams root post before source writes and threaded impact, root-cause, PR, blocked/failure, and final-RCA updates.
 - Teams root-post failure after one retry blocks branch, commit, and PR creation while allowing read-only evidence collection.
-- Active plan `northstar-checkout-response` matches only `Sev1` alerts containing `NorthstarCheckoutFailureRatioHigh`, runs in Autonomous mode, and merges recurring alerts for three hours.
+- Active plan `northstar-checkout-response` matches only `Sev1` alerts containing `NorthstarCheckoutFailureRatioHigh`, runs in Autonomous mode, and disables alert merging so repeated demos start distinct investigations.
 - No quickstart plan or separate incident-handler resource exists; the focused filter routes directly to the custom responder.
 - The unified capability bootstrap now configures Teams, GitHub, skill, responder, and plan in dependency order and verifies each live boundary.
 - Full bootstrap passed twice with incident traffic disabled and zero active checkout alerts.
 
 ## Stage 16 Continuation Loop
 
+- Autonomous Teams root creation resolves the Azure incident ID to exactly one canonical SRE chat thread, persists both IDs, and returns `sre_thread_id` for the PR continuation marker.
 - A public `/api/github/events` route validates GitHub HMAC signatures from the Key Vault-backed `github-webhook-secret`; unsigned requests return 401.
 - One repository hook exposes exactly `pull_request`, `workflow_run`, and `deployment_status`; a live GitHub-signed ping returns 202.
 - Public-repository PR events require the same repository on both sides, base `main`, an `sre/field20-checkout-*` head branch, and exactly one SRE thread marker.

@@ -29,6 +29,7 @@ shellcheck \
 for clause in \
   'Load and follow the `northstar-checkout-remediation` skill' \
   'Mandatory Teams Timeline' \
+  'incident_id` set to the current Azure Monitor incident ID' \
   'do not create a branch, commit, or pull request' \
   'Never approve or merge a pull request' \
   'Awaiting human PR review; no merge or deployment performed.'; do
@@ -82,8 +83,7 @@ jq -e --arg id "$PLAN_NAME" --arg title "$ALERT_TITLE" --arg responder "$RESPOND
   and .isEnabled == true
   and .handlingAgent == $responder
   and .agentMode == "Autonomous"
-  and .mergeEnabled == true
-  and .mergeWindowHours == 3
+  and .mergeEnabled == false
 ' "$plan_file" >/dev/null
 
 jq -e --arg id "$PLAN_NAME" '
@@ -99,4 +99,4 @@ jq -e '
 printf '%s\n' 'PASS: responder can use only northstar-checkout-remediation; no direct tools assigned.'
 printf '%s\n' 'PASS: mandatory Teams timeline and human approval boundaries validated.'
 printf '%s\n' 'PASS: active Autonomous plan matches only Sev1 NorthstarCheckoutFailureRatioHigh alerts.'
-printf '%s\n' 'PASS: three-hour alert merge window enabled and no quickstart plan exists.'
+printf '%s\n' 'PASS: alert merging disabled for repeatable investigations and no quickstart plan exists.'

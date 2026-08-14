@@ -35,11 +35,19 @@ async def test_exposes_only_three_notification_tools() -> None:
     async with Client(runtime.mcp) as client:
         result = await client.list_tools()
 
-    assert sorted(tool.name for tool in result.tools) == [
+    tools = {tool.name: tool for tool in result.tools}
+    assert sorted(tools) == [
         "get_incident_thread",
         "post_incident_update",
         "reply_incident_thread",
     ]
+    assert set(tools["post_incident_update"].input_schema["properties"]) == {
+        "incident_id",
+        "message",
+    }
+    assert set(tools["get_incident_thread"].input_schema["properties"]) == {
+        "incident_id"
+    }
 
 
 async def test_shared_key_middleware_rejects_missing_key() -> None:

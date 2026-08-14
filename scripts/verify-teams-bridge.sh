@@ -44,6 +44,11 @@ fi
 grep -F 'post_incident_update' "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" >/dev/null
 grep -F 'reply_incident_thread' "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" >/dev/null
 grep -F 'get_incident_thread' "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" >/dev/null
+grep -F 'post_incident_update(incident_id: str' "$ROOT_DIR/src/teams-bridge/bridge/runtime.py" >/dev/null
+grep -F 'get_incident_thread(incident_id: str' "$ROOT_DIR/src/teams-bridge/bridge/runtime.py" >/dev/null
+grep -F 'find_thread_by_incident_id' "$ROOT_DIR/src/teams-bridge/bridge/sre_client.py" >/dev/null
+grep -F '"SreThreadId": request["sre_thread_id"]' "$ROOT_DIR/src/teams-bridge/bridge/state.py" >/dev/null
+grep -F '"TeamsThreadId": teams_thread_id' "$ROOT_DIR/src/teams-bridge/bridge/state.py" >/dev/null
 # shellcheck disable=SC2016 # This is literal jq interpolation syntax in the connector script.
 grep -F '"\($connector)_" + .' "$ROOT_DIR/scripts/configure-sre-teams-connector.sh" >/dev/null
 
@@ -92,3 +97,4 @@ jq -e '
 ' "$ROOT_DIR/.teams-package/manifest.json" >/dev/null
 
 printf 'PASS: Teams bridge source, Functions registration, tests, and app package are valid.\n'
+printf 'PASS: Azure incident IDs resolve to canonical SRE thread IDs for durable PR correlation.\n'
