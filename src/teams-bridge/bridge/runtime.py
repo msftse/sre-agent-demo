@@ -77,7 +77,7 @@ class BridgeRuntime:
             tenant_id=settings.bot_tenant_id,
             http_server_adapter=self.teams_adapter,
         )
-        self.notifications = NotificationService(self.teams, self.state)
+        self.notifications = NotificationService(self.teams, self.state, self.sre)
         self.continuation = GitHubContinuationService(
             secret=settings.github_webhook_secret,
             state=self.state,
@@ -120,19 +120,19 @@ class BridgeRuntime:
         )
 
         @server.tool()
-        async def post_incident_update(thread_id: str, message: str) -> dict[str, str]:
-            """Start a Teams incident thread in the fixed Northstar channel."""
-            return await self.notifications.post_update(thread_id, message)
+        async def post_incident_update(incident_id: str, message: str) -> dict[str, str]:
+            """Start the fixed Teams timeline for an Azure Monitor incident ID."""
+            return await self.notifications.post_update(incident_id, message)
 
         @server.tool()
-        async def reply_incident_thread(thread_id: str, message: str) -> dict[str, str]:
-            """Reply to an existing Teams incident thread in the fixed channel."""
-            return await self.notifications.reply_update(thread_id, message)
+        async def reply_incident_thread(incident_id: str, message: str) -> dict[str, str]:
+            """Reply to the fixed Teams timeline for an Azure Monitor incident ID."""
+            return await self.notifications.reply_update(incident_id, message)
 
         @server.tool()
-        async def get_incident_thread(thread_id: str) -> dict[str, str]:
-            """Return stored routing metadata for a Teams incident thread."""
-            return await self.notifications.get_thread(thread_id)
+        async def get_incident_thread(incident_id: str) -> dict[str, str]:
+            """Return Teams and canonical SRE routing for an Azure Monitor incident ID."""
+            return await self.notifications.get_thread(incident_id)
 
         return server
 

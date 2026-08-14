@@ -72,6 +72,7 @@ for clause in \
   'The SRE marker must be the canonical chat thread resource ID' \
   'not the Azure alert ID or `incidentStatus.incidentId`' \
   'The Teams marker must equal the branch suffix' \
+  'Pass the current Azure Monitor incident ID as `incident_id` to every Teams tool' \
   'must resolve through `get_incident_thread`' \
   'an empty auxiliary SRE incident thread is not valid SRE correlation' \
   'wait for the automatic main-only deployment' \
