@@ -6,7 +6,7 @@ Automatically route only the prepared severity-1 Northstar checkout alert to a f
 
 ## Custom Responder
 
-Azure SRE Agent custom responder `northstar-checkout-responder` is deployed from `sre-agent-responders/northstar-checkout-responder.md`.
+Azure SRE Agent custom responder `northstar-checkout-responder` is deployed from `azure-sre-agent/sre-agent-responders/northstar-checkout-responder.md`.
 
 The responder has:
 
@@ -28,6 +28,8 @@ Material milestones use replies in the same thread:
 3. Repair branch and validation scope.
 4. Pull-request URL and human approval status.
 5. Failure/blocker or completed RCA.
+
+Completed RCAs use the canonical template bundled by `northstar-checkout-remediation`. GitHub and Teams receive the same rendered headings and evidence; incomplete alert or recovery evidence produces a deferred status instead of an ad hoc success summary.
 
 If the initial Teams post fails after one retry, the responder may continue read-only evidence collection but must not create a branch, commit, or PR. It reports the notification-boundary failure and stops.
 
@@ -78,6 +80,7 @@ The Stage 9 incident-demo branch protection enforces human remediation merge; th
 - Responder content exactly matches repository source.
 - No direct tools and only the Stage 14 skill is allowed.
 - Mandatory Teams timeline and failure boundary clauses.
+- Canonical RCA-template requirement for completed incidents.
 - Active `Autonomous` mode.
 - Exact `Sev1` and alert-title match.
 - Recurrence merging disabled for distinct investigations.

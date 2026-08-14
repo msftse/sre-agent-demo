@@ -66,8 +66,17 @@ Verified GitHub continuation events can resume this thread after the initial PR 
 3. If a human merges the PR, post the merge SHA to Teams and wait for the automatic main-only deployment. Never dispatch the workflow.
 4. For deployment failure or cancellation, preserve evidence, reply in Teams, and stop without claiming recovery.
 5. After a successful delivery-workflow callback, verify the deployed Git SHA and image digest, healthy replicas, successful valid FIELD20 checkout, correlated logs/traces, falling failure ratio, and alert recovery. The recovery-only Helm test uses operation ID `helm-field20-recovery-<deployed-git-sha>` and submits two `field-pack-28` items; correlate its HTTP 200 request/log with the `checkout.calculate` span attribute `checkout.discount_code == "FIELD20"`, then verify totals `29600 / 5920 / 0 / 23680`. Do not require or query customer email or request bodies.
-6. Add one final RCA comment to the existing PR with `add_issue_comment`. Include incident impact, evidence, root cause, fix, human merge, deployed release identity, verification, and rollback. Do not modify the PR otherwise.
-7. Post the same final outcome to the existing Teams incident thread and return explicit resolution status.
+6. Render the canonical template under `## Bundled RCA Template` after every recovery check passes. Preserve every heading and heading order, replace every placeholder, and add the rendered RCA as one final PR comment with `add_issue_comment`. Do not modify the PR otherwise.
+7. Post the same rendered RCA to the existing Teams incident thread and return explicit resolution status. If any required recovery check is incomplete, post a concise deferred-status update instead of a final RCA.
+
+## RCA Format Contract
+
+- The deployment script appends the repository RCA template under `## Bundled RCA Template` in this skill's live content.
+- Publish only the rendered template content beginning with `# Root Cause Analysis`.
+- Preserve all template headings in their original order; never omit a section.
+- Replace unsupported values with `Not observed` or `Not applicable`; never invent evidence.
+- Use UTC ISO 8601 timestamps and the same rendered RCA body for GitHub and Teams.
+- Set status to `Resolved` only after alert, release, workload, checkout, telemetry, and human-decision evidence are complete. Otherwise use `Deferred` and identify the blocker.
 
 ## Required Evidence
 

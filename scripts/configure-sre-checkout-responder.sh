@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
-readonly RESPONDER_FILE="$ROOT_DIR/sre-agent-responders/northstar-checkout-responder.md"
+readonly RESPONDER_FILE="$ROOT_DIR/azure-sre-agent/sre-agent-responders/northstar-checkout-responder.md"
 readonly RESPONDER_NAME="northstar-checkout-responder"
 readonly RESPONDER_DESCRIPTION="Handles NorthstarCheckoutFailureRatioHigh incidents with the checkout remediation skill and a mandatory Teams timeline."
 readonly ALLOWED_SKILL="northstar-checkout-remediation"

@@ -6,9 +6,9 @@ Install a reusable Azure SRE Agent custom skill that investigates the Northstar 
 
 ## Runtime Ownership
 
-The skill runs only inside Azure SRE Agent. Its deployment source is stored at `sre-agent-skills/northstar-checkout-remediation.md`, outside `.github/skills`, so GitHub Copilot and repository agents do not discover or execute it as a project skill.
+The skill runs only inside Azure SRE Agent. Its deployment source is stored at `azure-sre-agent/sre-agent-skills/northstar-checkout-remediation.md`, outside `.github/skills`, so GitHub Copilot and repository agents do not discover or execute it as a project skill.
 
-`scripts/configure-sre-checkout-skill.sh` sends the source to the current agent's `/api/v2/extendedAgent/skills/northstar-checkout-remediation` data-plane resource. The script derives the agent ID and endpoint from Terraform outputs and verifies that the active Azure CLI subscription matches the resource ID. It contains no fixed tenant, subscription, resource group, agent, cluster, workspace, or namespace identifier.
+`scripts/configure-sre-checkout-skill.sh` composes that source with `azure-sre-agent/templates/northstar-checkout-rca.md` and sends the result to the current agent's `/api/v2/extendedAgent/skills/northstar-checkout-remediation` data-plane resource. The script derives the agent ID and endpoint from Terraform outputs and verifies that the active Azure CLI subscription matches the resource ID. It contains no fixed tenant, subscription, resource group, agent, cluster, workspace, or namespace identifier.
 
 ## Runtime Discovery
 
@@ -58,6 +58,10 @@ The expected checkout for two `field-pack-28` items is:
 
 The skill stops after opening the PR and returns `Awaiting human PR review; no merge or deployment performed.`
 
+## RCA Contract
+
+After a successful human merge and recovery deployment, the skill renders the bundled canonical template. It preserves every heading, uses UTC timestamps, replaces unsupported values with `Not observed` or `Not applicable`, and publishes the same rendered body to the PR and Teams. Status is `Resolved` only when alert, release, workload, FIELD20 checkout, telemetry, and human-decision evidence all pass; otherwise the skill posts a concise deferred update and withholds the final RCA.
+
 ## Validation
 
 `scripts/verify-checkout-skill.sh` checks:
@@ -66,8 +70,9 @@ The skill stops after opening the PR and returns `Awaiting human PR review; no m
 - Absence of environment-specific Azure identifiers.
 - Runtime resource-discovery instructions.
 - FIELD20 input and expected totals.
+- Canonical RCA template headings and rendering rules.
 - Merge and deployment stop clauses.
-- Exact byte-for-byte equality between deployment source and live `properties.skillContent`.
+- Exact byte-for-byte equality between composed skill/template source and live `properties.skillContent`.
 
 The unified bootstrap ran twice successfully. Stage 16 later verified the live skill with eleven tools and matching content. No incident, branch, commit, pull request, workflow, or deployment was started during Stage 14.
 

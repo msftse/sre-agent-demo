@@ -4,7 +4,8 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
-readonly SKILL_FILE="$ROOT_DIR/sre-agent-skills/northstar-checkout-remediation.md"
+readonly SKILL_FILE="$ROOT_DIR/azure-sre-agent/sre-agent-skills/northstar-checkout-remediation.md"
+readonly RCA_TEMPLATE_FILE="$ROOT_DIR/azure-sre-agent/templates/northstar-checkout-rca.md"
 readonly SKILL_NAME="northstar-checkout-remediation"
 readonly SKILL_DESCRIPTION="Use for Northstar checkout HTTP 5xx incidents, FIELD20 discount failures, discount_calculation_failed errors, or the NorthstarCheckoutFailureRatioHigh alert on AKS."
 readonly EXPECTED_TOOLS=(
@@ -28,6 +29,7 @@ command -v curl >/dev/null 2>&1 || { printf '%s\n' 'curl is required.' >&2; exit
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'jq is required.' >&2; exit 1; }
 command -v terraform >/dev/null 2>&1 || { printf '%s\n' 'Terraform is required.' >&2; exit 1; }
 [[ -f "$SKILL_FILE" ]] || { printf 'Skill source not found: %s\n' "$SKILL_FILE" >&2; exit 1; }
+[[ -f "$RCA_TEMPLATE_FILE" ]] || { printf 'RCA template not found: %s\n' "$RCA_TEMPLATE_FILE" >&2; exit 1; }
 
 agent_output=$(terraform -chdir="$ROOT_DIR/iac" output -json sre_agent)
 agent_id=$(jq -er '.id' <<<"$agent_output")
@@ -55,13 +57,14 @@ jq -n \
   --arg name "$SKILL_NAME" \
   --arg description "$SKILL_DESCRIPTION" \
   --rawfile content "$SKILL_FILE" \
+  --rawfile rca_template "$RCA_TEMPLATE_FILE" \
   --argjson tools "$tools_json" \
   '{
     name: $name,
     type: "Skill",
     properties: {
       description: $description,
-      skillContent: $content,
+      skillContent: ($content + "\n\n## Bundled RCA Template\n\n" + $rca_template),
       tools: $tools,
       additionalFiles: []
     }

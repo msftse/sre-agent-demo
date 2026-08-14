@@ -5,7 +5,8 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
-readonly SKILL_FILE="$ROOT_DIR/sre-agent-skills/northstar-checkout-remediation.md"
+readonly SKILL_FILE="$ROOT_DIR/azure-sre-agent/sre-agent-skills/northstar-checkout-remediation.md"
+readonly RCA_TEMPLATE_FILE="$ROOT_DIR/azure-sre-agent/templates/northstar-checkout-rca.md"
 readonly SKILL_NAME="northstar-checkout-remediation"
 readonly EXPECTED_TOOLS=(
   RunAzCliReadCommands
@@ -35,6 +36,7 @@ shellcheck "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh"
 [[ $(sed -n '1p' "$SKILL_FILE") == '---' ]]
 [[ $(grep -c '^---$' "$SKILL_FILE") -eq 2 ]]
 grep -Fx "name: $SKILL_NAME" "$SKILL_FILE" >/dev/null
+[[ -s "$RCA_TEMPLATE_FILE" ]]
 
 if grep -Eq '(ij[0-9]{4}|/subscriptions/[0-9a-f-]{36}|rg-sre-agent-demo|aks-sre-agent-demo|sre-sre-agent-demo)' "$SKILL_FILE"; then
   printf '%s\n' 'Skill source contains an environment-specific Azure identifier.' >&2
@@ -82,6 +84,21 @@ for clause in \
   grep -F "$clause" "$SKILL_FILE" >/dev/null
 done
 
+for heading in \
+  '## Incident Summary' \
+  '## Executive Summary' \
+  '## Impact' \
+  '## Detection' \
+  '## Timeline (UTC)' \
+  '## Evidence' \
+  '## Root Cause' \
+  '## Remediation' \
+  '## Recovery Validation' \
+  '## Follow-up Actions' \
+  '## Rollback'; do
+  grep -Fx "$heading" "$RCA_TEMPLATE_FILE" >/dev/null
+done
+
 skill_file=$(mktemp "${TMPDIR:-/tmp}/sre-checkout-skill.XXXXXX")
 chmod 600 "$skill_file"
 
@@ -113,11 +130,15 @@ jq -e \
   ' "$skill_file" >/dev/null
 
 live_content=$(jq -er '.properties.skillContent' "$skill_file")
-source_content=$(<"$SKILL_FILE")
-[[ "$live_content" == "$source_content" ]]
-unset live_content source_content
+expected_content=$(jq -nr \
+  --rawfile content "$SKILL_FILE" \
+  --rawfile rca_template "$RCA_TEMPLATE_FILE" \
+  '$content + "\n\n## Bundled RCA Template\n\n" + $rca_template')
+[[ "$live_content" == "$expected_content" ]]
+unset live_content expected_content
 
 printf '%s\n' 'PASS: skill source front matter and eleven assigned tools validated.'
 printf '%s\n' 'PASS: exact FIELD20 repair and regression-test contract validated.'
+printf '%s\n' 'PASS: canonical RCA template headings and rendering contract validated.'
 printf '%s\n' 'PASS: merge and deployment stop clauses validated.'
-printf '%s\n' 'PASS: live Azure SRE Agent skill matches the repository source.'
+printf '%s\n' 'PASS: live Azure SRE Agent skill matches the composed skill and RCA template.'

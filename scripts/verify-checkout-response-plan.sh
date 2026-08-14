@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
-readonly RESPONDER_FILE="$ROOT_DIR/sre-agent-responders/northstar-checkout-responder.md"
+readonly RESPONDER_FILE="$ROOT_DIR/azure-sre-agent/sre-agent-responders/northstar-checkout-responder.md"
 readonly RESPONDER_NAME="northstar-checkout-responder"
 readonly PLAN_NAME="northstar-checkout-response"
 readonly ALERT_TITLE="NorthstarCheckoutFailureRatioHigh"
@@ -30,6 +30,7 @@ for clause in \
   'Load and follow the `northstar-checkout-remediation` skill' \
   'Mandatory Teams Timeline' \
   'incident_id` set to the current Azure Monitor incident ID' \
+  'Render every completed RCA with the canonical template' \
   'do not create a branch, commit, or pull request' \
   'Never approve or merge a pull request' \
   'Awaiting human PR review; no merge or deployment performed.'; do

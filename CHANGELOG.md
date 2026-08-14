@@ -2,6 +2,13 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-14 - Standardize Azure SRE Agent RCA assets
+
+- Moved custom skill and responder sources under `azure-sre-agent/` while preserving their Azure resource names and capability boundaries.
+- Added a canonical Northstar checkout RCA template with fixed incident, impact, timeline, evidence, root-cause, remediation, validation, follow-up, and rollback sections.
+- Composed the template into live custom-skill content so GitHub and Teams receive the same rendered RCA format, with deferred status when recovery evidence is incomplete.
+- Extended skill and response-plan verification to validate moved paths, required RCA headings, rendering instructions, and byte-identical composed live content.
+
 ### 2026-08-14 - Make repeated SRE investigations self-correlating
 
 - Disabled response-plan alert merging so each repeated FIELD20 alert starts a distinct autonomous investigation.
