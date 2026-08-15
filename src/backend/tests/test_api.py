@@ -96,6 +96,31 @@ def test_checkout_reprices_items_and_applies_free_shipping() -> None:
     }
 
 
+def test_checkout_applies_valid_field20_discount() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/checkout",
+            json={
+                "email": "field20-regression@example.com",
+                "discount_code": "FIELD20",
+                "items": [
+                    {"product_id": "field-pack-28", "quantity": 1},
+                    {"product_id": "field-pack-28", "quantity": 1},
+                ],
+            },
+        )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["status"] == "confirmed"
+    assert body["totals"] == {
+        "subtotal_cents": 29600,
+        "discount_cents": 5920,
+        "shipping_cents": 0,
+        "total_cents": 23680,
+    }
+
+
 def test_checkout_rejects_unknown_product() -> None:
     with TestClient(app) as client:
         response = client.post(
