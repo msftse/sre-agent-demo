@@ -2,7 +2,6 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-EXPECTED_REPOSITORY = "msftse/sre-agent-demo"
 EXPECTED_WORKFLOW = "Deliver Demo to AKS"
 THREAD_MARKER = re.compile(r"<!--\s*sre-thread-id:\s*([A-Za-z0-9._:-]+)\s*-->")
 TEAMS_THREAD_MARKER = re.compile(
@@ -38,17 +37,26 @@ def parse_github_event(
     delivery_id: str,
     event_type: str,
     payload: dict[str, Any],
+    expected_repository: str,
     correlation: dict[str, Any] | None = None,
 ) -> ContinuationEvent:
+    if not expected_repository:
+        raise IgnoredGitHubEvent("expected_repository")
     repository = str(payload.get("repository", {}).get("full_name", ""))
-    if repository != EXPECTED_REPOSITORY:
+    if repository != expected_repository:
         raise IgnoredGitHubEvent("repository")
     if not delivery_id:
         raise IgnoredGitHubEvent("delivery")
 
     action = str(payload.get("action", ""))
     if event_type == "pull_request":
-        return _parse_pull_request(delivery_id, action, repository, payload)
+        return _parse_pull_request(
+            delivery_id,
+            action,
+            repository,
+            payload,
+            expected_repository,
+        )
     if event_type == "workflow_run":
         return _parse_workflow_run(
             delivery_id,
@@ -73,6 +81,7 @@ def _parse_pull_request(
     action: str,
     repository: str,
     payload: dict[str, Any],
+    expected_repository: str,
 ) -> ContinuationEvent:
     if action not in {"opened", "reopened", "closed"}:
         raise IgnoredGitHubEvent("pull_request_action")
@@ -86,12 +95,12 @@ def _parse_pull_request(
         raise IgnoredGitHubEvent("teams_thread_marker")
     head = pull_request.get("head", {})
     base = pull_request.get("base", {})
-    if str(head.get("repo", {}).get("full_name", "")) != EXPECTED_REPOSITORY:
+    if str(head.get("repo", {}).get("full_name", "")) != expected_repository:
         raise IgnoredGitHubEvent("head_repository")
     head_ref = str(head.get("ref", ""))
     if head_ref != f"sre/field20-checkout-{teams_markers[0]}":
         raise IgnoredGitHubEvent("head_branch")
-    if str(base.get("repo", {}).get("full_name", "")) != EXPECTED_REPOSITORY:
+    if str(base.get("repo", {}).get("full_name", "")) != expected_repository:
         raise IgnoredGitHubEvent("base_repository")
     if str(base.get("ref", "")) != "main":
         raise IgnoredGitHubEvent("base_branch")

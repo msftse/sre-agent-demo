@@ -16,6 +16,7 @@ class Settings:
     sre_agent_endpoint: str
     mcp_shared_key: str
     github_webhook_secret: str
+    github_repository: str
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -32,6 +33,7 @@ class Settings:
             "sre_agent_endpoint": os.getenv("SRE_AGENT_ENDPOINT", "").rstrip("/"),
             "mcp_shared_key": os.getenv("MCP_SHARED_KEY", ""),
             "github_webhook_secret": os.getenv("GITHUB_WEBHOOK_SECRET", ""),
+            "github_repository": os.getenv("GITHUB_REPOSITORY", ""),
         }
         missing = [name for name, value in values.items() if not value]
         if missing:

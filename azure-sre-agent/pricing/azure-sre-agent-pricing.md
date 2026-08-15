@@ -130,11 +130,11 @@ The allocation is an active-flow operational limit, not a complete Azure budget.
 
 ## This Demo Environment
 
-The live ARM resource currently reports:
+An example live ARM output for this demo pattern is:
 
 | Property | Value |
 | --- | --- |
-| Agent | `sre-sre-agent-demo-demo-ij2608` |
+| Agent | Example: `sre-sre-agent-demo-demo-<suffix>` |
 | Region | Sweden Central |
 | Upgrade channel | Stable |
 | `monthlyAgentUnitLimit` | 10,000 AAUs |

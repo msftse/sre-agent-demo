@@ -2,7 +2,12 @@
 
 set -euo pipefail
 
-readonly REPOSITORY="msftse/sre-agent-demo"
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+readonly ROOT_DIR
+# shellcheck source=scripts/lib/repository.sh
+source "$ROOT_DIR/scripts/lib/repository.sh"
+REPOSITORY=$(resolve_repository)
+readonly REPOSITORY
 readonly REQUIRED_CHECK="Validate source and chart"
 
 mode=${1:-}

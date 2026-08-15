@@ -26,6 +26,7 @@ def settings() -> Settings:
         sre_agent_endpoint="https://agent.example",
         mcp_shared_key="test-key",
         github_webhook_secret="webhook-secret",
+        github_repository="msftse/sre-agent-demo",
     )
 
 

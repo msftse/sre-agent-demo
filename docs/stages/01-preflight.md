@@ -15,7 +15,7 @@ Establish a clean repository and prove that the operator, subscription, region, 
 | Preferred region | Sweden Central supports every planned resource type |
 | Compute quota | 98 of 100 regional vCPUs free; 100 DSv5-family vCPUs free |
 | Network quota | 998 public IP addresses and 999 virtual networks free |
-| GitHub identity | `ij-23` |
+| GitHub identity | Active `gh` login for the target repository |
 | GitHub repository access | `ADMIN`; repository confirmed empty before configuring `origin` |
 | Docker | Client and server available |
 | Terraform | 1.15.3 |

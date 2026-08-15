@@ -29,6 +29,11 @@ variable "function_app_name" {
   type        = string
 }
 
+variable "github_repository" {
+  description = "GitHub owner/repository accepted by the Teams bridge runtime."
+  type        = string
+}
+
 variable "bot_name" {
   description = "Azure Bot resource name."
   type        = string

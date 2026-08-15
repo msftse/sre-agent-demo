@@ -18,6 +18,11 @@ variable "application_insights_id" {
   type        = string
 }
 
+variable "github_repository" {
+  description = "GitHub owner/repository used for alert runbook links."
+  type        = string
+}
+
 variable "location" {
   description = "Azure region for monitoring resources."
   type        = string

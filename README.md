@@ -36,6 +36,12 @@ Stages 1-18 are complete. Stage 17 proved the live alert, SRE investigation, Tea
 
 ## Quick Start
 
+Run this demo from your own fork unless you are a canonical maintainer intentionally operating `msftse/sre-agent-demo`.
+
+First-time in a new fork: complete the onboarding flow in `docs/colleague-setup.md` before Terraform apply or workflow dispatch. The mandatory sequence is profile setup, preflight/profile verification, Terraform apply, GitHub environment configuration, and GitHub environment verification.
+
+Use the fork onboarding guide first: [docs/colleague-setup.md](docs/colleague-setup.md)
+
 Run the repeatable prerequisite check from the repository root:
 
 ```bash
@@ -131,6 +137,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 ├── CHANGELOG.md
 ├── README.md
 ├── docs/
+│   ├── colleague-setup.md
 │   └── stages/
 │       ├── 01-preflight.md
 │       ├── 02-application.md
@@ -148,6 +155,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 14-checkout-skill.md
 │       ├── 15-incident-response-plan.md
 │       ├── 16-continuation-loop.md
+│       ├── 17-approval-rejection-rehearsal.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -176,6 +184,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-github-environment.sh
 │   ├── configure-github-webhook.sh
 │   ├── configure-sre-agent-capabilities.sh
 │   ├── configure-sre-checkout-responder.sh
@@ -190,15 +199,20 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   ├── provision-teams-bot-identity.sh
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
+│   ├── setup-colleague.sh
 │   ├── verify-checkout-skill.sh
 │   ├── verify-checkout-response-plan.sh
+│   ├── verify-colleague-profile.sh
 │   ├── verify-deployment.sh
+│   ├── verify-github-environment.sh
 │   ├── verify-github-connector.sh
 │   ├── verify-github-continuation.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
-│   └── verify-observability.sh
+│   ├── verify-observability.sh
+│   └── lib/
+│       └── repository.sh
 ├── azure-sre-agent/
 │   ├── pricing/
 │   │   └── azure-sre-agent-pricing.md

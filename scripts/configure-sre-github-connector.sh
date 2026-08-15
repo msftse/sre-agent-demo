@@ -7,7 +7,10 @@ readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
 readonly CONNECTOR_NAME="northstar-github"
 readonly MCP_ENDPOINT="https://api.githubcopilot.com/mcp/"
-readonly REPOSITORY="msftse/sre-agent-demo"
+# shellcheck source=scripts/lib/repository.sh
+source "$ROOT_DIR/scripts/lib/repository.sh"
+REPOSITORY=$(resolve_repository)
+readonly REPOSITORY
 readonly EXPECTED_TOOLS=(
   add_issue_comment
   create_branch

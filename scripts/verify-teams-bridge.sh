@@ -13,6 +13,7 @@ command -v unzip >/dev/null 2>&1 || { printf '%s\n' 'unzip is required.' >&2; ex
 command -v uv >/dev/null 2>&1 || { printf '%s\n' 'uv is required.' >&2; exit 1; }
 
 bash -n \
+  "$ROOT_DIR/scripts/configure-github-environment.sh" \
   "$ROOT_DIR/scripts/configure-sre-agent-capabilities.sh" \
   "$ROOT_DIR/scripts/configure-sre-checkout-responder.sh" \
   "$ROOT_DIR/scripts/configure-sre-checkout-response-plan.sh" \
@@ -24,6 +25,7 @@ bash -n \
   "$ROOT_DIR/scripts/package-teams-app.sh" \
   "$ROOT_DIR/scripts/verify-checkout-response-plan.sh" \
   "$ROOT_DIR/scripts/verify-checkout-skill.sh" \
+  "$ROOT_DIR/scripts/verify-github-environment.sh" \
   "$ROOT_DIR/scripts/verify-github-continuation.sh"
 
 capability_bootstrap="$ROOT_DIR/scripts/configure-sre-agent-capabilities.sh"
@@ -62,6 +64,7 @@ grep -F '"\($connector)_" + .' "$ROOT_DIR/scripts/configure-sre-teams-connector.
   CLIENT_ID='00000000-0000-0000-0000-000000000001' \
     CLIENT_SECRET='test-only' \
     TENANT_ID='00000000-0000-0000-0000-000000000002' \
+    GITHUB_REPOSITORY='colleague/sre-agent-demo' \
     ALLOWED_USER_OBJECT_ID='00000000-0000-0000-0000-000000000004' \
     TEAMS_TENANT_ID='00000000-0000-0000-0000-000000000002' \
     TEAMS_TEAM_ID='00000000-0000-0000-0000-000000000003' \

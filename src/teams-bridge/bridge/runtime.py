@@ -80,6 +80,7 @@ class BridgeRuntime:
         self.notifications = NotificationService(self.teams, self.state, self.sre)
         self.continuation = GitHubContinuationService(
             secret=settings.github_webhook_secret,
+            expected_repository=settings.github_repository,
             state=self.state,
             sre=self.sre,
             teams=self.notifications,

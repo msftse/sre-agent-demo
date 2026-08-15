@@ -5,7 +5,10 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
-readonly REPOSITORY="msftse/sre-agent-demo"
+# shellcheck source=scripts/lib/repository.sh
+source "$ROOT_DIR/scripts/lib/repository.sh"
+REPOSITORY=$(resolve_repository)
+readonly REPOSITORY
 readonly EXPECTED_EVENTS=(deployment_status pull_request workflow_run)
 readonly DELIVERY_WORKFLOW="$ROOT_DIR/.github/workflows/deliver-demo.yml"
 readonly STAGE17_WORKFLOW="$ROOT_DIR/.github/workflows/start-demo.yml"

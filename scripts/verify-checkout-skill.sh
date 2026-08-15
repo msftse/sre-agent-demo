@@ -8,6 +8,7 @@ readonly IAC_DIR="$ROOT_DIR/iac"
 readonly SKILL_FILE="$ROOT_DIR/azure-sre-agent/skills/northstar-checkout-remediation.md"
 readonly RCA_TEMPLATE_FILE="$ROOT_DIR/azure-sre-agent/response-templates/northstar-checkout-rca.md"
 readonly SKILL_NAME="northstar-checkout-remediation"
+readonly SKILL_REPOSITORY_PLACEHOLDER="{{GITHUB_REPOSITORY}}"
 readonly EXPECTED_TOOLS=(
   RunAzCliReadCommands
   northstar-github_search_code
@@ -29,6 +30,25 @@ command -v curl >/dev/null 2>&1 || { printf '%s\n' 'curl is required.' >&2; exit
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'jq is required.' >&2; exit 1; }
 command -v shellcheck >/dev/null 2>&1 || { printf '%s\n' 'ShellCheck is required.' >&2; exit 1; }
 command -v terraform >/dev/null 2>&1 || { printf '%s\n' 'Terraform is required.' >&2; exit 1; }
+# shellcheck source=scripts/lib/repository.sh
+source "$ROOT_DIR/scripts/lib/repository.sh"
+
+count_placeholder_occurrences() {
+  local file=$1
+  local placeholder=$2
+
+  awk -v placeholder="$placeholder" '
+    {
+      count += gsub(placeholder, "&")
+    }
+    END {
+      print count + 0
+    }
+  ' "$file"
+}
+
+GITHUB_REPOSITORY=$(resolve_repository)
+readonly GITHUB_REPOSITORY
 
 bash -n "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh"
 shellcheck "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh"
@@ -37,6 +57,13 @@ shellcheck "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh"
 [[ $(grep -c '^---$' "$SKILL_FILE") -eq 2 ]]
 grep -Fx "name: $SKILL_NAME" "$SKILL_FILE" >/dev/null
 [[ -s "$RCA_TEMPLATE_FILE" ]]
+
+placeholder_count=$(count_placeholder_occurrences "$SKILL_FILE" "$SKILL_REPOSITORY_PLACEHOLDER")
+[[ "$placeholder_count" -eq 1 ]] || {
+  printf 'Skill source must contain exactly one %s placeholder, found %s.\n' \
+    "$SKILL_REPOSITORY_PLACEHOLDER" "$placeholder_count" >&2
+  exit 1
+}
 
 if grep -Eq '(ij[0-9]{4}|/subscriptions/[0-9a-f-]{36}|rg-sre-agent-demo|aks-sre-agent-demo|sre-sre-agent-demo)' "$SKILL_FILE"; then
   printf '%s\n' 'Skill source contains an environment-specific Azure identifier.' >&2
@@ -100,11 +127,20 @@ for heading in \
 done
 
 skill_file=$(mktemp "${TMPDIR:-/tmp}/sre-checkout-skill.XXXXXX")
+composed_skill_file=$(mktemp "${TMPDIR:-/tmp}/sre-checkout-skill-source.XXXXXX")
 chmod 600 "$skill_file"
+chmod 600 "$composed_skill_file"
+
+awk -v placeholder="$SKILL_REPOSITORY_PLACEHOLDER" -v repository="$GITHUB_REPOSITORY" '
+  {
+    gsub(placeholder, repository)
+    print
+  }
+' "$SKILL_FILE" >"$composed_skill_file"
 
 cleanup() {
   unset access_token
-  rm -f "$skill_file"
+  rm -f "$skill_file" "$composed_skill_file"
 }
 trap cleanup EXIT
 
@@ -131,10 +167,15 @@ jq -e \
 
 live_content=$(jq -er '.properties.skillContent' "$skill_file")
 expected_content=$(jq -nr \
-  --rawfile content "$SKILL_FILE" \
+  --rawfile content "$composed_skill_file" \
   --rawfile rca_template "$RCA_TEMPLATE_FILE" \
   '$content + "\n\n## Bundled RCA Template\n\n" + $rca_template')
 [[ "$live_content" == "$expected_content" ]]
+grep -F "- Repository: \`$GITHUB_REPOSITORY\`" <<<"$live_content" >/dev/null
+grep -F "$SKILL_REPOSITORY_PLACEHOLDER" <<<"$live_content" >/dev/null && {
+  printf '%s\n' 'Live skill content must not contain the repository placeholder.' >&2
+  exit 1
+}
 unset live_content expected_content
 
 printf '%s\n' 'PASS: skill source front matter and eleven assigned tools validated.'

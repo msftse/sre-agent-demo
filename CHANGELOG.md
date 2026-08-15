@@ -2,6 +2,15 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-16 - Complete fork onboarding and colleague profile hardening
+
+- Added `docs/colleague-setup.md` with end-to-end fork onboarding, profile generation, identity collection, Actions enablement, Stage 17 token security guidance, deployment flow, sync guidance, and teardown/cost reminders using placeholder-only identifiers.
+- Added `scripts/configure-github-environment.sh` and `scripts/verify-github-environment.sh` to idempotently create the Terraform-selected GitHub environment, configure required environment-scoped variables and `APPLICATIONINSIGHTS_CONNECTION_STRING`, and verify environment/repository secret metadata without exposing secret values.
+- Hardened `scripts/setup-colleague.sh` and `scripts/verify-colleague-profile.sh` by enforcing explicit `origin` repository validation before repository resolution and repository/profile checks.
+- Standardized HCL string escaping helper naming across setup and verifier scripts.
+- Updated dry-run handling in `scripts/setup-colleague.sh` so cleanup applies only to script-created temporary output directories and never deletes a user-provided output path.
+- Updated `README.md`, `AGENT.md`, and selected stage documents with first-time fork callouts, GitHub environment bootstrap requirements, canonical-maintainer exception guidance, and synchronized project-tree/script listings.
+
 ### 2026-08-14 - Document Azure SRE Agent pricing
 
 - Added `azure-sre-agent/pricing/azure-sre-agent-pricing.md` with the AAU billing model, token conversion rates, fixed and variable cost formulas, scenario estimates, allocation controls, related-cost caveats, optimization guidance, and official sources.

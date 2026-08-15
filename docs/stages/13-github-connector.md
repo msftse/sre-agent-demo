@@ -26,7 +26,7 @@ The connector does not expose `merge_pull_request`, pull-request review, Copilot
 
 The setup script reads the active GitHub CLI token at runtime and sends it directly to the SRE Agent data plane. It uses mode-0600 temporary files, removes them on exit, unsets token variables, and never prints the credential. The token is not stored in Git, Terraform state, or Azure Key Vault.
 
-This demo credential belongs to `ij-23` and has broader GitHub scopes than the five selected MCP tools. The connector's exact tool selection is therefore the primary agent capability boundary. GitHub branch protection and the main-only `demo` environment provide independent enforcement if a credential is used outside that tool surface. A production implementation should replace the interactive CLI credential with a dedicated, repository-scoped GitHub App or fine-grained service credential and a documented rotation process.
+This demo uses the active GitHub CLI credential and may have broader scopes than the selected MCP tools. The connector's exact tool selection is therefore the primary agent capability boundary. GitHub branch protection and the main-only `demo` environment provide independent enforcement if a credential is used outside that tool surface. A production implementation should replace the interactive CLI credential with a dedicated, repository-scoped GitHub App or fine-grained service credential and a documented rotation process.
 
 ## Human Approval Boundaries
 

@@ -152,7 +152,6 @@ variable "acr_sku" {
 variable "github_repository" {
   description = "GitHub owner/repository allowed to federate to the deployment identity."
   type        = string
-  default     = "msftse/sre-agent-demo"
 
   validation {
     condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repository))

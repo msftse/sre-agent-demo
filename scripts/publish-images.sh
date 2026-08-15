@@ -4,9 +4,14 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
+# shellcheck source=scripts/lib/repository.sh
+source "$ROOT_DIR/scripts/lib/repository.sh"
 readonly VERSION="${BUILD_VERSION:-0.1.0}"
 readonly GIT_SHA="${GIT_SHA:-$(git -C "$ROOT_DIR" rev-parse --short=12 HEAD)}"
 readonly TARGET_PLATFORM="${TARGET_PLATFORM:-linux/amd64}"
+GITHUB_REPOSITORY=$(resolve_repository)
+readonly GITHUB_REPOSITORY
+readonly SOURCE_REPOSITORY_URL="https://github.com/$GITHUB_REPOSITORY"
 
 registry=""
 repository_prefix="northstar"
@@ -82,6 +87,7 @@ docker build \
   --platform "$TARGET_PLATFORM" \
   --build-arg "GIT_SHA=$GIT_SHA" \
   --build-arg "BUILD_VERSION=$VERSION" \
+  --build-arg "SOURCE_REPOSITORY_URL=$SOURCE_REPOSITORY_URL" \
   --tag "$BACKEND_IMAGE" \
   "$ROOT_DIR/src/backend"
 
@@ -90,6 +96,7 @@ docker build \
   --platform "$TARGET_PLATFORM" \
   --build-arg "GIT_SHA=$GIT_SHA" \
   --build-arg "BUILD_VERSION=$VERSION" \
+  --build-arg "SOURCE_REPOSITORY_URL=$SOURCE_REPOSITORY_URL" \
   --tag "$FRONTEND_IMAGE" \
   "$ROOT_DIR/src/frontend"
 

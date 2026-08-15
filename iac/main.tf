@@ -145,6 +145,7 @@ module "aks_monitoring" {
   aks_name                      = module.aks.name
   aks_oidc_issuer_url           = module.aks.oidc_issuer_url
   application_insights_id       = module.observability[0].application_insights_id
+  github_repository             = var.github_repository
   location                      = module.resource_group.location
   log_analytics_workspace_id    = module.observability[0].log_analytics_workspace_id
   monitor_workspace_id          = module.observability[0].monitor_workspace_id
@@ -184,6 +185,7 @@ module "teams_bridge" {
   bot_name                               = "bot-teams-${var.project_name}-${var.environment}-${local.suffix}"
   bot_tenant_id                          = var.tenant_id
   function_app_name                      = local.teams_bridge_name
+  github_repository                      = var.github_repository
   identity_name                          = "id-teams-${var.project_name}-${var.environment}-${local.suffix}"
   key_vault_name                         = local.teams_bridge_key_vault_name
   location                               = module.resource_group.location

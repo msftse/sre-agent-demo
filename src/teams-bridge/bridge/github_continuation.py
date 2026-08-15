@@ -65,11 +65,13 @@ class GitHubContinuationService:
         self,
         *,
         secret: str,
+        expected_repository: str,
         state: ContinuationState,
         sre: SreContinuation,
         teams: TeamsContinuation,
     ) -> None:
         self.secret = secret.encode()
+        self.expected_repository = expected_repository
         self.state = state
         self.sre = sre
         self.teams = teams
@@ -92,6 +94,7 @@ class GitHubContinuationService:
             delivery_id=delivery_id,
             event_type=event_type,
             payload=payload,
+            expected_repository=self.expected_repository,
             correlation=correlation,
         )
         claimed = await self.state.claim_delivery(delivery_id)

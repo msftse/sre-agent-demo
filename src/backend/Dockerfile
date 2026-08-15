@@ -18,12 +18,13 @@ FROM python:3.12.13-slim-bookworm AS runtime
 
 ARG BUILD_VERSION=0.1.0
 ARG GIT_SHA=development
+ARG SOURCE_REPOSITORY_URL
 
 LABEL org.opencontainers.image.title="Northstar Supply API" \
       org.opencontainers.image.description="FastAPI checkout service for the Azure SRE Agent demo" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
       org.opencontainers.image.revision="${GIT_SHA}" \
-      org.opencontainers.image.source="https://github.com/msftse/sre-agent-demo"
+    org.opencontainers.image.source="${SOURCE_REPOSITORY_URL}"
 
 ENV PATH=/opt/venv/bin:${PATH} \
     PYTHONUNBUFFERED=1 \
