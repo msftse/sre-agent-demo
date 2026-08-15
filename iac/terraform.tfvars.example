@@ -4,11 +4,23 @@ tenant_id       = "00000000-0000-0000-0000-000000000000"
 location        = "swedencentral"
 environment     = "demo"
 project_name    = "sre-agent-demo"
+name_suffix     = null
+
+acr_sku                = "Standard"
+aks_node_count         = 2
+aks_node_vm_size       = "Standard_D2ds_v5"
+aks_sku_tier           = "Free"
 aks_operator_object_id = null
+
+github_repository          = "msftse/sre-agent-demo"
+github_environment         = "demo"
 github_repository_owner_id = null
 github_repository_id       = null
 
-enable_teams_bridge          = false
+enable_observability = true
+enable_sre_agent     = true
+enable_teams_bridge  = false
+
 teams_tenant_id              = null
 teams_team_id                = null
 teams_channel_id             = null
