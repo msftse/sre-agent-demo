@@ -258,10 +258,11 @@ Open your fork settings page and set policy exactly:
 
 1. `Settings` -> `Actions` -> `General`
 2. Enable Actions for this repository if prompted.
-3. Under `Workflow permissions`, choose `Read and write permissions`.
-4. Save.
+3. Under `Workflow permissions`, choose `Read repository contents permission`.
+4. Leave `Allow GitHub Actions to create and approve pull requests` disabled.
+5. Save.
 
-This repository still enforces least privilege inside workflows via explicit `permissions:` blocks; the repository setting is required for the direct-main incident rehearsal flow.
+Workflows request any additional permissions explicitly. The direct-main incident rehearsal uses the separately scoped `STAGE17_GITHUB_TOKEN`; it does not require write access from the default workflow token.
 
 Baseline check:
 

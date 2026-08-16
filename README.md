@@ -144,7 +144,7 @@ Continue only when the provisioning state is `Succeeded` and the data-plane requ
 
 ### 6. Configure the fork's GitHub environment
 
-In the fork, open **Settings > Actions > General**, enable Actions, and select **Read and write permissions** under Workflow permissions. Then run:
+In the fork, open **Settings > Actions > General**, enable Actions, select **Read repository contents permission** under Workflow permissions, and leave **Allow GitHub Actions to create and approve pull requests** disabled. Then run:
 
 ```bash
 ./scripts/configure-github-environment.sh
