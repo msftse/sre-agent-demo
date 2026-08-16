@@ -83,16 +83,29 @@ repository_from_gh() {
   printf '%s\n' "$value"
 }
 
+repository_from_environment() {
+  local value=${GITHUB_REPOSITORY:-}
+
+  validate_repository_format "$value" || return 1
+  printf '%s\n' "$value"
+}
+
 resolve_repository() {
   local repository
 
-  repository=$(repository_from_terraform || true)
+  repository=$(repository_from_environment || true)
+  if [[ -z "$repository" ]]; then
+    repository=$(repository_from_terraform || true)
+  fi
+  if [[ -z "$repository" ]]; then
+    repository=$(repository_from_origin_remote || true)
+  fi
   if [[ -z "$repository" ]]; then
     repository=$(repository_from_gh || true)
   fi
 
   if [[ -z "$repository" ]] || ! validate_repository_format "$repository"; then
-    printf '%s\n' 'Unable to resolve GitHub repository in owner/repository format from Terraform output or gh repo view.' >&2
+    printf '%s\n' 'Unable to resolve GitHub repository in owner/repository format from the environment, Terraform output, origin remote, or gh repo view.' >&2
     return 1
   fi
 
