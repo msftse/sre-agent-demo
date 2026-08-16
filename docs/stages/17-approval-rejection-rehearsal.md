@@ -10,7 +10,7 @@ The current browser-led entry point is **Actions > Start Demo > Run workflow**. 
 
 The starter fails closed when any PR or delivery is already active. Otherwise it:
 
-1. Discovers the latest merged `sre/field20-checkout-*` remediation and verifies its merge commit remains in `main` history.
+1. Discovers the latest merged `sre/field20-checkout-*` remediation and verifies its merge commit remains in `main` history. On the first run in a fork, where upstream PR records are not inherited, it resolves the latest FIELD20 remediation from inherited first-parent Git history instead.
 2. Creates one local incident commit by inverting only that remediation.
 3. Asserts that exactly the backend service and checkout test changed.
 4. Runs Ruff, strict mypy, and the backend test suite against the intentional regression.

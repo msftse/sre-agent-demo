@@ -67,8 +67,17 @@ jobs:
             --json headRefName,mergedAt,mergeCommit \
             --jq '[.[] | select(.headRefName | startswith("sre/field20-checkout-"))]
               | sort_by(.mergedAt) | reverse | .[0].mergeCommit.oid // ""')
+          if [[ ! "$scenario_fix_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            # Forks inherit Git history but not the upstream repository's PR records.
+            scenario_fix_sha=$(git log \
+              --first-parent \
+              --format='%H' \
+              --extended-regexp \
+              --grep='(fix\(checkout\):.*FIELD20.*discount|Fix FIELD20 checkout discount)' \
+              -n 1)
+          fi
           [[ "$scenario_fix_sha" =~ ^[0-9a-f]{40}$ ]] || {
-            printf 'No merged SRE FIELD20 remediation PR was found.\n' >&2
+            printf 'No fork-local or inherited FIELD20 remediation was found.\n' >&2
             exit 1
           }
           git merge-base --is-ancestor "$scenario_fix_sha" HEAD

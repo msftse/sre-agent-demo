@@ -10,6 +10,8 @@ This append-only log records implementation changes by date.
 - Standardized HCL string escaping helper naming across setup and verifier scripts.
 - Updated dry-run handling in `scripts/setup-colleague.sh` so cleanup applies only to script-created temporary output directories and never deletes a user-provided output path.
 - Updated `README.md`, `AGENT.md`, and selected stage documents with first-time fork callouts, GitHub environment bootstrap requirements, canonical-maintainer exception guidance, and synchronized project-tree/script listings.
+- Expanded `README.md` into an exact fork-to-demo runbook covering profile generation, Azure provisioning, GitHub environment/token setup, Teams secret/bootstrap deployment, healthy baseline delivery, incident execution, recovery, and teardown.
+- Added a `Start Demo` fallback that discovers the inherited FIELD20 remediation from first-parent Git history when a fresh fork has no fork-local merged PR metadata.
 
 ### 2026-08-14 - Document Azure SRE Agent pricing
 
