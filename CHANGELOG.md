@@ -12,6 +12,7 @@ This append-only log records implementation changes by date.
 - Updated `README.md`, `AGENT.md`, and selected stage documents with first-time fork callouts, GitHub environment bootstrap requirements, canonical-maintainer exception guidance, and synchronized project-tree/script listings.
 - Expanded `README.md` into an exact fork-to-demo runbook covering profile generation, Azure provisioning, GitHub environment/token setup, Teams secret/bootstrap deployment, healthy baseline delivery, incident execution, recovery, and teardown.
 - Added a `Start Demo` fallback that discovers the inherited FIELD20 remediation from first-parent Git history when a fresh fork has no fork-local merged PR metadata.
+- Documented Teams tenant, Team, channel, and allowed-user ID discovery through Teams links and Microsoft Graph, including safe context restoration when Teams uses a different tenant.
 
 ### 2026-08-14 - Document Azure SRE Agent pricing
 

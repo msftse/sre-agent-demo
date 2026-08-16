@@ -98,7 +98,85 @@ Capture these values before setup:
 - Channel ID (`19:...@thread.tacv2`)
 - Allowed user object ID (GUID)
 
-Use placeholders in notes and scripts; never commit real IDs.
+### Teams tenant ID
+
+If Teams uses the same tenant as the active Azure subscription:
+
+```bash
+az account show --query tenantId -o tsv
+```
+
+If Teams uses another tenant, copy its **Tenant ID** from **Microsoft Entra admin center > Identity > Overview**, or ask the Teams tenant administrator. Use the GUID, not a domain such as `example.onmicrosoft.com`.
+
+### Team ID and channel ID from Teams
+
+In the Teams client:
+
+1. Select the `...` menu next to the Team and choose **Get link to team**. The `groupId=<guid>` query value is the Team ID.
+2. Select the `...` menu next to the colleague-specific channel and choose **Get link to channel**. In current links, the URL-encoded value after `/l/channel/` and before the next `/` is the channel ID. Some link formats expose the same value as `threadId`. After URL decoding, it has the form `19:...@thread.tacv2`.
+
+URL-decode a copied channel value on macOS or Linux with:
+
+```bash
+python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' \
+  '<url-encoded-channel-id>'
+```
+
+### Team ID and channel ID with Microsoft Graph
+
+When Azure CLI is authenticated to the Teams tenant, list joined Teams:
+
+```bash
+az rest \
+  --method GET \
+  --url 'https://graph.microsoft.com/v1.0/me/joinedTeams' \
+  --query 'value[].{name:displayName,id:id}' \
+  -o table
+```
+
+After selecting the Team ID, list its channels:
+
+```bash
+TEAM_ID='<team-guid>'
+az rest \
+  --method GET \
+  --url "https://graph.microsoft.com/v1.0/teams/$TEAM_ID/channels" \
+  --query 'value[].{name:displayName,id:id,membershipType:membershipType}' \
+  -o table
+```
+
+Use the exact returned channel ID; do not replace or remove punctuation.
+
+### Allowed user object ID
+
+The allowed user is the colleague permitted to start inbound investigations from Teams. While authenticated to the Teams tenant, run:
+
+```bash
+az ad signed-in-user show --query id -o tsv
+```
+
+If Teams uses a different tenant from the Azure subscription, preserve the Azure subscription, authenticate to the Teams tenant long enough to collect the values, and then restore the Azure context:
+
+```bash
+AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+az login --tenant '<teams-tenant-guid>' --allow-no-subscriptions
+
+az ad signed-in-user show --query id -o tsv
+az rest --method GET \
+  --url 'https://graph.microsoft.com/v1.0/me/joinedTeams' \
+  --query 'value[].{name:displayName,id:id}' \
+  -o table
+
+az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+```
+
+Confirm the original Azure subscription is active again before setup:
+
+```bash
+az account show --query '{subscriptionId:id,tenantId:tenantId,user:user.name}' -o json
+```
+
+Use placeholders in notes and scripts; never commit real IDs. A separate channel per colleague is recommended. The Teams tenant and parent Team may be shared.
 
 ## Generate local profile and tfvars
 

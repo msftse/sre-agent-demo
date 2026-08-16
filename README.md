@@ -64,7 +64,7 @@ You need:
 - Channel ID in `19:...@thread.tacv2` format.
 - Your Teams/Entra user object ID (GUID).
 
-See [Teams identity inputs](docs/colleague-setup.md#teams-identity-inputs) for discovery options.
+See [Teams identity inputs](docs/colleague-setup.md#teams-identity-inputs) for step-by-step Teams UI and Microsoft Graph discovery commands, including the separate-tenant login and Azure-context restore sequence.
 
 ### 3. Generate your local deployment profile
 
