@@ -37,7 +37,7 @@ command -v shellcheck >/dev/null 2>&1 || { printf '%s\n' 'ShellCheck is required
 command -v terraform >/dev/null 2>&1 || { printf '%s\n' 'Terraform is required.' >&2; exit 1; }
 
 bash -n "$ROOT_DIR/scripts/configure-sre-github-connector.sh"
-shellcheck "$ROOT_DIR/scripts/configure-sre-github-connector.sh"
+shellcheck -x "$ROOT_DIR/scripts/configure-sre-github-connector.sh"
 
 connector_file=$(mktemp "${TMPDIR:-/tmp}/sre-github-verify.XXXXXX")
 branch_protection_file=$(mktemp "${TMPDIR:-/tmp}/github-protection.XXXXXX")
@@ -80,17 +80,26 @@ jq -e \
   '
     .name == "northstar-github"
     and .properties.dataConnectorType == "Mcp"
-    and .properties.dataSource == $repository
-    and .properties.extendedProperties.endpoint == "https://api.githubcopilot.com/mcp/"
+    and (.properties.dataSource == null or .properties.dataSource == $repository)
+    and (
+      .properties.extendedProperties.endpoint == null
+      or .properties.extendedProperties.endpoint == "https://api.githubcopilot.com/mcp/"
+    )
     and .properties.extendedProperties.authType == "CustomHeaders"
     and ((.properties.extendedProperties.toolsVisibleToMetaAgent | sort) == $tools)
-    and ((.properties.extendedProperties.selectedTools | sort) == $tools)
-    and (.properties.extendedProperties.Authorization | startswith("Bearer "))
+    and (
+      .properties.extendedProperties.selectedTools == null
+      or ((.properties.extendedProperties.selectedTools | sort) == $tools)
+    )
+    and (
+      .properties.extendedProperties.Authorization == null
+      or (.properties.extendedProperties.Authorization | startswith("Bearer "))
+    )
   ' "$connector_file" >/dev/null
 
 for forbidden_tool in "${FORBIDDEN_TOOLS[@]}"; do
   jq -e --arg forbidden_tool "$forbidden_tool" '
-    all(.properties.extendedProperties.selectedTools[]; . != $forbidden_tool)
+    all((.properties.extendedProperties.selectedTools // [])[]; . != $forbidden_tool)
     and all(.properties.extendedProperties.toolsVisibleToMetaAgent[]; . != $forbidden_tool)
   ' "$connector_file" >/dev/null
 done

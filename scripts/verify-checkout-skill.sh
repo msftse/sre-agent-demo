@@ -51,7 +51,7 @@ GITHUB_REPOSITORY=$(resolve_repository)
 readonly GITHUB_REPOSITORY
 
 bash -n "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh"
-shellcheck "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh"
+shellcheck -x "$ROOT_DIR/scripts/configure-sre-checkout-skill.sh"
 
 [[ $(sed -n '1p' "$SKILL_FILE") == '---' ]]
 [[ $(grep -c '^---$' "$SKILL_FILE") -eq 2 ]]
@@ -171,7 +171,7 @@ expected_content=$(jq -nr \
   --rawfile rca_template "$RCA_TEMPLATE_FILE" \
   '$content + "\n\n## Bundled RCA Template\n\n" + $rca_template')
 [[ "$live_content" == "$expected_content" ]]
-grep -F "- Repository: \`$GITHUB_REPOSITORY\`" <<<"$live_content" >/dev/null
+grep -F -- "- Repository: \`$GITHUB_REPOSITORY\`" <<<"$live_content" >/dev/null
 grep -F "$SKILL_REPOSITORY_PLACEHOLDER" <<<"$live_content" >/dev/null && {
   printf '%s\n' 'Live skill content must not contain the repository placeholder.' >&2
   exit 1

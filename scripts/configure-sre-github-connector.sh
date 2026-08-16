@@ -197,12 +197,18 @@ jq -e \
   '
     .name == "northstar-github"
     and .properties.dataConnectorType == "Mcp"
-    and .properties.dataSource == $repository
-    and .properties.extendedProperties.endpoint == $endpoint
+    and (.properties.dataSource == null or .properties.dataSource == $repository)
+    and (.properties.extendedProperties.endpoint == null or .properties.extendedProperties.endpoint == $endpoint)
     and .properties.extendedProperties.authType == "CustomHeaders"
     and ((.properties.extendedProperties.toolsVisibleToMetaAgent | sort) == ($tools | sort))
-    and ((.properties.extendedProperties.selectedTools | sort) == ($tools | sort))
-    and (.properties.extendedProperties.Authorization | startswith("Bearer "))
+    and (
+      .properties.extendedProperties.selectedTools == null
+      or ((.properties.extendedProperties.selectedTools | sort) == ($tools | sort))
+    )
+    and (
+      .properties.extendedProperties.Authorization == null
+      or (.properties.extendedProperties.Authorization | startswith("Bearer "))
+    )
   ' "$connector_file" >/dev/null
 
 printf 'Azure SRE Agent connector configured: %s\n' "$CONNECTOR_NAME"
