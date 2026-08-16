@@ -36,6 +36,9 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# Local demo profile
+.demo-profile.env
+
 # Local tools and operating systems
 .DS_Store
 .idea/

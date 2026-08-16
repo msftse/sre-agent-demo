@@ -34,15 +34,266 @@ The project closes an incident from detection through verified recovery while pr
 
 Stages 1-18 are complete. Stage 17 proved the live alert, SRE investigation, Teams timeline, automatic remediation PR, rejection, reopen, user merge, protected recovery deployment, alert resolution, and final RCA. Merge, review, workflow dispatch, and deployment tools remain unavailable to the agent. The application is healthy on the FIELD20 fix with traffic disabled. See the [Stage 17 rehearsal record](docs/stages/17-approval-rejection-rehearsal.md) and the user-owned Stage 18 [architecture proposal](docs/architecture/sre-agent-demo-architecture.html).
 
-## Quick Start
+## Quick Start: Run the Demo from Your Fork
 
-Run the repeatable prerequisite check from the repository root:
+> **First time? Start here.** Each presenter must use their own fork, Azure subscription, local Terraform state, GitHub environment, webhook, and Teams destination. Do not deploy from the canonical repository unless you are its maintainer. The expanded explanations and troubleshooting steps are in [Run the demo from your own fork](docs/colleague-setup.md).
+
+### 1. Fork, clone, and authenticate
+
+Fork `msftse/sre-agent-demo` in GitHub, then clone **your fork**:
+
+```bash
+git clone https://github.com/<your-github-owner>/sre-agent-demo.git
+cd sre-agent-demo
+git remote add upstream https://github.com/msftse/sre-agent-demo.git
+
+az login
+az account set --subscription <your-subscription-id-or-name>
+gh auth login
+gh auth status
+```
+
+Required local tools are Azure CLI, GitHub CLI, Terraform, Docker, `jq`, `kubectl`, `kubelogin`, Helm, Node.js/npm, `uv`, Azure Functions Core Tools, OpenSSL, and ShellCheck. You need Owner access on the Azure subscription and Admin access on your fork. Review the [pricing guide](azure-sre-agent/pricing/azure-sre-agent-pricing.md) before provisioning.
+
+On macOS with Homebrew, install the CLI prerequisites with:
+
+```bash
+brew tap hashicorp/tap
+brew tap azure/functions
+brew tap Azure/kubelogin
+brew install azure-cli gh hashicorp/tap/terraform jq kubernetes-cli Azure/kubelogin/kubelogin helm node uv shellcheck
+brew install azure/functions/azure-functions-core-tools@4
+brew install --cask docker
+```
+
+If Homebrew asks you to trust a vendor tap, review the prompt and follow your organization’s package policy. Start Docker Desktop before running preflight. Git, OpenSSL, `curl`, and `zip` are included with macOS developer tools; install them separately if your environment does not provide them.
+
+### 2. Collect your Teams values
+
+You need:
+
+- Teams tenant ID (GUID). This can differ from the Azure subscription tenant.
+- Team ID (GUID).
+- Channel ID in `19:...@thread.tacv2` format.
+- Your Teams/Entra user object ID (GUID).
+
+See [Teams identity inputs](docs/colleague-setup.md#teams-identity-inputs) for step-by-step Teams UI and Microsoft Graph discovery commands, including the separate-tenant login and Azure-context restore sequence.
+
+### 3. Generate your local deployment profile
+
+Run from the repository root:
+
+```bash
+./scripts/setup-colleague.sh \
+  --teams-tenant-id <teams-tenant-guid> \
+  --teams-team-id <team-guid> \
+  --teams-channel-id '<channel-id-19-thread-tacv2>' \
+  --teams-user-object-id <your-user-object-guid> \
+  --owner-email <owner@example.com>
+```
+
+The script discovers the active Azure subscription/tenant and GitHub fork, then creates `.demo-profile.env` and `iac/terraform.tfvars` with mode `0600`. Both files are ignored by Git and contain no PAT, bot secret, webhook secret, or MCP key. Use `--name-suffix <4-8-lowercase-alnum>` when you need deterministic Azure names.
+
+This topology supports exactly one active Azure deployment per fork and requires a unique Teams channel per colleague. The GitHub environment is fixed to `demo` because the delivery workflow, OIDC trust, webhook, and repository secrets form one repository-wide control plane. Use another fork for a second simultaneous deployment.
+
+### 4. Run mandatory preflight checks
 
 ```bash
 ./scripts/preflight.sh
+./scripts/verify-terraform.sh
 ```
 
-Install and validate the backend:
+`preflight.sh` invokes the profile verifier after confirming the required tools exist. Do not continue until both commands pass.
+
+### 5. Provision the isolated Azure environment
+
+```bash
+terraform -chdir=iac init
+terraform -chdir=iac validate
+terraform -chdir=iac plan -out=colleague.tfplan
+terraform -chdir=iac apply colleague.tfplan
+```
+
+Terraform state and the saved plan are local and ignored. Never commit or share `.demo-profile.env`, `iac/terraform.tfvars`, `*.tfstate*`, or `*.tfplan`.
+
+The apply can take 20–40 minutes, with AKS, Managed Grafana, Azure SRE Agent, and Functions usually accounting for most of the wait. After apply, verify that the SRE Agent control plane and data plane are ready:
+
+```bash
+SRE_AGENT=$(terraform -chdir=iac output -json sre_agent)
+SRE_AGENT_ID=$(jq -r '.id' <<<"$SRE_AGENT")
+SRE_AGENT_ENDPOINT=$(jq -r '.endpoint' <<<"$SRE_AGENT")
+
+az resource show \
+  --ids "$SRE_AGENT_ID" \
+  --api-version 2026-01-01 \
+  --query properties.provisioningState \
+  -o tsv
+
+SRE_TOKEN=$(az account get-access-token \
+  --resource https://azuresre.dev \
+  --query accessToken \
+  -o tsv)
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $SRE_TOKEN" \
+  "${SRE_AGENT_ENDPOINT%/}/api/v1/threads" \
+  | jq 'length'
+unset SRE_TOKEN
+```
+
+Continue only when the provisioning state is `Succeeded` and the data-plane request returns JSON.
+
+### 6. Configure the fork's GitHub environment
+
+In the fork, open **Settings > Actions > General**, enable Actions, and select **Read and write permissions** under Workflow permissions. Then run:
+
+```bash
+./scripts/configure-github-environment.sh
+```
+
+This creates the Terraform-selected GitHub environment (default `demo`) and writes its eight deployment variables plus the `APPLICATIONINSIGHTS_CONNECTION_STRING` environment secret.
+
+Create a fine-grained PAT scoped only to your fork with:
+
+- Contents: read/write
+- Actions: read/write
+- Pull requests: read
+- Administration: read/write
+
+Store it as the **repository-level Actions secret** `STAGE17_GITHUB_TOKEN` under **Settings > Secrets and variables > Actions**. Never put the token in a local file. Verify the environment and secret metadata:
+
+```bash
+./scripts/verify-github-environment.sh
+```
+
+### 7. Create the Teams bridge secrets and deploy the bridge
+
+```bash
+SUBSCRIPTION_ID=$(terraform -chdir=iac output -raw subscription_id)
+TEAMS_BRIDGE=$(terraform -chdir=iac output -json teams_bridge)
+BOT_APP_ID=$(jq -r '.bot_client_id' <<<"$TEAMS_BRIDGE")
+KEY_VAULT=$(jq -r '.key_vault_name' <<<"$TEAMS_BRIDGE")
+
+./scripts/provision-teams-bot-identity.sh store-secrets \
+  --subscription "$SUBSCRIPTION_ID" \
+  --app-id "$BOT_APP_ID" \
+  --key-vault "$KEY_VAULT"
+
+./scripts/deploy-teams-bridge.sh
+```
+
+Deployment publishes the Function, packages the Teams app, configures the Teams and GitHub connectors, installs the checkout skill/responder/response plan, and registers the signed GitHub continuation webhook. Sideload `.teams-package/azure-sre-agent.zip` into the Team/channel selected in step 3.
+
+In Teams, open **Apps > Manage your apps > Upload an app > Upload a custom app**, select `.teams-package/azure-sre-agent.zip`, choose **Add to a team**, and select the configured Team. In the configured channel, mention the bot with `@Azure SRE Agent status`. It should reply that the bridge is ready. If custom-app upload is unavailable, ask the Teams administrator to allow or upload the app for that tenant.
+
+### 8. Verify the deployed control plane
+
+```bash
+./scripts/verify-teams-bridge.sh
+./scripts/verify-github-connector.sh
+./scripts/verify-checkout-skill.sh
+./scripts/verify-checkout-response-plan.sh
+./scripts/verify-github-continuation.sh
+./scripts/configure-github-protection.sh incident-demo
+```
+
+### 9. Deploy the healthy baseline
+
+The protected workflow builds, scans, publishes, and deploys the application, so a separate local image push is not required for the normal colleague path:
+
+```bash
+BASELINE_SHA=$(git rev-parse origin/main)
+REPOSITORY=$(terraform -chdir=iac output -raw github_repository)
+gh workflow run deliver-demo.yml \
+  --repo "$REPOSITORY" \
+  --ref main \
+  -f deploy=true \
+  -f deploy_sha="$BASELINE_SHA" \
+  -f incident_traffic=false
+
+RUN_ID=$(gh run list \
+  --repo "$REPOSITORY" \
+  --workflow deliver-demo.yml \
+  --event workflow_dispatch \
+  --commit "$BASELINE_SHA" \
+  --limit 1 \
+  --json databaseId \
+  --jq '.[0].databaseId')
+[[ -n "$RUN_ID" ]] || {
+  printf '%s\n' 'The workflow run is not visible yet; rerun the RUN_ID command.' >&2
+  exit 1
+}
+gh run watch "$RUN_ID" --repo "$REPOSITORY" --exit-status
+```
+
+Confirm the workflow succeeds, then connect to AKS and verify the healthy baseline:
+
+```bash
+RESOURCE_GROUP=$(terraform -chdir=iac output -raw resource_group_name)
+AKS_NAME=$(terraform -chdir=iac output -raw aks_name)
+az aks get-credentials \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$AKS_NAME" \
+  --overwrite-existing
+kubelogin convert-kubeconfig -l azurecli
+kubectl get deployments --namespace northstar
+helm status northstar --namespace northstar
+```
+
+### 10. Run the customer demo
+
+Before the customer joins, confirm:
+
+- The healthy baseline workflow succeeded.
+- Backend and frontend show `2/2` ready replicas.
+- No traffic-generator deployment exists.
+- `@Azure SRE Agent status` succeeds in the configured Teams channel.
+- All five control-plane verifiers from step 8 pass.
+- PRs and delivery workflows are idle.
+- Branch protection is `incident-demo`.
+
+During the demo:
+
+1. In your fork, open **Actions > Start Demo > Run workflow**.
+2. Enable **Confirm direct publication of the intentional FIELD20 regression to main**. If it remains false, the job is skipped by design.
+3. `Start Demo` validates and pushes the incident commit, then deploys it with deterministic traffic. Initial delivery commonly takes several minutes.
+4. Azure Monitor evaluates every minute and requires two failing windows. Allow roughly 2–5 minutes after traffic starts for the alert and SRE investigation to appear.
+5. Watch the configured Teams channel for **Investigation started**, then follow evidence and root-cause updates.
+6. Azure SRE Agent opens the only PR in the flow. Review the code and required check. Reject/reopen it if demonstrating governance, or merge it when ready. The agent cannot merge or deploy.
+7. Merge starts `Deliver Demo to AKS` automatically; there is no separate environment-review approval in this demo. Recovery commonly takes several minutes.
+8. Confirm the new merge SHA is deployed, backend/frontend return to `2/2`, FIELD20 succeeds, and the traffic-generator deployment is absent.
+9. Alert auto-resolution is configured for five clean minutes, so the final RCA can arrive several minutes after deployment succeeds.
+10. Show the same canonical RCA in the remediation PR comments and the existing Teams incident thread.
+
+For a repeat customer demo, no state reset or table cleanup is required after a successful recovery. Wait until the alert is resolved, no PR is open, delivery is idle, and the prior RCA is complete; then run **Start Demo** again. It discovers the latest fork-local remediation, or the inherited remediation on the first run in a fresh fork.
+
+If a checkpoint stalls:
+
+| Symptom | First check |
+| --- | --- |
+| Baseline or recovery workflow fails before Azure login | `./scripts/verify-github-environment.sh` and the workflow job log |
+| Teams bot does not answer `status` | `./scripts/verify-teams-bridge.sh`, then confirm the exact tenant, Team, channel, and allowed user |
+| Alert does not fire | Confirm `northstar-sre-demo-traffic` is ready and review `NorthstarCheckoutFailureRatioHigh` in Azure Monitor |
+| No remediation PR appears | Run the response-plan and GitHub connector verifiers; inspect the newest SRE thread |
+| Merge succeeds but recovery does not start | Check `Deliver Demo to AKS`, webhook delivery, and `./scripts/verify-github-continuation.sh` |
+| Deployment succeeds but RCA is deferred | Wait for the five-minute alert recovery window and confirm post-deployment checkout requests are HTTP 200 |
+
+### 11. Tear down after the customer session
+
+```bash
+RESOURCE_GROUP=$(terraform -chdir=iac output -raw resource_group_name)
+terraform -chdir=iac destroy
+az group exists --name "$RESOURCE_GROUP"
+```
+
+Deletion is important: stopping Azure SRE Agent stops active-flow work but does not stop its always-on charge. If destroy reports an Azure asynchronous-delete or subnet-in-use error, wait for platform cleanup and rerun the same command; never remove resources from Terraform state merely to hide the error.
+
+The final command must return `false`. If it returns `true`, rerun `terraform destroy` after Azure finishes asynchronous cleanup.
+
+Remove the custom Teams app from the Team if it is no longer needed, revoke the fine-grained PAT, and delete or disable the fork’s repository secrets. See [pricing and cost management](azure-sre-agent/pricing/azure-sre-agent-pricing.md) and the complete [fork lifecycle guide](docs/colleague-setup.md).
+
+## Optional Local Development
+
+The cloud demo does not require running the application locally. For local changes, install and validate the backend and frontend:
 
 ```bash
 cd src/backend
@@ -50,71 +301,15 @@ uv sync --locked --all-groups
 uv run ruff check .
 uv run mypy app tests
 uv run pytest
-```
 
-Install and validate the frontend:
-
-```bash
-cd src/frontend
+cd ../frontend
 npm ci
 npm test
 npm run lint
 npm run build
 ```
 
-Run the application locally in two terminals:
-
-```bash
-# Terminal 1
-cd src/backend
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-```bash
-# Terminal 2
-cd src/frontend
-npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
-```
-
-Open the storefront at `http://127.0.0.1:5173/` and the API documentation at `http://127.0.0.1:8000/docs`.
-
-Run the complete local telemetry proof:
-
-```bash
-./scripts/verify-observability.sh
-```
-
-Build and validate both images and every Helm chart mode:
-
-```bash
-./scripts/verify-containers.sh
-```
-
-After a registry exists and Docker is authenticated, build and push both AKS images from the local Docker daemon:
-
-```bash
-./scripts/publish-images.sh --registry <acr-name>.azurecr.io
-```
-
-This project does not use ACR build/import commands. The script targets `linux/amd64`, publishes immutable Git-SHA tags with `docker push`, and prints the pushed digests for Helm.
-
-Validate the Terraform foundation without applying resources:
-
-```bash
-export TF_VAR_subscription_id="<subscription-id>"
-export TF_VAR_tenant_id="<tenant-id>"
-./scripts/verify-terraform.sh
-```
-
-After a future apply, audit the mandatory resource tags:
-
-```bash
-./scripts/audit-tags.sh \
-  --resource-group "$(terraform -chdir=iac output -raw resource_group_name)" \
-  --resource-group "$(terraform -chdir=iac output -raw aks_node_resource_group)"
-```
-
-The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies resolve through the Microsoft package-feed proxies committed in each project. If a direct pip fallback is ever required, run it with `PIP_CONFIG_FILE=pip.conf` from `src/backend`.
+The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies resolve through the Microsoft package-feed proxies committed in each project.
 
 ## Project Structure
 
@@ -131,6 +326,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 ├── CHANGELOG.md
 ├── README.md
 ├── docs/
+│   ├── colleague-setup.md
 │   └── stages/
 │       ├── 01-preflight.md
 │       ├── 02-application.md
@@ -148,6 +344,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │       ├── 14-checkout-skill.md
 │       ├── 15-incident-response-plan.md
 │       ├── 16-continuation-loop.md
+│       ├── 17-approval-rejection-rehearsal.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -176,6 +373,7 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-github-environment.sh
 │   ├── configure-github-webhook.sh
 │   ├── configure-sre-agent-capabilities.sh
 │   ├── configure-sre-checkout-responder.sh
@@ -190,15 +388,20 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
 │   ├── provision-teams-bot-identity.sh
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
+│   ├── setup-colleague.sh
 │   ├── verify-checkout-skill.sh
 │   ├── verify-checkout-response-plan.sh
+│   ├── verify-colleague-profile.sh
 │   ├── verify-deployment.sh
+│   ├── verify-github-environment.sh
 │   ├── verify-github-connector.sh
 │   ├── verify-github-continuation.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
-│   └── verify-observability.sh
+│   ├── verify-observability.sh
+│   └── lib/
+│       └── repository.sh
 ├── azure-sre-agent/
 │   ├── pricing/
 │   │   └── azure-sre-agent-pricing.md

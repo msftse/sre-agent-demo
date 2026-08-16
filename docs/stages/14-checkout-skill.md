@@ -20,7 +20,7 @@ Each new environment can use different Azure names and IDs. The skill therefore 
 4. Resolve linked Log Analytics, Azure Monitor workspace, and Application Insights IDs from live monitoring configuration.
 5. Stop on ambiguity instead of constructing names from conventions.
 
-Stable application facts remain explicit: repository, alert name, route, error code, FIELD20 input, expected totals, source path, test path, and human approval boundaries.
+Stable application facts remain explicit: configured target repository (fork-first, canonical only by explicit maintainer exception), alert name, route, error code, FIELD20 input, expected totals, source path, test path, and human approval boundaries.
 
 ## Attached Tools
 

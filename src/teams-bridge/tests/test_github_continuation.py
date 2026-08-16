@@ -10,6 +10,9 @@ from bridge.github_continuation import (
     GitHubContinuationService,
     InvalidGitHubSignature,
 )
+from bridge.github_events import IgnoredGitHubEvent
+
+EXPECTED_REPOSITORY = "msftse/sre-agent-demo"
 
 
 class FakeState:
@@ -128,6 +131,7 @@ async def test_processes_and_deduplicates_pull_request() -> None:
     teams = FakeTeams()
     service = GitHubContinuationService(
         secret="secret",
+        expected_repository=EXPECTED_REPOSITORY,
         state=state,
         sre=sre,
         teams=teams,
@@ -161,6 +165,7 @@ async def test_rejects_invalid_signature_before_state_changes() -> None:
     state = FakeState()
     service = GitHubContinuationService(
         secret="secret",
+        expected_repository=EXPECTED_REPOSITORY,
         state=state,
         sre=FakeSre(),
         teams=FakeTeams(),
@@ -182,6 +187,7 @@ async def test_retries_only_missing_downstream_notification() -> None:
     sre = FakeSre()
     service = GitHubContinuationService(
         secret="secret",
+        expected_repository=EXPECTED_REPOSITORY,
         state=state,
         sre=sre,
         teams=FakeTeams(fail=True),
@@ -216,6 +222,7 @@ async def test_continues_successful_workflow_for_correlated_merge() -> None:
     sre = FakeSre()
     service = GitHubContinuationService(
         secret="secret",
+        expected_repository=EXPECTED_REPOSITORY,
         state=state,
         sre=sre,
         teams=FakeTeams(),
@@ -251,6 +258,7 @@ async def test_continues_automatic_workflow_from_correlated_pr_head() -> None:
     sre = FakeSre()
     service = GitHubContinuationService(
         secret="secret",
+        expected_repository=EXPECTED_REPOSITORY,
         state=state,
         sre=sre,
         teams=FakeTeams(),
@@ -287,6 +295,7 @@ async def test_redelivery_skips_teams_after_sre_failure() -> None:
     sre = FakeSre(fail=True)
     service = GitHubContinuationService(
         secret="secret",
+        expected_repository=EXPECTED_REPOSITORY,
         state=state,
         sre=sre,
         teams=teams,
@@ -315,3 +324,69 @@ async def test_redelivery_skips_teams_after_sre_failure() -> None:
     assert result.status == "processed"
     assert len(teams.messages) == 1
     assert state.deliveries["delivery-5"] == {"TeamsSent": True, "SreSent": True}
+
+
+async def test_processes_expected_colleague_fork() -> None:
+    state = FakeState()
+    service = GitHubContinuationService(
+        secret="secret",
+        expected_repository="colleague/sre-agent-demo",
+        state=state,
+        sre=FakeSre(),
+        teams=FakeTeams(),
+    )
+    body = json.dumps(
+        {
+            "action": "opened",
+            "number": 42,
+            "repository": {"full_name": "colleague/sre-agent-demo"},
+            "pull_request": {
+                "body": (
+                    "<!-- sre-thread-id: thread-1 -->\n"
+                    "<!-- teams-thread-id: incident-1 -->"
+                ),
+                "html_url": "https://github.com/colleague/sre-agent-demo/pull/42",
+                "merged": False,
+                "head": {
+                    "sha": "head-123",
+                    "ref": "sre/field20-checkout-incident-1",
+                    "repo": {"full_name": "colleague/sre-agent-demo"},
+                },
+                "base": {
+                    "ref": "main",
+                    "repo": {"full_name": "colleague/sre-agent-demo"},
+                },
+            },
+        },
+        separators=(",", ":"),
+    ).encode()
+
+    result = await service.process(
+        body=body,
+        signature=signed(body),
+        delivery_id="delivery-fork-1",
+        event_type="pull_request",
+    )
+
+    assert result.status == "processed"
+    assert state.saved[0]["merge_sha"] == ""
+    assert state.saved[0]["head_sha"] == "head-123"
+
+
+async def test_rejects_canonical_repository_when_expected_is_fork() -> None:
+    state = FakeState()
+    service = GitHubContinuationService(
+        secret="secret",
+        expected_repository="colleague/sre-agent-demo",
+        state=state,
+        sre=FakeSre(),
+        teams=FakeTeams(),
+    )
+
+    with pytest.raises(IgnoredGitHubEvent):
+        await service.process(
+            body=pull_request_body(),
+            signature=signed(pull_request_body()),
+            delivery_id="delivery-fork-2",
+            event_type="pull_request",
+        )

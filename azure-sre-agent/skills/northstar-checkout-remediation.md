@@ -21,7 +21,7 @@ Investigate and repair the deterministic Northstar checkout failure without chan
 
 ## Scope
 
-- Repository: `msftse/sre-agent-demo`
+- Repository: `{{GITHUB_REPOSITORY}}`
 - Branch baseline: `main`
 - Backend service: `Northstar Supply API`
 - Alert: `NorthstarCheckoutFailureRatioHigh`

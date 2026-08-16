@@ -5,7 +5,10 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
-readonly REPOSITORY="msftse/sre-agent-demo"
+# shellcheck source=scripts/lib/repository.sh
+source "$ROOT_DIR/scripts/lib/repository.sh"
+REPOSITORY=$(resolve_repository)
+readonly REPOSITORY
 readonly EXPECTED_EVENTS=(deployment_status pull_request workflow_run)
 readonly DELIVERY_WORKFLOW="$ROOT_DIR/.github/workflows/deliver-demo.yml"
 readonly STAGE17_WORKFLOW="$ROOT_DIR/.github/workflows/start-demo.yml"
@@ -22,7 +25,7 @@ command -v terraform >/dev/null 2>&1 || { printf '%s\n' 'Terraform is required.'
 bash -n \
   "$ROOT_DIR/scripts/configure-github-webhook.sh" \
   "$ROOT_DIR/scripts/deploy-teams-bridge.sh"
-shellcheck \
+shellcheck -x \
   "$ROOT_DIR/scripts/configure-github-webhook.sh" \
   "$ROOT_DIR/scripts/deploy-teams-bridge.sh"
 
@@ -38,6 +41,7 @@ grep -F "git merge-base --is-ancestor \"\$DEPLOY_SHA\" origin/main" "$DELIVERY_W
 grep -F "startsWith(github.event.pull_request.head.ref, 'sre/field20-checkout-')" "$DELIVERY_WORKFLOW" >/dev/null
 grep -F 'startswith("sre/field20-checkout-")' "$STAGE17_WORKFLOW" >/dev/null
 grep -F 'sort_by(.mergedAt) | reverse | .[0].mergeCommit.oid' "$STAGE17_WORKFLOW" >/dev/null
+grep -F -- "--grep='(fix\\(checkout\\):.*FIELD20.*discount|Fix FIELD20 checkout discount)'" "$STAGE17_WORKFLOW" >/dev/null
 grep -F "git revert --no-commit \"\$SCENARIO_FIX_SHA\"" "$STAGE17_WORKFLOW" >/dev/null
 grep -F "GH_TOKEN: \${{ secrets.STAGE17_GITHUB_TOKEN }}" "$STAGE17_WORKFLOW" >/dev/null
 grep -F './scripts/configure-github-protection.sh routine' "$STAGE17_WORKFLOW" >/dev/null

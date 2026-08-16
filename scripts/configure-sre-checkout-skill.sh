@@ -8,6 +8,7 @@ readonly SKILL_FILE="$ROOT_DIR/azure-sre-agent/skills/northstar-checkout-remedia
 readonly RCA_TEMPLATE_FILE="$ROOT_DIR/azure-sre-agent/response-templates/northstar-checkout-rca.md"
 readonly SKILL_NAME="northstar-checkout-remediation"
 readonly SKILL_DESCRIPTION="Use for Northstar checkout HTTP 5xx incidents, FIELD20 discount failures, discount_calculation_failed errors, or the NorthstarCheckoutFailureRatioHigh alert on AKS."
+readonly SKILL_REPOSITORY_PLACEHOLDER="{{GITHUB_REPOSITORY}}"
 readonly EXPECTED_TOOLS=(
   RunAzCliReadCommands
   northstar-github_search_code
@@ -30,6 +31,31 @@ command -v jq >/dev/null 2>&1 || { printf '%s\n' 'jq is required.' >&2; exit 1; 
 command -v terraform >/dev/null 2>&1 || { printf '%s\n' 'Terraform is required.' >&2; exit 1; }
 [[ -f "$SKILL_FILE" ]] || { printf 'Skill source not found: %s\n' "$SKILL_FILE" >&2; exit 1; }
 [[ -f "$RCA_TEMPLATE_FILE" ]] || { printf 'RCA template not found: %s\n' "$RCA_TEMPLATE_FILE" >&2; exit 1; }
+# shellcheck source=scripts/lib/repository.sh
+source "$ROOT_DIR/scripts/lib/repository.sh"
+
+count_placeholder_occurrences() {
+  local file=$1
+  local placeholder=$2
+
+  awk -v placeholder="$placeholder" '
+    {
+      count += gsub(placeholder, "&")
+    }
+    END {
+      print count + 0
+    }
+  ' "$file"
+}
+
+GITHUB_REPOSITORY=$(resolve_repository)
+readonly GITHUB_REPOSITORY
+placeholder_count=$(count_placeholder_occurrences "$SKILL_FILE" "$SKILL_REPOSITORY_PLACEHOLDER")
+[[ "$placeholder_count" -eq 1 ]] || {
+  printf 'Skill source must contain exactly one %s placeholder, found %s.\n' \
+    "$SKILL_REPOSITORY_PLACEHOLDER" "$placeholder_count" >&2
+  exit 1
+}
 
 agent_output=$(terraform -chdir="$ROOT_DIR/iac" output -json sre_agent)
 agent_id=$(jq -er '.id' <<<"$agent_output")
@@ -44,11 +70,19 @@ active_subscription=$(az account show --query id --output tsv)
 
 request_file=$(mktemp "${TMPDIR:-/tmp}/sre-checkout-skill-request.XXXXXX")
 response_file=$(mktemp "${TMPDIR:-/tmp}/sre-checkout-skill-response.XXXXXX")
-chmod 600 "$request_file" "$response_file"
+composed_skill_file=$(mktemp "${TMPDIR:-/tmp}/sre-checkout-skill-source.XXXXXX")
+chmod 600 "$request_file" "$response_file" "$composed_skill_file"
+
+awk -v placeholder="$SKILL_REPOSITORY_PLACEHOLDER" -v repository="$GITHUB_REPOSITORY" '
+  {
+    gsub(placeholder, repository)
+    print
+  }
+' "$SKILL_FILE" >"$composed_skill_file"
 
 cleanup() {
   unset access_token
-  rm -f "$request_file" "$response_file"
+  rm -f "$request_file" "$response_file" "$composed_skill_file"
 }
 trap cleanup EXIT
 
@@ -56,7 +90,7 @@ tools_json=$(printf '%s\n' "${EXPECTED_TOOLS[@]}" | jq -R . | jq -s .)
 jq -n \
   --arg name "$SKILL_NAME" \
   --arg description "$SKILL_DESCRIPTION" \
-  --rawfile content "$SKILL_FILE" \
+  --rawfile content "$composed_skill_file" \
   --rawfile rca_template "$RCA_TEMPLATE_FILE" \
   --argjson tools "$tools_json" \
   '{

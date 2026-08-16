@@ -2,6 +2,20 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-16 - Complete fork onboarding and colleague profile hardening
+
+- Added `docs/colleague-setup.md` with end-to-end fork onboarding, profile generation, identity collection, Actions enablement, Stage 17 token security guidance, deployment flow, sync guidance, and teardown/cost reminders using placeholder-only identifiers.
+- Added `scripts/configure-github-environment.sh` and `scripts/verify-github-environment.sh` to idempotently create the Terraform-selected GitHub environment, configure required environment-scoped variables and `APPLICATIONINSIGHTS_CONNECTION_STRING`, and verify environment/repository secret metadata without exposing secret values.
+- Hardened `scripts/setup-colleague.sh` and `scripts/verify-colleague-profile.sh` by enforcing explicit `origin` repository validation before repository resolution and repository/profile checks.
+- Standardized HCL string escaping helper naming across setup and verifier scripts.
+- Updated dry-run handling in `scripts/setup-colleague.sh` so cleanup applies only to script-created temporary output directories and never deletes a user-provided output path.
+- Updated `README.md`, `AGENT.md`, and selected stage documents with first-time fork callouts, GitHub environment bootstrap requirements, canonical-maintainer exception guidance, and synchronized project-tree/script listings.
+- Expanded `README.md` into an exact fork-to-demo runbook covering profile generation, Azure provisioning, GitHub environment/token setup, Teams secret/bootstrap deployment, healthy baseline delivery, incident execution, recovery, and teardown.
+- Added a `Start Demo` fallback that discovers the inherited FIELD20 remediation from first-parent Git history when a fresh fork has no fork-local merged PR metadata.
+- Documented Teams tenant, Team, channel, and allowed-user ID discovery through Teams links and Microsoft Graph, including safe context restoration when Teams uses a different tenant.
+- Added prerequisite installation, SRE readiness checks, exact Teams secret/sideload commands, demo-day readiness and timing, failure triage, repeat-run criteria, and teardown retry guidance for operational parity with the original demo.
+- Enforced the supported topology of one active deployment and fixed `demo` environment per fork, documented the single-tenant bot placement, and made a unique Teams channel mandatory per colleague.
+
 ### 2026-08-14 - Document Azure SRE Agent pricing
 
 - Added `azure-sre-agent/pricing/azure-sre-agent-pricing.md` with the AAU billing model, token conversion rates, fixed and variable cost formulas, scenario estimates, allocation controls, related-cost caveats, optimization guidance, and official sources.

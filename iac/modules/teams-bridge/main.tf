@@ -211,6 +211,7 @@ resource "azurerm_function_app_flex_consumption" "this" {
     TEAMS_CHANNEL_ID                 = var.teams_channel_id
     STORAGE_ACCOUNT_NAME             = azapi_resource.storage_account.name
     STORAGE_TABLE_NAME               = azapi_resource.state_table.name
+    GITHUB_REPOSITORY                = var.github_repository
     SRE_AGENT_ENDPOINT               = var.sre_agent_endpoint
     MCP_SHARED_KEY                   = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=mcp-shared-key)"
     GITHUB_WEBHOOK_SECRET            = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=github-webhook-secret)"

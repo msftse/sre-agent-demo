@@ -10,7 +10,7 @@ The current browser-led entry point is **Actions > Start Demo > Run workflow**. 
 
 The starter fails closed when any PR or delivery is already active. Otherwise it:
 
-1. Discovers the latest merged `sre/field20-checkout-*` remediation and verifies its merge commit remains in `main` history.
+1. Discovers the latest merged `sre/field20-checkout-*` remediation and verifies its merge commit remains in `main` history. On the first run in a fork, where upstream PR records are not inherited, it resolves the latest FIELD20 remediation from inherited first-parent Git history instead.
 2. Creates one local incident commit by inverting only that remediation.
 3. Asserts that exactly the backend service and checkout test changed.
 4. Runs Ruff, strict mypy, and the backend test suite against the intentional regression.
@@ -23,17 +23,19 @@ Azure Monitor and Azure SRE Agent then take over. The agent investigates and cre
 
 Repository prerequisite: configure secret `STAGE17_GITHUB_TOKEN` with an operator-scoped credential that can update branch protection, push to `main`, and dispatch Actions in this repository. The later SRE remediation PR is the only PR and still requires human merge. Prefer a fine-grained token or GitHub App in production.
 
+Fork note: any PR numbers, run IDs, commit SHAs, and links in this stage are historical evidence from the canonical rehearsal and are not reusable inputs. In a fork run, use the artifacts generated in your own repository.
+
 ## Activation
 
 The incident activation workflow deployed the prepared regression with deterministic traffic enabled. The first attempt correctly stopped when AKS was unavailable; after the cluster restarted, the approved retry deployed Helm revision 7 and started one traffic-generator replica.
 
-The live application remained generally healthy while qualifying FIELD20 checkout returned HTTP 500. Azure Monitor fired Sev1 alert `NorthstarCheckoutFailureRatioHigh`, and the focused Autonomous response plan opened SRE thread `2c62d831-ed50-4311-b455-af18508d85e7`.
+The live application remained generally healthy while qualifying FIELD20 checkout returned HTTP 500. Azure Monitor fired Sev1 alert `NorthstarCheckoutFailureRatioHigh`, and the focused Autonomous response plan opened an SRE thread `<historical-sre-thread-id>`.
 
 ## Investigation and Remediation
 
 Azure SRE Agent correlated Managed Prometheus, Log Analytics, Application Insights, AKS health, release metadata, deployed source, and a checkout trace. It proved that the fault was isolated to the explicit FIELD20 branch in `checkout()` while readiness endpoints, nodes, and pods remained healthy.
 
-The agent created PR [#2](https://github.com/msftse/sre-agent-demo/pull/2) with two changes only:
+The agent created PR `<historical-pr-number>` with two changes only:
 
 - Remove the deliberate `discount_calculation_failed` HTTP 500 branch.
 - Add a regression test for subtotal `29600`, discount `5920`, shipping `0`, and total `23680`.
@@ -42,15 +44,15 @@ The required source-and-chart validation passed. The agent had no review, merge,
 
 ## Human Decision Paths
 
-The rejection path was exercised first. The user closed PR #2 without merging. The signed callback reported the rejection to the existing Teams and SRE threads, no deployment started, and the faulty workload remained active.
+The rejection path was exercised first. The user closed the remediation PR without merging. The signed callback reported the rejection to the existing Teams and SRE threads, no deployment started, and the faulty workload remained active.
 
 The user reopened the same PR. The signed callback restored the review-only state and validation passed again. Branch protection required CI, resolved conversations, linear history, and a user-performed merge; no separate approving review was required because the SRE connector authored the PR as the user account.
 
-The user then merged PR #2. The signed callback stored merge SHA `2994903b44f5fa808cd13e1d6792b3c7ae040d62`, updated the existing incident timeline, and waited for separately authorized deployment.
+The user then merged the remediation PR. The signed callback stored merge SHA `<historical-merge-sha>`, updated the existing incident timeline, and waited for separately authorized deployment.
 
 ## Recovery
 
-The protected recovery workflow deployed merge SHA `2994903b44f5fa808cd13e1d6792b3c7ae040d62` only after the user approved the `demo` environment. Workflow run [31426062200](https://github.com/msftse/sre-agent-demo/actions/runs/31426062200) completed successfully.
+The protected recovery workflow deployed merge SHA `<historical-merge-sha>` only after the user approved the `demo` environment. Workflow run `<historical-workflow-run-id>` completed successfully.
 
 Validated recovery evidence:
 
@@ -67,7 +69,7 @@ Total: 23680
 Alert monitor condition: Resolved
 ```
 
-The final RCA was posted to the existing Teams thread and PR #2. Azure SRE Agent did not perform any human-only action.
+The final RCA was posted to the existing Teams thread and remediation PR. Azure SRE Agent did not perform any human-only action.
 
 ## Rehearsal Findings
 

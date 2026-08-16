@@ -16,14 +16,14 @@ The endpoint:
 - Returns HTTP 401 for unsigned or invalid signatures.
 - Returns HTTP 202 for valid but out-of-scope events such as GitHub `ping`.
 
-`scripts/configure-github-webhook.sh` idempotently creates or updates exactly one repository hook for `msftse/sre-agent-demo`. The secret is read from Key Vault at runtime and never printed, committed, or stored in Terraform state.
+`scripts/configure-github-webhook.sh` idempotently creates or updates exactly one repository hook for the configured target repository. The secret is read from Key Vault at runtime and never printed, committed, or stored in Terraform state.
 
 ## Trust Boundaries
 
-A signed event is necessary but not sufficient because this is a public repository. Pull-request continuation also requires:
+A signed event is necessary but not sufficient because the repository can be public. Pull-request continuation also requires:
 
-- Base repository `msftse/sre-agent-demo` and base branch `main`.
-- Head repository `msftse/sre-agent-demo`, not a fork.
+- Base repository equal to the configured target repository and base branch `main`.
+- Head repository equal to the configured target repository (same-repository remediation only).
 - Head branch beginning `sre/field20-checkout-`.
 - Exactly one hidden `<!-- sre-thread-id: ... -->` marker in the PR body.
 

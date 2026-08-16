@@ -17,6 +17,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 ├── CHANGELOG.md
 ├── README.md
 ├── docs/
+│   ├── colleague-setup.md
 │   └── stages/
 │       ├── 01-preflight.md
 │       ├── 02-application.md
@@ -34,6 +35,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │       ├── 14-checkout-skill.md
 │       ├── 15-incident-response-plan.md
 │       ├── 16-continuation-loop.md
+│       ├── 17-approval-rejection-rehearsal.md
 │       ├── 18-architecture-proposal.md
 │       └── README.md
 ├── deploy/
@@ -62,6 +64,7 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   └── variables.tf
 ├── scripts/
 │   ├── audit-tags.sh
+│   ├── configure-github-environment.sh
 │   ├── configure-github-webhook.sh
 │   ├── configure-sre-agent-capabilities.sh
 │   ├── configure-sre-checkout-responder.sh
@@ -76,15 +79,20 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 │   ├── provision-teams-bot-identity.sh
 │   ├── publish-images.sh
 │   ├── render-teams-icons.py
+│   ├── setup-colleague.sh
 │   ├── verify-checkout-skill.sh
 │   ├── verify-checkout-response-plan.sh
+│   ├── verify-colleague-profile.sh
 │   ├── verify-deployment.sh
+│   ├── verify-github-environment.sh
 │   ├── verify-github-connector.sh
 │   ├── verify-github-continuation.sh
 │   ├── verify-teams-bridge.sh
 │   ├── verify-terraform.sh
 │   ├── verify-containers.sh
-│   └── verify-observability.sh
+│   ├── verify-observability.sh
+│   └── lib/
+│       └── repository.sh
 ├── azure-sre-agent/
 │   ├── pricing/
 │   │   └── azure-sre-agent-pricing.md
@@ -181,13 +189,15 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Teams notifications are mandatory at incident start, during material investigation steps, and at completion with the RCA.
 - Human merge of the SRE remediation PR is the source authorization boundary; validated `main` merges deploy automatically through the main-only `demo` environment.
 - Credentials, OAuth grants, personal access tokens, and Terraform state must never be committed.
+- Default operating model is fork-first for contributors; use `scripts/setup-colleague.sh` and `scripts/verify-colleague-profile.sh` to generate local profile inputs safely.
+- Canonical repository operation is a maintainer-only exception and must be explicit.
 
 ## Verified Environment
 
 - The active Azure CLI subscription and tenant must match `TF_VAR_subscription_id` and `TF_VAR_tenant_id`; `scripts/preflight.sh` and `scripts/verify-terraform.sh` enforce this.
 - VS Code Azure extensions and Azure CLI may use separate authentication contexts. Do not assume they are interchangeable.
 - Sweden Central supports the planned SRE Agent, AKS, Managed Grafana, Azure Monitor workspace, Application Insights, Log Analytics, and ACR resource types.
-- GitHub user `ij-23` has `ADMIN` permission on the empty `msftse/sre-agent-demo` repository.
+- The active GitHub identity must have `ADMIN` permission on the selected target repository.
 - System Python 3.12 is absent; use `uv` to provision the pinned Python 3.12 runtime in Stage 2.
 
 ## Conventions
@@ -195,11 +205,13 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Implement and validate one stage before opening the next stage.
 - Keep changes minimal and preserve an executable validation result for each stage.
 - Update `README.md`, `AGENT.md`, and `CHANGELOG.md` whenever project behavior or structure changes.
+- After Terraform apply in a fork, run `./scripts/configure-github-environment.sh` then `./scripts/verify-github-environment.sh` before any Stage 9+ workflow dispatch.
 - Use immutable Git SHA image tags for deployed workloads.
 - Keep application code under `src/backend` and `src/frontend`.
 - Resolve npm packages through `https://packagefeedproxy.microsoft.io/npm/`.
 - Resolve Python packages through `https://packagefeedproxy.microsoft.io/pypi/simple`.
 - Build application images on the local/runner Docker daemon and publish them with `docker push`; do not use `az acr build`, `az acr import`, or remote ACR tasks.
+- Keep `.demo-profile.env`, `iac/terraform.tfvars`, Terraform state, and plan outputs local and untracked.
 
 ## Application Contract
 

@@ -6,7 +6,10 @@ ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly ROOT_DIR
 readonly IAC_DIR="$ROOT_DIR/iac"
 readonly CONNECTOR_NAME="northstar-github"
-readonly REPOSITORY="msftse/sre-agent-demo"
+# shellcheck source=scripts/lib/repository.sh
+source "$ROOT_DIR/scripts/lib/repository.sh"
+REPOSITORY=$(resolve_repository)
+readonly REPOSITORY
 readonly EXPECTED_TOOLS=(
   northstar-github_add_issue_comment
   northstar-github_create_branch

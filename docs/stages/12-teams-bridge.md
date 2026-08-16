@@ -6,7 +6,7 @@ Connect Azure SRE Agent to a real Microsoft Teams bot identity for bidirectional
 
 ## Architecture
 
-The Teams app uses a single-tenant bot registration in the demo tenant and is sideloaded into the Microsoft corporate Team for messaging-only use. Azure Bot Service forwards Bot Connector activities to a Python 3.12 Azure Functions Flex Consumption app. Durable Functions acknowledges Teams promptly and can continue longer SRE investigations asynchronously.
+The Teams app uses a single-tenant bot registration in the configured Teams tenant and is sideloaded into the approved Team/channel for messaging-only use. Azure Bot Service forwards Bot Connector activities to a Python 3.12 Azure Functions Flex Consumption app. Durable Functions acknowledges Teams promptly and can continue longer SRE investigations asynchronously.
 
 The Function UAMI calls Azure SRE Agent with audience `https://azuresre.dev`, stores Teams/SRE thread mappings in Azure Table Storage, and reads the bot credential and MCP shared key from Key Vault references. The storage account disables shared keys and anonymous blob access.
 

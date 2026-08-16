@@ -58,6 +58,31 @@ output "github_actions_oidc_subject" {
   value       = local.github_oidc_subject
 }
 
+output "github_repository" {
+  description = "GitHub owner/repository bound to this deployment."
+  value       = var.github_repository
+}
+
+output "github_environment" {
+  description = "GitHub environment bound to this deployment identity."
+  value       = var.github_environment
+}
+
+output "subscription_id" {
+  description = "Azure subscription ID targeted by this deployment."
+  value       = var.subscription_id
+}
+
+output "tenant_id" {
+  description = "Microsoft Entra tenant ID targeted by this deployment."
+  value       = var.tenant_id
+}
+
+output "location" {
+  description = "Azure region used for this deployment."
+  value       = var.location
+}
+
 output "ingress_public_ip_address" {
   description = "Reserved public IP address for the ingress controller."
   value       = module.network.ingress_public_ip_address

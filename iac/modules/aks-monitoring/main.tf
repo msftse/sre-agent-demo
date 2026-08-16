@@ -4,7 +4,8 @@ locals {
     "Microsoft-KubeEvents",
     "Microsoft-KubePodInventory",
   ]
-  prometheus_streams = ["Microsoft-PrometheusMetrics"]
+  prometheus_streams   = ["Microsoft-PrometheusMetrics"]
+  checkout_runbook_url = "https://github.com/${var.github_repository}/blob/main/docs/stages/10-checkout-incident.md"
 }
 
 resource "azurerm_monitor_data_collection_rule" "prometheus" {
@@ -139,7 +140,7 @@ resource "azurerm_monitor_alert_prometheus_rule_group" "checkout" {
     alert = "NorthstarCheckoutFailureRatioHigh"
     annotations = {
       description = "More than 50% of Northstar checkout requests are returning HTTP 5xx while checkout traffic remains active."
-      runbook_url = "https://github.com/msftse/sre-agent-demo/blob/main/docs/stages/10-checkout-incident.md"
+      runbook_url = local.checkout_runbook_url
       summary     = "Northstar checkout failure ratio is above 50%."
     }
     enabled    = true

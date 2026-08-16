@@ -29,6 +29,11 @@ variable "function_app_name" {
   type        = string
 }
 
+variable "github_repository" {
+  description = "GitHub owner/repository accepted by the Teams bridge runtime."
+  type        = string
+}
+
 variable "bot_name" {
   description = "Azure Bot resource name."
   type        = string
@@ -55,7 +60,7 @@ variable "bot_client_id" {
 }
 
 variable "bot_tenant_id" {
-  description = "Microsoft Entra tenant ID containing the bot application."
+  description = "Microsoft Entra tenant ID containing the single-tenant bot application; this is the Azure deployment tenant, not teams_tenant_id."
   type        = string
 }
 

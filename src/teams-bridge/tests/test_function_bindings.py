@@ -15,6 +15,7 @@ TEST_SETTINGS = {
     "SRE_AGENT_ENDPOINT": "https://agent.example",
     "MCP_SHARED_KEY": "test-key",
     "GITHUB_WEBHOOK_SECRET": "webhook-secret",
+    "GITHUB_REPOSITORY": "msftse/sre-agent-demo",
 }
 for name, value in TEST_SETTINGS.items():
     os.environ.setdefault(name, value)
