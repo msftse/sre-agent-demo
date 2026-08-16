@@ -60,7 +60,7 @@ variable "bot_client_id" {
 }
 
 variable "bot_tenant_id" {
-  description = "Microsoft Entra tenant ID containing the bot application."
+  description = "Microsoft Entra tenant ID containing the single-tenant bot application; this is the Azure deployment tenant, not teams_tenant_id."
   type        = string
 }
 

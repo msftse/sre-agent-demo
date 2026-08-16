@@ -184,13 +184,13 @@ variable "github_repository_id" {
 }
 
 variable "github_environment" {
-  description = "Protected GitHub Environment used as the OIDC subject."
+  description = "Protected GitHub Environment used by the delivery workflow and OIDC subject. This demo supports the fixed name demo."
   type        = string
   default     = "demo"
 
   validation {
-    condition     = can(regex("^[A-Za-z0-9_.-]{1,64}$", var.github_environment))
-    error_message = "github_environment contains unsupported characters."
+    condition     = var.github_environment == "demo"
+    error_message = "github_environment must be demo because the delivery workflow uses that environment."
   }
 }
 
@@ -241,7 +241,7 @@ variable "enable_teams_bridge" {
 }
 
 variable "teams_tenant_id" {
-  description = "Microsoft tenant ID that hosts the target Team and bot app."
+  description = "Microsoft Teams tenant ID that hosts the target Team and channel. The single-tenant bot app is created in tenant_id."
   type        = string
   default     = null
   nullable    = true

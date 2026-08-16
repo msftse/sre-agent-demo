@@ -43,7 +43,6 @@ Options:
   --teams-user-object-id <uuid> Teams allowed user object ID (default: az signed-in user)
   --owner-email <email>         Owner tag value (default: az account user.name)
   --location <slug>             Azure location slug (default: swedencentral)
-  --github-environment <name>   GitHub environment (default: demo)
   --output-dir <path>           Output root directory (default: repository root)
   --allow-canonical             Permit msftse/sre-agent-demo for maintainer use
   --force                       Overwrite existing output files
@@ -162,11 +161,6 @@ while [[ $# -gt 0 ]]; do
       location=$(trim "$2")
       shift 2
       ;;
-    --github-environment)
-      [[ $# -ge 2 ]] || fail "Missing value for --github-environment"
-      github_environment=$(trim "$2")
-      shift 2
-      ;;
     --output-dir)
       [[ $# -ge 2 ]] || fail "Missing value for --output-dir"
       output_dir=$(cd "$2" 2>/dev/null && pwd || true)
@@ -229,7 +223,7 @@ validate_uuid "teams-user-object-id" "$teams_user_object_id"
 [[ "$teams_channel_id" =~ $CHANNEL_PATTERN ]] || fail "teams-channel-id must match 19:<id>@thread.tacv2"
 [[ "$location" =~ ^[a-z0-9-]+$ ]] || fail "location must be an Azure location slug"
 [[ -n "$owner_email" ]] || fail "owner-email cannot be empty"
-[[ "$github_environment" =~ ^[A-Za-z0-9._-]+$ ]] || fail "github-environment is invalid"
+[[ "$github_environment" == "demo" ]] || fail "github-environment must be demo"
 
 location_exists=$(az account list-locations --query "[?name=='$location'] | length(@)" -o tsv)
 [[ "$location_exists" == "1" ]] || fail "Azure location is not available: $location"
