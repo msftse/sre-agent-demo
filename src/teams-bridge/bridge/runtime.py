@@ -1,3 +1,4 @@
+import asyncio
 import hmac
 import json
 import os
@@ -111,6 +112,8 @@ class BridgeRuntime:
         self.web.add_api_route("/privacy", self.privacy, methods=["GET"])
         self.web.add_api_route("/terms", self.terms, methods=["GET"])
         self.asgi = func.AsgiMiddleware(self.web)  # type: ignore[no-untyped-call]
+        self._teams_init_lock = asyncio.Lock()
+        self._teams_initialized = False
         self._initialized = False
 
     def _create_mcp_server(self) -> MCPServer:
@@ -139,10 +142,19 @@ class BridgeRuntime:
 
         return server
 
+    async def initialize_teams(self) -> None:
+        if self._teams_initialized:
+            return
+        async with self._teams_init_lock:
+            if self._teams_initialized:
+                return
+            await self.teams.initialize()
+            self._teams_initialized = True
+
     async def initialize(self) -> None:
         if self._initialized:
             return
-        await self.teams.initialize()
+        await self.initialize_teams()
         await self.asgi.notify_startup()  # type: ignore[no-untyped-call]
         self._initialized = True
 

@@ -316,15 +316,24 @@ async def fail_sre_turn(request: Any) -> dict[str, str]:
     thread_id = str(payload.get("sre_thread_id", ""))
     if route_key and turn_id:
         failure_payload = {**payload, "turn_id": f"{turn_id}-failure"}
-        await _deliver_chunks(
-            failure_payload,
-            "The investigation could not be completed. "
-            + (f"SRE Agent thread ID: `{thread_id}`" if thread_id else "Try again later."),
-        )
-        route = await runtime.state.get_chat_route(route_key)
-        if route is not None:
-            await runtime.state.update_chat_route_status(route_key, status="failed")
-        await runtime.state.release_chat_turn(route_key, turn_id)
+        try:
+            try:
+                await _deliver_chunks(
+                    failure_payload,
+                    "The investigation could not be completed. "
+                    + (
+                        f"SRE Agent thread ID: `{thread_id}`"
+                        if thread_id
+                        else "Try again later."
+                    ),
+                )
+            except Exception:
+                logger.exception("teams_failure_notification_delivery_failed")
+            route = await runtime.state.get_chat_route(route_key)
+            if route is not None:
+                await runtime.state.update_chat_route_status(route_key, status="failed")
+        finally:
+            await runtime.state.release_chat_turn(route_key, turn_id)
     return {"sre_thread_id": thread_id, "status": "failed"}
 
 
@@ -350,6 +359,7 @@ async def _deliver_chunks(payload: dict[str, Any], text: str) -> None:
 
 
 async def _send_to_teams(payload: dict[str, Any], text: str) -> Any:
+    await runtime.initialize_teams()
     conversation_id = str(payload["conversation_id"])
     if str(payload.get("scope", "channel")) == "channel":
         return await runtime.teams.reply(

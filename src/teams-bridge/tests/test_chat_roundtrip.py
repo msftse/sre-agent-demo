@@ -37,12 +37,20 @@ class Sent:
 class FakeTeams:
     def __init__(self) -> None:
         self.calls: list[tuple[str, ...]] = []
+        self.initialized = False
+
+    async def initialize(self) -> None:
+        self.initialized = True
 
     async def send(self, conversation_id: str, text: str) -> Sent:
+        if not self.initialized:
+            raise ValueError("app not initialized - call app.initialize() or app.start() first")
         self.calls.append(("send", conversation_id, text))
         return Sent(f"sent-{len(self.calls)}")
 
     async def reply(self, conversation_id: str, root_id: str, text: str) -> Sent:
+        if not self.initialized:
+            raise ValueError("app not initialized - call app.initialize() or app.start() first")
         self.calls.append(("reply", conversation_id, root_id, text))
         return Sent(f"sent-{len(self.calls)}")
 
@@ -147,6 +155,9 @@ class FakeRuntime:
         self.sre = FakeSre(snapshots)
         self.teams = FakeTeams()
         self.boundary: Any = None
+
+    async def initialize_teams(self) -> None:
+        await self.teams.initialize()
 
 
 def payload(scope: str = "channel", create_new: str = "true") -> dict[str, str]:
@@ -454,3 +465,20 @@ async def test_delivery_rejects_changed_recorded_chunk(monkeypatch: Any) -> None
         await function_app.complete_sre_turn(request)
 
     assert fake.teams.calls == []
+
+
+async def test_failed_notification_still_releases_turn(monkeypatch: Any) -> None:
+    fake = FakeRuntime([snapshot()])
+    fake.state.route = {"Status": "running"}
+    monkeypatch.setattr(function_app, "runtime", fake)
+
+    async def fail_delivery(request: object, text: str) -> None:
+        raise ValueError("app not initialized")
+
+    monkeypatch.setattr(function_app, "_deliver_chunks", fail_delivery)
+
+    result = await function_app.fail_sre_turn(payload())
+
+    assert result == {"sre_thread_id": "", "status": "failed"}
+    assert fake.state.statuses == [("route-1", "failed")]
+    assert fake.state.released == [("route-1", "turn-1")]
