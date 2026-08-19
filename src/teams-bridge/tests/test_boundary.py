@@ -47,6 +47,23 @@ def test_uses_reply_to_id_as_channel_root() -> None:
     assert request.root_activity_id == "root-1"
 
 
+@pytest.mark.parametrize("source", ["replyToId", "conversation"])
+def test_treats_self_referential_message_id_as_channel_root(source: str) -> None:
+    payload = activity()
+    if source == "replyToId":
+        payload["replyToId"] = "activity-1"
+    else:
+        payload["conversation"] = {
+            "id": "conversation-1;messageid=activity-1",
+            "conversationType": "channel",
+        }
+
+    request = boundary().require_allowed(payload)
+
+    assert request.reply_to_id == ""
+    assert request.root_activity_id == "activity-1"
+
+
 def test_uses_team_aad_group_id_in_realistic_channel_data() -> None:
     payload = activity()
     channel_data = payload["channelData"]
