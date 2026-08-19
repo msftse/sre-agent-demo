@@ -1,5 +1,6 @@
 import json
 import logging
+from collections.abc import Mapping
 from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
@@ -23,12 +24,41 @@ app = durable.DFApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 logger = logging.getLogger(__name__)
 
 
+def _channel_activity_shape(activity: Mapping[str, Any]) -> dict[str, Any]:
+    conversation_value = activity.get("conversation")
+    conversation = (
+        conversation_value if isinstance(conversation_value, Mapping) else {}
+    )
+    channel_data_value = activity.get("channelData")
+    channel_data = (
+        channel_data_value if isinstance(channel_data_value, Mapping) else {}
+    )
+    activity_id = str(activity.get("id", ""))
+    reply_id = str(activity.get("replyToId", ""))
+    conversation_id = str(conversation.get("id", ""))
+    conversation_message_id = (
+        conversation_id.rsplit(";messageid=", 1)[1]
+        if ";messageid=" in conversation_id
+        else ""
+    )
+    return {
+        "activity_keys": sorted(str(key) for key in activity),
+        "channel_data_keys": sorted(str(key) for key in channel_data),
+        "conversation_keys": sorted(str(key) for key in conversation),
+        "activity_id_length": len(activity_id),
+        "reply_id_length": len(reply_id),
+        "conversation_message_id_length": len(conversation_message_id),
+        "reply_matches_activity": reply_id == activity_id,
+        "reply_matches_conversation_message": reply_id == conversation_message_id,
+        "conversation_message_matches_activity": conversation_message_id == activity_id,
+    }
+
+
 @runtime.teams.on_message
 async def handle_teams_message(context: Any) -> None:
+    activity = context.activity.model_dump(by_alias=True)
     try:
-        request = runtime.boundary.require_allowed(
-            context.activity.model_dump(by_alias=True)
-        )
+        request = runtime.boundary.require_allowed(activity)
     except BoundaryViolation as error:
         logger.warning(
             "teams_boundary_denied boundary=%s actual=%s allowed=%s",
@@ -78,6 +108,10 @@ async def handle_teams_message(context: Any) -> None:
     if request.scope == "channel":
         create_new = not request.reply_to_id
         if not create_new and route is None:
+            logger.warning(
+                "teams_channel_unlinked_shape shape=%s",
+                json.dumps(_channel_activity_shape(activity), sort_keys=True),
+            )
             await context.reply(
                 "This Teams thread is not linked to an SRE conversation. "
                 "Start a new top-level mention."
