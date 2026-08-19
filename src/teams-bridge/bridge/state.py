@@ -89,8 +89,7 @@ class BridgeState:
                     request["tenant_id"],
                     request["team_id"],
                     request["channel_id"],
-                    request["conversation_id"].split(";messageid=", 1)[0],
-                    request["root_activity_id"],
+                    request["conversation_id"],
                 )
             )
         return sha256(identity.encode()).hexdigest()

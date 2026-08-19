@@ -99,6 +99,15 @@ async def test_channel_and_personal_routes_are_isolated() -> None:
     assert BridgeState.chat_route_key(request("personal", "user-2")) != personal_key
 
 
+def test_channel_route_follows_teams_conversation_id() -> None:
+    root = request()
+    reply = {**root, "root_activity_id": "different-message-id"}
+    other_thread = {**root, "conversation_id": "conversation-2"}
+
+    assert BridgeState.chat_route_key(root) == BridgeState.chat_route_key(reply)
+    assert BridgeState.chat_route_key(root) != BridgeState.chat_route_key(other_thread)
+
+
 async def test_deduplicates_inbound_turns_and_serializes_route() -> None:
     bridge_state = state()
 

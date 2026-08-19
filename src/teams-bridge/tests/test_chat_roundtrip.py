@@ -381,17 +381,26 @@ async def test_personal_clear_removes_only_personal_route(monkeypatch: Any) -> N
     assert "cleared" in context.replies[0]
 
 
-async def test_channel_reply_without_route_fails_closed(monkeypatch: Any) -> None:
+async def test_first_channel_mention_in_thread_starts_sre_route(
+    monkeypatch: Any,
+) -> None:
     values = payload("channel", "false")
     request = SimpleNamespace(**values, to_dict=lambda: dict(values))
     fake = FakeRuntime([snapshot()])
     fake.boundary = Boundary(request)
+    client = DurableClient()
     monkeypatch.setattr(function_app, "runtime", fake)
+    token = function_app.durable_client.set(client)  # type: ignore[arg-type]
     context = MessageContext({})
+    try:
+        await function_app.handle_teams_message(context)
+    finally:
+        function_app.durable_client.reset(token)
 
-    await function_app.handle_teams_message(context)
-
-    assert "not linked" in context.replies[0]
+    assert fake.sre.started == [("check AKS", "user-1", "Operator")]
+    assert fake.state.routes[0]["sre_thread_id"] == "sre-thread-1"
+    assert client.calls[0]["client_input"]["created"] == "true"
+    assert context.replies[0].startswith("Investigation queued.")
 
 
 async def test_duplicate_inbound_activity_is_idempotent_noop(monkeypatch: Any) -> None:

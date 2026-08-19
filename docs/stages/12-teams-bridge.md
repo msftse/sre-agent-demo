@@ -28,8 +28,8 @@ Personal chat is a separate policy. It is disabled by default and defaults to th
 
 User-initiated channel and personal turns are separate from autonomous incident timelines:
 
-1. A channel top-level at-mention or an unbound personal message creates an SRE thread.
-2. At-mentioned channel replies and normal personal messages continue the mapped SRE thread.
+1. The first authorized at-mention in a Teams channel conversation or an unbound personal message creates an SRE thread.
+2. Later at-mentioned messages in that channel conversation and normal personal messages continue the mapped SRE thread. Teams `conversation.id` identifies the channel's top-level reply chain; `replyToId` is retained only as the outbound reply target.
 3. Durable Functions polls the SRE messages endpoint every 10 seconds for up to 10 minutes.
 4. New complete `SREAgent` messages are returned to the same channel root or personal conversation in lossless, ordered chunks.
 5. Pending questions return to Teams and accept another text turn. Approvals remain portal-only. Failure, cancellation, unknown preview states, and timeout return a bounded status with the SRE thread ID.
