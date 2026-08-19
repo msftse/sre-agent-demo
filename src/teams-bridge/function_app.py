@@ -95,6 +95,11 @@ async def handle_teams_message(context: Any) -> None:
         await context.reply("This Teams conversation is not authorized for that SRE thread.")
         return
 
+    if request.scope == "channel" and route is not None:
+        payload["root_activity_id"] = str(
+            route.get("RootActivityId") or payload["root_activity_id"]
+        )
+
     turn_id = sha256(request.activity_id.encode()).hexdigest()
     if not await runtime.state.claim_chat_turn(route_key, turn_id):
         await context.reply("The previous investigation turn is still running.")

@@ -376,6 +376,36 @@ async def test_personal_follow_up_uses_watermark_without_prompt_history(
     assert "text" not in client.calls[0]["client_input"]
 
 
+async def test_channel_follow_up_preserves_original_teams_root(
+    monkeypatch: Any,
+) -> None:
+    values = payload("channel", "false")
+    values["activity_id"] = "reply-activity"
+    values["root_activity_id"] = "reply-routing-id"
+    request = SimpleNamespace(**values, to_dict=lambda: dict(values))
+    old = SreMessage("old-1", "SREAgent", "old", "time", True, False, False)
+    fake = FakeRuntime([snapshot(old)])
+    fake.boundary = Boundary(request)
+    fake.state.route = {
+        "Status": "idle",
+        "SreThreadId": "sre-thread-1",
+        "UserObjectId": "user-1",
+        "RootActivityId": "original-root",
+    }
+    client = DurableClient()
+    monkeypatch.setattr(function_app, "runtime", fake)
+    token = function_app.durable_client.set(client)  # type: ignore[arg-type]
+    context = MessageContext({})
+    try:
+        await function_app.handle_teams_message(context)
+    finally:
+        function_app.durable_client.reset(token)
+
+    assert client.calls[0]["client_input"]["root_activity_id"] == "original-root"
+    assert client.calls[0]["client_input"]["activity_id"] == "reply-activity"
+    assert fake.state.routes[0]["root_activity_id"] == "original-root"
+
+
 async def test_personal_clear_removes_only_personal_route(monkeypatch: Any) -> None:
     values = payload("personal")
     values["text"] = "/clear"
