@@ -136,12 +136,23 @@ jq -e \
   '
     .name == "northstar-teams"
     and .properties.dataConnectorType == "Mcp"
-    and .properties.extendedProperties.endpoint == $endpoint
+    and (
+      .properties.extendedProperties.endpoint == null
+      or .properties.extendedProperties.endpoint == $endpoint
+    )
     and .properties.extendedProperties.authType == "CustomHeaders"
     and ((.properties.extendedProperties.toolsVisibleToMetaAgent | sort) == ($tools | sort))
-    and ((.properties.extendedProperties.selectedTools | sort) == ($tools | sort))
-    and (.properties.extendedProperties["x-mcp-key"] | type == "string")
-    and (.properties.extendedProperties["x-mcp-key"] | length > 0)
+    and (
+      .properties.extendedProperties.selectedTools == null
+      or ((.properties.extendedProperties.selectedTools | sort) == ($tools | sort))
+    )
+    and (
+      .properties.extendedProperties["x-mcp-key"] == null
+      or (
+        (.properties.extendedProperties["x-mcp-key"] | type == "string")
+        and (.properties.extendedProperties["x-mcp-key"] | length > 0)
+      )
+    )
   ' "$connector_file" >/dev/null
 
 printf 'Azure SRE Agent connector configured: %s\n' "$CONNECTOR_NAME"
