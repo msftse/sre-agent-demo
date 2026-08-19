@@ -2,6 +2,15 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-19 - Merge and qualify Teams SRE answer roundtrip
+
+- Merged the channel and personal Azure SRE Agent answer-roundtrip feature through PR #15 and deployed the exact merged `main` source to the Teams bridge.
+- Corrected live-discovered Teams routing behavior so the first authorized channel mention creates a route, follow-ups preserve the original Teams root, null reply IDs normalize safely, and Durable activity workers initialize the Teams SDK before proactive delivery.
+- Made failure notifications best effort while guaranteeing route failure-state updates and turn-lock release, preventing delivery failures from stranding conversations.
+- Proved channel and personal multi-turn SRE thread reuse, personal `/clear` and `/new`, prompt-free Durable input, portal-only approvals, and complete 19,805-byte multipart delivery as two ordered chunks containing all 500 requested entries.
+- Completed 97 bridge tests, Ruff, strict mypy, exact Function registration, connector/skill/response-plan/webhook verification, protected GitHub validation, zero Terraform drift, disabled incident traffic, and zero fired checkout alerts.
+- Recorded the residual at-least-once delivery window: if Teams accepts a chunk but the subsequent Table Storage receipt write fails, retry can duplicate that chunk.
+
 ### 2026-08-19 - Add Teams SRE answer roundtrip on feature branch
 
 - Added scope-aware channel and personal Teams conversations that create or continue Azure SRE Agent threads and return complete answers through deterministic Durable polling.

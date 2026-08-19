@@ -32,7 +32,7 @@ The project closes an incident from detection through verified recovery while pr
 
 ## Current Status
 
-Stages 1-18 are complete. Stage 17 proved the live alert, SRE investigation, Teams timeline, automatic remediation PR, rejection, reopen, user merge, protected recovery deployment, alert resolution, and final RCA. Merge, review, workflow dispatch, and deployment tools remain unavailable to the agent. The application is healthy on the FIELD20 fix with traffic disabled. See the [Stage 17 rehearsal record](docs/stages/17-approval-rejection-rehearsal.md) and the user-owned Stage 18 [architecture proposal](docs/architecture/sre-agent-demo-architecture.html).
+Stages 1-18 are complete. Stage 17 proved the live alert, SRE investigation, Teams timeline, automatic remediation PR, rejection, reopen, user merge, protected recovery deployment, alert resolution, and final RCA. The Teams bridge now also supports complete multi-turn Azure SRE Agent answers in the fixed channel and isolated personal chats. Merge, review, workflow dispatch, and deployment tools remain unavailable to the agent. The application is healthy on the FIELD20 fix with traffic disabled. See the [Stage 17 rehearsal record](docs/stages/17-approval-rejection-rehearsal.md) and the user-owned Stage 18 [architecture proposal](docs/architecture/sre-agent-demo-architecture.html).
 
 ## Quick Start: Run the Demo from Your Fork
 
@@ -194,6 +194,8 @@ KEY_VAULT=$(jq -r '.key_vault_name' <<<"$TEAMS_BRIDGE")
 Deployment publishes the Function, packages the Teams app, configures the Teams and GitHub connectors, installs the checkout skill/responder/response plan, and registers the signed GitHub continuation webhook. Sideload `.teams-package/azure-sre-agent.zip` into the Team/channel selected in step 3.
 
 In Teams, open **Apps > Manage your apps > Upload an app > Upload a custom app**, select `.teams-package/azure-sre-agent.zip`, choose **Add to a team**, and select the configured Team. In the configured channel, mention the bot with `@Azure SRE Agent status`. It should reply that the bridge is ready. If custom-app upload is unavailable, ask the Teams administrator to allow or upload the app for that tenant.
+
+To start a channel conversation, create a new post in the configured channel and mention `@Azure SRE Agent` with the question. Mention the bot again in replies under that post to continue the same SRE thread. The first authorized mention establishes the route for that Teams thread; later answers remain anchored to its original post.
 
 When personal chat is enabled, add/open **Azure SRE Agent** from **Apps** and send `status` without an at-mention. Personal messages continue one isolated SRE thread per tenant/user/conversation. Use `/new` to start fresh and `/clear` to remove local routing. Group chats are rejected. Each turn waits up to 10 minutes and returns the complete answer in ordered replies; SRE approval decisions remain portal-only.
 
@@ -442,29 +444,29 @@ The backend uses Python 3.12 provisioned by `uv`. npm and Python dependencies re
     │   ├── pyproject.toml
     │   └── uv.lock
     ├── frontend/
-        ├── public/
-        │   └── products/
-        │       ├── alpine-shell.jpg
-        │       ├── field-pack.jpg
-        │       ├── ridge-lamp.jpg
-        │       └── trail-flask.jpg
-        ├── src/
-        │   ├── test/
-        │   ├── App.css
-        │   ├── App.test.tsx
-        │   ├── App.tsx
-        │   ├── api.ts
-        │   ├── index.css
-        │   ├── main.tsx
-        │   └── types.ts
-        ├── .dockerignore
-        ├── .npmrc
-        ├── Dockerfile
-        ├── nginx.conf
-        ├── package-lock.json
-        ├── package.json
-        └── vite.config.ts
-      └── teams-bridge/
+    │   ├── public/
+    │   │   └── products/
+    │   │       ├── alpine-shell.jpg
+    │   │       ├── field-pack.jpg
+    │   │       ├── ridge-lamp.jpg
+    │   │       └── trail-flask.jpg
+    │   ├── src/
+    │   │   ├── test/
+    │   │   ├── App.css
+    │   │   ├── App.test.tsx
+    │   │   ├── App.tsx
+    │   │   ├── api.ts
+    │   │   ├── index.css
+    │   │   ├── main.tsx
+    │   │   └── types.ts
+    │   ├── .dockerignore
+    │   ├── .npmrc
+    │   ├── Dockerfile
+    │   ├── nginx.conf
+    │   ├── package-lock.json
+    │   ├── package.json
+    │   └── vite.config.ts
+    └── teams-bridge/
         ├── appPackage/
         ├── bridge/
         ├── tests/
@@ -610,7 +612,9 @@ See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation
 
 ## Teams Bridge
 
-Stage 12 runs a Python 3.12 Azure Functions Flex Consumption bridge behind Azure Bot Service. Channel activities require the approved tenant, Team, channel, and operator. Optional personal chat has a separate fail-closed policy: disabled by default, restricted to the configured user by default, or explicitly available to authenticated users in the configured tenant with isolated routes and per-user limits. Group chats are rejected. User questions create or continue an SRE thread, poll for up to 10 minutes, and return complete answers to the same Teams conversation in ordered chunks; approvals remain portal-only. Outbound autonomous-incident updates still use three authenticated MCP tools for a fixed-channel root notification, threaded replies, and route lookup; no tool can select another destination or perform Azure/GitHub changes.
+Stage 12 runs a Python 3.12 Azure Functions Flex Consumption bridge behind Azure Bot Service. Channel activities require the approved tenant, Team, channel, and operator. Optional personal chat has a separate fail-closed policy: disabled by default, restricted to the configured user by default, or explicitly available to authenticated users in the configured tenant with isolated routes and per-user limits. Group chats are rejected. User questions create or continue an SRE thread, poll for up to 10 minutes, and return complete answers to the same Teams conversation in ordered chunks; approvals remain portal-only. Prompts and answer bodies are excluded from routing state, Durable orchestration input, and routine logs. Outbound autonomous-incident updates still use three authenticated MCP tools for a fixed-channel root notification, threaded replies, and route lookup; no tool can select another destination or perform Azure/GitHub changes.
+
+Chunk receipts make partial multipart delivery resumable. Teams delivery and the subsequent Table Storage receipt cannot be atomic, so a narrow at-least-once window remains: if Teams accepts a chunk but its receipt write fails, retry can post that chunk again.
 
 Deploying the bridge also runs `scripts/configure-sre-agent-capabilities.sh`. This idempotently configures the Teams connector, GitHub connector, and checkout skill in dependency order, then verifies the live skill. The Teams script retrieves its custom-header key from Key Vault only at runtime, uses protected temporary files, and never prints the credential. Terraform state contains no bot, MCP, or GitHub credential.
 

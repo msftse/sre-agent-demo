@@ -121,28 +121,28 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
     │   ├── pyproject.toml
     │   └── uv.lock
     ├── frontend/
-        ├── public/
-        │   └── products/
-        │       ├── alpine-shell.jpg
-        │       ├── field-pack.jpg
-        │       ├── ridge-lamp.jpg
-        │       └── trail-flask.jpg
-        ├── src/
-        │   ├── test/
-        │   ├── App.css
-        │   ├── App.test.tsx
-        │   ├── App.tsx
-        │   ├── api.ts
-        │   ├── index.css
-        │   ├── main.tsx
-        │   └── types.ts
-        ├── .dockerignore
-        ├── .npmrc
-        ├── Dockerfile
-        ├── nginx.conf
-        ├── package-lock.json
-        ├── package.json
-        └── vite.config.ts
+    │   ├── public/
+    │   │   └── products/
+    │   │       ├── alpine-shell.jpg
+    │   │       ├── field-pack.jpg
+    │   │       ├── ridge-lamp.jpg
+    │   │       └── trail-flask.jpg
+    │   ├── src/
+    │   │   ├── test/
+    │   │   ├── App.css
+    │   │   ├── App.test.tsx
+    │   │   ├── App.tsx
+    │   │   ├── api.ts
+    │   │   ├── index.css
+    │   │   ├── main.tsx
+    │   │   └── types.ts
+    │   ├── .dockerignore
+    │   ├── .npmrc
+    │   ├── Dockerfile
+    │   ├── nginx.conf
+    │   ├── package-lock.json
+    │   ├── package.json
+    │   └── vite.config.ts
     └── teams-bridge/
         ├── appPackage/
         ├── bridge/
@@ -340,14 +340,17 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Stage 12 Teams Bridge
 
-- Azure Bot Service F0 forwards Teams activities to Python 3.12 Functions Flex Consumption. The answer-roundtrip feature branch adds scope-aware Durable activities while preserving the original function names for in-flight orchestration compatibility.
+- Azure Bot Service F0 forwards Teams activities to Python 3.12 Functions Flex Consumption. The merged answer-roundtrip implementation adds scope-aware Durable activities while preserving the original function names for in-flight orchestration compatibility.
 - Channel requests require Bot Connector JWT validation plus exact tenant, Team `aadGroupId`, channel, and operator boundaries. Personal chat is separately configurable, disabled and allowed-user-only by default, tenant/user/conversation isolated, rate limited, and rejects group chat.
-- User turns poll the preview SRE message API with Durable timers and return only new `SREAgent` text to the originating Teams conversation. Prompts and answers are excluded from routing state and routine logs; approvals remain portal-only.
+- The first authorized mention in a channel conversation creates its SRE route. Later mentioned replies reuse the same SRE thread and preserve the original Teams root even when inbound reply activity IDs change. Personal `status`, `/clear`, `/new`, and normal follow-ups do not require an at-mention.
+- User turns poll the preview SRE message API with Durable timers and return only new `SREAgent` text to the originating Teams conversation. Prompts and answers are excluded from routing state, Durable orchestration input, and routine logs; approvals remain portal-only.
+- Proactive sends initialize the Teams SDK inside Durable activity workers because those workers can start before any HTTP-trigger initialization. Failure notification is best effort, but route failure state and turn-lock release remain mandatory.
+- Multipart answers use UTF-8-aware ordered chunks below Teams message-size guidance. Per-chunk receipts support resume after recorded sends; a narrow at-least-once duplicate window remains if Teams accepts a chunk and the following Table Storage receipt write fails.
 - The bridge MCP endpoint requires `x-mcp-key`, keeps DNS-rebinding protection, and exposes only post, threaded reply, and route lookup tools for the fixed destination.
 - UAMI access is limited to keyless host storage roles, Key Vault Secrets User, and SRE Agent Standard User. The operator can rotate secrets only in the bridge vault.
-- `scripts/configure-sre-teams-connector.sh` performs secret-safe, idempotent data-plane creation/update of `northstar-teams` and verifies its exact three prefixed tools. It is called automatically after every successful bridge deployment.
-- Live outbound testing created a validation root post and same-thread reply, then read the fixed route back. No SRE investigation or checkout alert was created.
-- The Stage 12 validation finished with zero Terraform drift and incident traffic disabled; tracked counts vary by enabled features.
+- `scripts/configure-sre-teams-connector.sh` performs secret-safe, idempotent data-plane creation/update of `northstar-teams`, accepts API-redacted nulls for write-only fields, and strictly verifies its public metadata and exact three prefixed tools. It is called automatically after every successful bridge deployment.
+- Live qualification proved fixed-channel root and follow-up delivery on one SRE thread and Teams root; personal `/clear`, fresh turn, follow-up reuse, and `/new`; and a complete 19,805-byte answer delivered as two ordered chunks containing all 500 requested entries.
+- The merged-main validation passed 97 bridge tests, Ruff, strict mypy, Function registration, package and live connector/capability checks. Terraform finished at zero drift with incident traffic disabled and zero fired checkout alerts.
 
 ## Stage 13 GitHub Connector
 
