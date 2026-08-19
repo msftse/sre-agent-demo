@@ -2,7 +2,9 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from html import unescape
-from typing import Any
+from typing import Any, Literal
+
+TeamsScope = Literal["channel", "personal"]
 
 
 class BoundaryViolation(ValueError):
@@ -24,6 +26,10 @@ class TeamsRequest:
     user_object_id: str
     user_display_name: str
     text: str
+    scope: TeamsScope
+    conversation_type: str
+    reply_to_id: str
+    root_activity_id: str
 
     def to_dict(self) -> dict[str, str]:
         return {
@@ -36,6 +42,10 @@ class TeamsRequest:
             "user_object_id": self.user_object_id,
             "user_display_name": self.user_display_name,
             "text": self.text,
+            "scope": self.scope,
+            "conversation_type": self.conversation_type,
+            "reply_to_id": self.reply_to_id,
+            "root_activity_id": self.root_activity_id,
         }
 
 
@@ -62,11 +72,15 @@ class TeamsBoundary:
         team_id: str,
         channel_id: str,
         allowed_user_object_id: str,
+        personal_chat_enabled: bool = False,
+        personal_chat_access_mode: Literal["allowed_user", "tenant"] = "allowed_user",
     ) -> None:
         self.tenant_id = tenant_id
         self.team_id = team_id
         self.channel_id = channel_id
         self.allowed_user_object_id = allowed_user_object_id
+        self.personal_chat_enabled = personal_chat_enabled
+        self.personal_chat_access_mode = personal_chat_access_mode
 
     def require_allowed(
         self,
@@ -83,26 +97,57 @@ class TeamsBoundary:
         channel_id = _identifier(channel_data.get("channel")) or str(
             channel_data.get("teamsChannelId", "")
         )
+        conversation = _mapping(activity.get("conversation"))
+        conversation_type = str(conversation.get("conversationType", ""))
+        if conversation_type == "channel":
+            scope: TeamsScope = "channel"
+        elif conversation_type == "personal":
+            scope = "personal"
+        else:
+            raise BoundaryViolation(
+                "conversation-type", conversation_type, "channel or personal"
+            )
         sender = _mapping(activity.get("from"))
         user_object_id = str(
             sender.get("aadObjectId", sender.get("aad_object_id", ""))
         )
 
-        expected = {
-            "tenant": (tenant_id, self.tenant_id),
-            "team": (team_id, self.team_id),
-            "channel": (channel_id, self.channel_id),
-        }
+        expected = {"tenant": (tenant_id, self.tenant_id)}
+        if scope == "channel":
+            expected.update(
+                {
+                    "team": (team_id, self.team_id),
+                    "channel": (channel_id, self.channel_id),
+                }
+            )
+        else:
+            if not self.personal_chat_enabled:
+                raise BoundaryViolation("personal-chat", "disabled", "enabled")
+            if team_id or channel_id:
+                raise BoundaryViolation(
+                    "personal-context", f"{team_id}/{channel_id}", "empty"
+                )
         for boundary, (actual, allowed) in expected.items():
             if actual != allowed:
                 raise BoundaryViolation(boundary, actual, allowed)
-        if require_user and user_object_id != self.allowed_user_object_id:
-            raise BoundaryViolation("user", user_object_id, self.allowed_user_object_id)
+        if require_user:
+            if not user_object_id:
+                raise BoundaryViolation("user", "missing", "present")
+            if scope == "channel" or self.personal_chat_access_mode == "allowed_user":
+                if user_object_id != self.allowed_user_object_id:
+                    raise BoundaryViolation("user", user_object_id, self.allowed_user_object_id)
 
-        conversation = _mapping(activity.get("conversation"))
+        activity_id = str(activity.get("id", ""))
+        conversation_id = str(conversation.get("id", ""))
+        reply_to_id = str(activity.get("replyToId") or "")
+        if reply_to_id == activity_id:
+            reply_to_id = ""
+        root_activity_id = (
+            conversation_id if scope == "personal" else reply_to_id or activity_id
+        )
         request = TeamsRequest(
-            activity_id=str(activity.get("id", "")),
-            conversation_id=str(conversation.get("id", "")),
+            activity_id=activity_id,
+            conversation_id=conversation_id,
             service_url=str(activity.get("serviceUrl", "")),
             tenant_id=tenant_id,
             team_id=team_id,
@@ -110,6 +155,10 @@ class TeamsBoundary:
             user_object_id=user_object_id,
             user_display_name=str(sender.get("name", "Teams user")),
             text=_message_text(activity.get("text")),
+            scope=scope,
+            conversation_type=conversation_type,
+            reply_to_id=reply_to_id,
+            root_activity_id=root_activity_id,
         )
         required = [request.activity_id, request.conversation_id, request.service_url]
         if require_user:

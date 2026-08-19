@@ -25,6 +25,9 @@ teams_tenant_id=""
 teams_team_id=""
 teams_channel_id=""
 teams_user_object_id=""
+teams_personal_chat_enabled="false"
+teams_personal_chat_access_mode="allowed_user"
+teams_personal_chat_turns_per_hour="10"
 owner_email=""
 location="swedencentral"
 github_environment="demo"
@@ -41,6 +44,11 @@ Options:
   --teams-team-id <uuid>        Teams Team ID (required)
   --teams-channel-id <value>    Teams channel ID (required)
   --teams-user-object-id <uuid> Teams allowed user object ID (default: az signed-in user)
+  --enable-teams-personal-chat  Allow 1:1 Teams conversations
+  --teams-personal-chat-access-mode <allowed_user|tenant>
+                                Personal chat access boundary (default: allowed_user)
+  --teams-personal-chat-turns-per-hour <1-100>
+                                Per-user hourly turn limit (default: 10)
   --owner-email <email>         Owner tag value (default: az account user.name)
   --location <slug>             Azure location slug (default: swedencentral)
   --output-dir <path>           Output root directory (default: repository root)
@@ -151,6 +159,20 @@ while [[ $# -gt 0 ]]; do
       teams_user_object_id=$(trim "$2")
       shift 2
       ;;
+    --enable-teams-personal-chat)
+      teams_personal_chat_enabled="true"
+      shift
+      ;;
+    --teams-personal-chat-access-mode)
+      [[ $# -ge 2 ]] || fail "Missing value for --teams-personal-chat-access-mode"
+      teams_personal_chat_access_mode=$(trim "$2")
+      shift 2
+      ;;
+    --teams-personal-chat-turns-per-hour)
+      [[ $# -ge 2 ]] || fail "Missing value for --teams-personal-chat-turns-per-hour"
+      teams_personal_chat_turns_per_hour=$(trim "$2")
+      shift 2
+      ;;
     --owner-email)
       [[ $# -ge 2 ]] || fail "Missing value for --owner-email"
       owner_email=$(trim "$2")
@@ -221,6 +243,12 @@ validate_uuid "teams-team-id" "$teams_team_id"
 validate_uuid "teams-user-object-id" "$teams_user_object_id"
 
 [[ "$teams_channel_id" =~ $CHANNEL_PATTERN ]] || fail "teams-channel-id must match 19:<id>@thread.tacv2"
+[[ "$teams_personal_chat_access_mode" == "allowed_user" || "$teams_personal_chat_access_mode" == "tenant" ]] \
+  || fail "teams-personal-chat-access-mode must be allowed_user or tenant"
+[[ "$teams_personal_chat_turns_per_hour" =~ ^[0-9]+$ ]] \
+  || fail "teams-personal-chat-turns-per-hour must be an integer"
+(( teams_personal_chat_turns_per_hour >= 1 && teams_personal_chat_turns_per_hour <= 100 )) \
+  || fail "teams-personal-chat-turns-per-hour must be between 1 and 100"
 [[ "$location" =~ ^[a-z0-9-]+$ ]] || fail "location must be an Azure location slug"
 [[ -n "$owner_email" ]] || fail "owner-email cannot be empty"
 [[ "$github_environment" == "demo" ]] || fail "github-environment must be demo"
@@ -310,6 +338,9 @@ write_profile() {
     printf 'DEMO_TEAMS_TEAM_ID=%q\n' "$teams_team_id"
     printf 'DEMO_TEAMS_CHANNEL_ID=%q\n' "$teams_channel_id"
     printf 'DEMO_TEAMS_ALLOWED_USER_OBJECT_ID=%q\n' "$teams_user_object_id"
+    printf 'DEMO_TEAMS_PERSONAL_CHAT_ENABLED=%q\n' "$teams_personal_chat_enabled"
+    printf 'DEMO_TEAMS_PERSONAL_CHAT_ACCESS_MODE=%q\n' "$teams_personal_chat_access_mode"
+    printf 'DEMO_TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR=%q\n' "$teams_personal_chat_turns_per_hour"
     printf 'DEMO_OWNER_EMAIL=%q\n' "$owner_email"
   } >"$path"
 }
@@ -343,6 +374,9 @@ write_tfvars() {
     printf 'teams_team_id                = %s\n' "$(hcl_string "$teams_team_id")"
     printf 'teams_channel_id             = %s\n' "$(hcl_string "$teams_channel_id")"
     printf 'teams_allowed_user_object_id = %s\n' "$(hcl_string "$teams_user_object_id")"
+    printf 'teams_personal_chat_enabled        = %s\n' "$teams_personal_chat_enabled"
+    printf 'teams_personal_chat_access_mode    = %s\n' "$(hcl_string "$teams_personal_chat_access_mode")"
+    printf 'teams_personal_chat_turns_per_hour = %s\n' "$teams_personal_chat_turns_per_hour"
     printf '\n'
     printf 'tags = {\n'
     printf '  Owner = %s\n' "$(hcl_string "$owner_email")"

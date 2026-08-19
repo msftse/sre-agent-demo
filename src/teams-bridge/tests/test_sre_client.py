@@ -78,6 +78,193 @@ async def test_sends_continuation_message_to_existing_thread() -> None:
     assert credential.scope == "https://azuresre.dev/.default"
 
 
+async def test_continues_thread_as_teams_user() -> None:
+    credential = Credential()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v1/threads/thread-1/messages"
+        assert request.content == (
+            b'{"text":"show node health","userId":"user-1","displayName":"Operator"}'
+        )
+        return httpx.Response(202)
+
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=credential,  # type: ignore[arg-type]
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    await client.continue_thread(
+        thread_id="thread-1",
+        text="show node health",
+        user_id="user-1",
+        display_name="Operator",
+    )
+
+
+async def test_reads_completed_turn_and_selects_new_agent_text() -> None:
+    credential = Credential()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v1/threads/thread-1/messages"
+        return httpx.Response(
+            200,
+            json={
+                "state": "Idle",
+                "value": [
+                    {
+                        "id": "user-message",
+                        "author": {"role": "User"},
+                        "text": "question",
+                        "timeStamp": "2026-08-19T01:00:00Z",
+                        "isComplete": True,
+                    },
+                    {
+                        "id": "old-agent-message",
+                        "author": {"role": "SREAgent"},
+                        "text": "old answer",
+                        "timeStamp": "2026-08-19T01:00:01Z",
+                        "isComplete": True,
+                    },
+                    {
+                        "id": "new-agent-message",
+                        "author": {"role": "SREAgent"},
+                        "text": "new answer",
+                        "timeStamp": "2026-08-19T01:00:02Z",
+                        "isComplete": True,
+                    },
+                ],
+            },
+        )
+
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=credential,  # type: ignore[arg-type]
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    snapshot = await client.get_thread_messages(thread_id="thread-1")
+
+    assert snapshot.state == "complete"
+    assert snapshot.new_agent_text(frozenset({"old-agent-message"})) == ("new answer",)
+    assert snapshot.state_after(frozenset({"user-message", "old-agent-message"})) == (
+        "complete"
+    )
+
+
+async def test_idle_snapshot_waits_when_no_new_agent_answer_exists() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "state": "Idle",
+                "value": [
+                    {
+                        "id": "existing",
+                        "author": {"role": "SREAgent"},
+                        "text": "old answer",
+                        "isComplete": True,
+                    }
+                ],
+            },
+        )
+
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=Credential(),  # type: ignore[arg-type]
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    snapshot = await client.get_thread_messages(thread_id="thread-1")
+
+    assert snapshot.state_after(frozenset({"existing"})) == "running"
+
+
+async def test_reads_paginated_messages_and_rejects_cross_origin() -> None:
+    credential = Credential()
+
+    def paged_handler(request: httpx.Request) -> httpx.Response:
+        if "page" not in request.url.params:
+            return httpx.Response(
+                200,
+                json={
+                    "state": "Running",
+                    "value": [],
+                    "nextLink": "https://agent.example/api/v1/threads/thread-1/messages?page=2",
+                },
+            )
+        return httpx.Response(200, json={"state": "Idle", "value": []})
+
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=credential,  # type: ignore[arg-type]
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(paged_handler)),
+    )
+    assert (await client.get_thread_messages(thread_id="thread-1")).state == "complete"
+
+    def hostile_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"value": [], "nextLink": "https://untrusted.example/messages?page=2"},
+        )
+
+    hostile_client = SreAgentClient(
+        "https://agent.example",
+        credential=credential,  # type: ignore[arg-type]
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(hostile_handler)),
+    )
+    with pytest.raises(RuntimeError, match="pagination changed origin"):
+        await hostile_client.get_thread_messages(thread_id="thread-1")
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        ({"state": "Running", "value": []}, "running"),
+        (
+            {
+                "state": "Idle",
+                "value": [
+                    {
+                        "id": "1",
+                        "author": {"role": "SREAgent"},
+                        "isComplete": True,
+                        "approval": {"id": "approval"},
+                    }
+                ],
+            },
+            "approval_required",
+        ),
+        (
+            {
+                "state": "Idle",
+                "value": [
+                    {
+                        "id": "1",
+                        "author": {"role": "SREAgent"},
+                        "isComplete": True,
+                        "userQuestion": {"text": "more"},
+                    }
+                ],
+            },
+            "pending_input",
+        ),
+        ({"state": "SomethingNew", "value": []}, "unknown"),
+    ],
+)
+async def test_normalizes_turn_states(payload: dict[str, object], expected: str) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    client = SreAgentClient(
+        "https://agent.example",
+        credential=Credential(),  # type: ignore[arg-type]
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    assert (await client.get_thread_messages(thread_id="thread-1")).state == expected
+
+
 async def test_finds_thread_by_incident_id() -> None:
     credential = Credential()
 

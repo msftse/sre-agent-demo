@@ -198,23 +198,26 @@ resource "azurerm_function_app_flex_consumption" "this" {
   }
 
   app_settings = {
-    AzureWebJobsStorage__accountName = azapi_resource.storage_account.name
-    AzureWebJobsStorage__clientId    = azurerm_user_assigned_identity.this.client_id
-    AzureWebJobsStorage__credential  = "managedidentity"
-    AZURE_CLIENT_ID                  = azurerm_user_assigned_identity.this.client_id
-    CLIENT_ID                        = var.bot_client_id
-    CLIENT_SECRET                    = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=bot-client-secret)"
-    TENANT_ID                        = var.bot_tenant_id
-    ALLOWED_USER_OBJECT_ID           = var.allowed_user_object_id
-    TEAMS_TENANT_ID                  = var.teams_tenant_id
-    TEAMS_TEAM_ID                    = var.teams_team_id
-    TEAMS_CHANNEL_ID                 = var.teams_channel_id
-    STORAGE_ACCOUNT_NAME             = azapi_resource.storage_account.name
-    STORAGE_TABLE_NAME               = azapi_resource.state_table.name
-    GITHUB_REPOSITORY                = var.github_repository
-    SRE_AGENT_ENDPOINT               = var.sre_agent_endpoint
-    MCP_SHARED_KEY                   = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=mcp-shared-key)"
-    GITHUB_WEBHOOK_SECRET            = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=github-webhook-secret)"
+    AzureWebJobsStorage__accountName   = azapi_resource.storage_account.name
+    AzureWebJobsStorage__clientId      = azurerm_user_assigned_identity.this.client_id
+    AzureWebJobsStorage__credential    = "managedidentity"
+    AZURE_CLIENT_ID                    = azurerm_user_assigned_identity.this.client_id
+    CLIENT_ID                          = var.bot_client_id
+    CLIENT_SECRET                      = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=bot-client-secret)"
+    TENANT_ID                          = var.bot_tenant_id
+    ALLOWED_USER_OBJECT_ID             = var.allowed_user_object_id
+    TEAMS_TENANT_ID                    = var.teams_tenant_id
+    TEAMS_TEAM_ID                      = var.teams_team_id
+    TEAMS_CHANNEL_ID                   = var.teams_channel_id
+    TEAMS_PERSONAL_CHAT_ENABLED        = tostring(var.teams_personal_chat_enabled)
+    TEAMS_PERSONAL_CHAT_ACCESS_MODE    = var.teams_personal_chat_access_mode
+    TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR = tostring(var.teams_personal_chat_turns_per_hour)
+    STORAGE_ACCOUNT_NAME               = azapi_resource.storage_account.name
+    STORAGE_TABLE_NAME                 = azapi_resource.state_table.name
+    GITHUB_REPOSITORY                  = var.github_repository
+    SRE_AGENT_ENDPOINT                 = var.sre_agent_endpoint
+    MCP_SHARED_KEY                     = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=mcp-shared-key)"
+    GITHUB_WEBHOOK_SECRET              = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=github-webhook-secret)"
   }
 
   site_config {

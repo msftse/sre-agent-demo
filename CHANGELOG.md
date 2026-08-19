@@ -2,6 +2,15 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-19 - Add Teams SRE answer roundtrip on feature branch
+
+- Added scope-aware channel and personal Teams conversations that create or continue Azure SRE Agent threads and return complete answers through deterministic Durable polling.
+- Preserved exact fixed-channel/operator authorization while adding fail-closed personal-chat settings, tenant/user/conversation route isolation, explicit group-chat rejection, one-active-turn locking, deduplication, and per-user hourly limits.
+- Added personal `status`, `/new`, and `/clear` behavior, portal-only approval handoff, 10-minute timeout handling, and lossless ordered answer chunking below Teams message-size guidance.
+- Added live-schema-grounded SRE message parsing, watermark-relative answer selection, pagination origin checks, and attributed human follow-up messages.
+- Added Terraform and colleague-profile controls with secure defaults and no new Azure resource, secret, RBAC role, or connector tool.
+- Expanded local bridge validation from 48 to 91 tests; live pre-merge qualification remains required before merge.
+
 ### 2026-08-16 - Complete fork onboarding and colleague profile hardening
 
 - Added `docs/colleague-setup.md` with end-to-end fork onboarding, profile generation, identity collection, Actions enablement, Stage 17 token security guidance, deployment flow, sync guidance, and teardown/cost reminders using placeholder-only identifiers.

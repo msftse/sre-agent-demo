@@ -198,6 +198,9 @@ module "teams_bridge" {
   storage_account_name                   = local.teams_bridge_storage_name
   tags                                   = local.common_tags
   teams_channel_id                       = var.teams_channel_id
+  teams_personal_chat_access_mode        = var.teams_personal_chat_access_mode
+  teams_personal_chat_enabled            = var.teams_personal_chat_enabled
+  teams_personal_chat_turns_per_hour     = var.teams_personal_chat_turns_per_hour
   teams_team_id                          = var.teams_team_id
   teams_tenant_id                        = var.teams_tenant_id
 }

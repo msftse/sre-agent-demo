@@ -45,9 +45,13 @@ def test_binding_names_match_function_parameters() -> None:
 
 def test_activity_bindings_use_worker_supported_annotation() -> None:
     activity_names = {
+        "complete_sre_turn",
+        "fail_sre_turn",
+        "poll_sre_turn",
         "persist_teams_activity",
         "start_sre_investigation",
         "reply_with_sre_thread",
+        "timeout_sre_turn",
     }
 
     for registered in REGISTERED_FUNCTIONS:

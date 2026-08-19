@@ -220,6 +220,9 @@ Optional flags:
 
 - `--subscription-id <guid>` and `--tenant-id <guid>` to override active Azure CLI context.
 - `--teams-tenant-id <guid>` when Teams tenant differs from Azure tenant.
+- `--enable-teams-personal-chat` to allow 1:1 conversations; disabled by default.
+- `--teams-personal-chat-access-mode <allowed_user|tenant>` to restrict personal chat to the configured user (default) or all authenticated users in the configured Teams tenant.
+- `--teams-personal-chat-turns-per-hour <1-100>` for the per-user personal-chat cost/abuse limit (default `10`).
 - `--name-suffix <4-8-lowercase-alnum>` for deterministic naming.
 - `--output-dir <path>` and `--dry-run` for render checks.
 - `--allow-canonical` only for canonical maintainers intentionally targeting `msftse/sre-agent-demo`.
@@ -234,6 +237,8 @@ Security characteristics:
 - Both files are mode `0600`.
 - Both files are local and git-ignored.
 - No PAT, webhook secret, bot secret, or storage key is written there.
+- Channel authorization always remains locked to the configured tenant, Team, channel, and allowed user. Personal tenant mode does not relax that channel boundary.
+- Personal routes are isolated by tenant, user, and conversation. Group chats and cross-tenant requests are rejected.
 
 ## Mandatory preflight and profile validation (immediately after setup)
 
@@ -391,6 +396,8 @@ KEY_VAULT=$(jq -r '.key_vault_name' <<<"$TEAMS_BRIDGE")
 `deploy-teams-bridge.sh` packages the Teams app and configures the Teams/GitHub connectors, checkout skill, responder, response plan, and signed GitHub webhook. Do not run `package-teams-app.sh` separately.
 
 Sideload `.teams-package/azure-sre-agent.zip` through **Teams > Apps > Manage your apps > Upload an app > Upload a custom app**, choose **Add to a team**, and select the configured Team. In the configured channel, send `@Azure SRE Agent status`; the bot should report that the bridge is ready. If upload is disabled, contact the Teams tenant administrator.
+
+If personal chat is enabled, open the app from **Teams > Apps** and send `status` without mentioning the bot. Normal personal messages create or continue that user's active SRE thread. `/new` starts a fresh thread (`/new <question>` starts it immediately), and `/clear` removes local routing without deleting portal history. Channel follow-ups must at-mention the bot; personal messages do not. Answers are returned in ordered parts for up to 10 minutes per turn. Questions requiring SRE approval are shown in Teams, but approval or rejection remains in the SRE Agent portal.
 
 ## Live verifiers
 

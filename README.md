@@ -92,6 +92,16 @@ Run from the repository root:
   --owner-email <owner@example.com>
 ```
 
+Personal chat is disabled by default. To allow any authenticated user in the configured Teams tenant to use isolated 1:1 SRE conversations, add:
+
+```bash
+  --enable-teams-personal-chat \
+  --teams-personal-chat-access-mode tenant \
+  --teams-personal-chat-turns-per-hour 10
+```
+
+Use `allowed_user` instead of `tenant` to restrict personal chat to `--teams-user-object-id`. Tenant mode gives every authenticated user in that Teams tenant access through the bridge identity, so enable it only when the customer accepts that data-access and cost boundary.
+
 The script discovers the active Azure subscription/tenant and GitHub fork, then creates `.demo-profile.env` and `iac/terraform.tfvars` with mode `0600`. Both files are ignored by Git and contain no PAT, bot secret, webhook secret, or MCP key. Use `--name-suffix <4-8-lowercase-alnum>` when you need deterministic Azure names.
 
 This topology supports exactly one active Azure deployment per fork and requires a unique Teams channel per colleague. The GitHub environment is fixed to `demo` because the delivery workflow, OIDC trust, webhook, and repository secrets form one repository-wide control plane. Use another fork for a second simultaneous deployment.
@@ -184,6 +194,8 @@ KEY_VAULT=$(jq -r '.key_vault_name' <<<"$TEAMS_BRIDGE")
 Deployment publishes the Function, packages the Teams app, configures the Teams and GitHub connectors, installs the checkout skill/responder/response plan, and registers the signed GitHub continuation webhook. Sideload `.teams-package/azure-sre-agent.zip` into the Team/channel selected in step 3.
 
 In Teams, open **Apps > Manage your apps > Upload an app > Upload a custom app**, select `.teams-package/azure-sre-agent.zip`, choose **Add to a team**, and select the configured Team. In the configured channel, mention the bot with `@Azure SRE Agent status`. It should reply that the bridge is ready. If custom-app upload is unavailable, ask the Teams administrator to allow or upload the app for that tenant.
+
+When personal chat is enabled, add/open **Azure SRE Agent** from **Apps** and send `status` without an at-mention. Personal messages continue one isolated SRE thread per tenant/user/conversation. Use `/new` to start fresh and `/clear` to remove local routing. Group chats are rejected. Each turn waits up to 10 minutes and returns the complete answer in ordered replies; SRE approval decisions remain portal-only.
 
 ### 8. Verify the deployed control plane
 
@@ -598,7 +610,7 @@ See [docs/stages/11-sre-agent-foundation.md](docs/stages/11-sre-agent-foundation
 
 ## Teams Bridge
 
-Stage 12 runs a Python 3.12 Azure Functions Flex Consumption bridge behind Azure Bot Service. Inbound Teams activities are restricted to the approved tenant, Team, `IJ-Test` channel, and operator. Outbound SRE updates use three authenticated MCP tools for a root notification, threaded replies, and route lookup; no tool can select another destination or perform Azure/GitHub changes. For autonomous alerts, the bridge resolves the Azure incident ID to exactly one canonical SRE chat thread and returns that ID for durable PR continuation markers.
+Stage 12 runs a Python 3.12 Azure Functions Flex Consumption bridge behind Azure Bot Service. Channel activities require the approved tenant, Team, channel, and operator. Optional personal chat has a separate fail-closed policy: disabled by default, restricted to the configured user by default, or explicitly available to authenticated users in the configured tenant with isolated routes and per-user limits. Group chats are rejected. User questions create or continue an SRE thread, poll for up to 10 minutes, and return complete answers to the same Teams conversation in ordered chunks; approvals remain portal-only. Outbound autonomous-incident updates still use three authenticated MCP tools for a fixed-channel root notification, threaded replies, and route lookup; no tool can select another destination or perform Azure/GitHub changes.
 
 Deploying the bridge also runs `scripts/configure-sre-agent-capabilities.sh`. This idempotently configures the Teams connector, GitHub connector, and checkout skill in dependency order, then verifies the live skill. The Teams script retrieves its custom-header key from Key Vault only at runtime, uses protected temporary files, and never prints the credential. Terraform state contains no bot, MCP, or GitHub credential.
 

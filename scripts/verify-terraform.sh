@@ -188,6 +188,10 @@ jq -e '
     and .storage_authentication_type == "UserAssignedIdentity"
     and .https_only == true
     and .webdeploy_publish_basic_authentication_enabled == false
+    and (.app_settings.TEAMS_PERSONAL_CHAT_ENABLED as $enabled | ["true", "false"] | index($enabled))
+    and (.app_settings.TEAMS_PERSONAL_CHAT_ACCESS_MODE as $mode | ["allowed_user", "tenant"] | index($mode))
+    and ((.app_settings.TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR | tonumber) >= 1)
+    and ((.app_settings.TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR | tonumber) <= 100)
 ' "$FULL_JSON" >/dev/null
 
 jq -e '

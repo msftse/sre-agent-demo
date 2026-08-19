@@ -1,5 +1,8 @@
 import os
 from dataclasses import dataclass
+from typing import Literal
+
+PersonalChatAccessMode = Literal["allowed_user", "tenant"]
 
 
 @dataclass(frozen=True)
@@ -17,6 +20,9 @@ class Settings:
     mcp_shared_key: str
     github_webhook_secret: str
     github_repository: str
+    teams_personal_chat_enabled: bool = False
+    teams_personal_chat_access_mode: PersonalChatAccessMode = "allowed_user"
+    teams_personal_chat_turns_per_hour: int = 10
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -40,4 +46,29 @@ class Settings:
             raise RuntimeError(
                 f"Missing required Teams bridge settings: {', '.join(sorted(missing))}"
             )
-        return cls(**values)
+        access_mode = os.getenv(
+            "TEAMS_PERSONAL_CHAT_ACCESS_MODE", "allowed_user"
+        ).casefold()
+        if access_mode not in {"allowed_user", "tenant"}:
+            raise RuntimeError(
+                "TEAMS_PERSONAL_CHAT_ACCESS_MODE must be allowed_user or tenant."
+            )
+        try:
+            turns_per_hour = int(os.getenv("TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR", "10"))
+        except ValueError as error:
+            raise RuntimeError(
+                "TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR must be an integer."
+            ) from error
+        if turns_per_hour < 1 or turns_per_hour > 100:
+            raise RuntimeError(
+                "TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR must be between 1 and 100."
+            )
+        enabled = os.getenv("TEAMS_PERSONAL_CHAT_ENABLED", "false").casefold()
+        if enabled not in {"true", "false"}:
+            raise RuntimeError("TEAMS_PERSONAL_CHAT_ENABLED must be true or false.")
+        return cls(
+            **values,
+            teams_personal_chat_enabled=enabled == "true",
+            teams_personal_chat_access_mode=access_mode,  # type: ignore[arg-type]
+            teams_personal_chat_turns_per_hour=turns_per_hour,
+        )

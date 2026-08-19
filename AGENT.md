@@ -340,8 +340,9 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 
 ## Stage 12 Teams Bridge
 
-- Azure Bot Service F0 forwards Teams activities to Python 3.12 Functions Flex Consumption; five Functions are registered and the host is healthy.
-- Inbound requests require Bot Connector JWT validation plus exact tenant, Team `aadGroupId`, channel, and operator boundaries. The safe `status` command proved the live inbound path without starting an investigation.
+- Azure Bot Service F0 forwards Teams activities to Python 3.12 Functions Flex Consumption. The answer-roundtrip feature branch adds scope-aware Durable activities while preserving the original function names for in-flight orchestration compatibility.
+- Channel requests require Bot Connector JWT validation plus exact tenant, Team `aadGroupId`, channel, and operator boundaries. Personal chat is separately configurable, disabled and allowed-user-only by default, tenant/user/conversation isolated, rate limited, and rejects group chat.
+- User turns poll the preview SRE message API with Durable timers and return only new `SREAgent` text to the originating Teams conversation. Prompts and answers are excluded from routing state and routine logs; approvals remain portal-only.
 - The bridge MCP endpoint requires `x-mcp-key`, keeps DNS-rebinding protection, and exposes only post, threaded reply, and route lookup tools for the fixed destination.
 - UAMI access is limited to keyless host storage roles, Key Vault Secrets User, and SRE Agent Standard User. The operator can rotate secrets only in the bridge vault.
 - `scripts/configure-sre-teams-connector.sh` performs secret-safe, idempotent data-plane creation/update of `northstar-teams` and verifies its exact three prefixed tools. It is called automatically after every successful bridge deployment.
