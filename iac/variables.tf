@@ -267,3 +267,35 @@ variable "teams_allowed_user_object_id" {
   default     = null
   nullable    = true
 }
+
+variable "teams_personal_chat_enabled" {
+  description = "Allow Azure SRE Agent conversations from Teams personal chat."
+  type        = bool
+  default     = false
+}
+
+variable "teams_personal_chat_access_mode" {
+  description = "Personal chat authorization mode: the configured allowed user or any authenticated user in teams_tenant_id."
+  type        = string
+  default     = "allowed_user"
+
+  validation {
+    condition     = contains(["allowed_user", "tenant"], var.teams_personal_chat_access_mode)
+    error_message = "teams_personal_chat_access_mode must be allowed_user or tenant."
+  }
+}
+
+variable "teams_personal_chat_turns_per_hour" {
+  description = "Maximum personal-chat investigation turns started by one user in one UTC hour."
+  type        = number
+  default     = 10
+
+  validation {
+    condition = (
+      var.teams_personal_chat_turns_per_hour >= 1
+      && var.teams_personal_chat_turns_per_hour <= 100
+      && floor(var.teams_personal_chat_turns_per_hour) == var.teams_personal_chat_turns_per_hour
+    )
+    error_message = "teams_personal_chat_turns_per_hour must be an integer between 1 and 100."
+  }
+}

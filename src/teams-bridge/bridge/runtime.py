@@ -60,6 +60,8 @@ class BridgeRuntime:
             team_id=settings.teams_team_id,
             channel_id=settings.teams_channel_id,
             allowed_user_object_id=settings.allowed_user_object_id,
+            personal_chat_enabled=settings.teams_personal_chat_enabled,
+            personal_chat_access_mode=settings.teams_personal_chat_access_mode,
         )
         self.state = BridgeState(
             settings.storage_account_name,

@@ -91,6 +91,21 @@ variable "teams_channel_id" {
   type        = string
 }
 
+variable "teams_personal_chat_enabled" {
+  description = "Whether the bridge accepts Teams personal-chat conversations."
+  type        = bool
+}
+
+variable "teams_personal_chat_access_mode" {
+  description = "Personal-chat authorization mode: allowed_user or tenant."
+  type        = string
+}
+
+variable "teams_personal_chat_turns_per_hour" {
+  description = "Per-user UTC-hour limit for personal-chat investigation turns."
+  type        = number
+}
+
 variable "sre_agent_id" {
   description = "Azure SRE Agent resource ID granted to the bridge identity."
   type        = string

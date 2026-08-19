@@ -25,6 +25,9 @@ teams_tenant_id              = "00000000-0000-0000-0000-000000000000"
 teams_team_id                = "00000000-0000-0000-0000-000000000000"
 teams_channel_id             = "19:your-channel-id@thread.tacv2"
 teams_allowed_user_object_id = "00000000-0000-0000-0000-000000000000"
+teams_personal_chat_enabled        = false
+teams_personal_chat_access_mode    = "allowed_user"
+teams_personal_chat_turns_per_hour = 10
 
 tags = {
   Owner = "your-alias-or-team"

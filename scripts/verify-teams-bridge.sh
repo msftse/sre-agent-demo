@@ -77,11 +77,16 @@ grep -F '"\($connector)_" + .' "$ROOT_DIR/scripts/configure-sre-teams-connector.
     uv run python -c '
 import function_app
 expected = {
+  "complete_sre_turn",
+  "fail_sre_turn",
     "http_entrypoint",
+  "poll_sre_turn",
+  "teams_chat_turn_orchestrator",
     "teams_message_orchestrator",
     "persist_teams_activity",
     "start_sre_investigation",
     "reply_with_sre_thread",
+  "timeout_sre_turn",
 }
 actual = {item.get_function_name() for item in function_app.app.get_functions()}
 assert actual == expected, actual

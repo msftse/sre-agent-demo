@@ -19,7 +19,7 @@
   },
   "description": {
     "short": "Investigate Northstar incidents with Azure SRE Agent.",
-    "full": "Starts and follows Azure SRE Agent investigations from the approved Northstar Teams channel. Pull-request merge and deployment remain human-controlled."
+    "full": "Starts and follows Azure SRE Agent investigations from the approved Northstar Teams channel or an authorized personal chat. Pull-request merge, deployment, and SRE approvals remain human-controlled."
   },
   "accentColor": "#0B1F33",
   "bots": [
@@ -45,6 +45,14 @@
             {
               "title": "investigate",
               "description": "Start an Azure SRE Agent investigation."
+            },
+            {
+              "title": "new",
+              "description": "Start a fresh personal SRE conversation."
+            },
+            {
+              "title": "clear",
+              "description": "Clear the active personal SRE conversation route."
             }
           ]
         }

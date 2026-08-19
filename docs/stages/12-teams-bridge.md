@@ -2,7 +2,7 @@
 
 ## Goal
 
-Connect Azure SRE Agent to a real Microsoft Teams bot identity for bidirectional, threaded incident updates without activating the dormant checkout incident. The bridge must accept only the approved operator, Team, and channel, and Azure SRE Agent must receive exactly three Teams notification tools.
+Connect Azure SRE Agent to a real Microsoft Teams bot identity for fixed-channel incident updates and optional multi-turn personal conversations without weakening the autonomous incident boundary. Azure SRE Agent receives exactly three Teams notification tools for the fixed channel.
 
 ## Architecture
 
@@ -20,7 +20,21 @@ This output includes the Function App name and ID, bot client ID, Key Vault name
 
 ## Security Boundary
 
-Inbound Bot Connector JWT validation is owned by the maintained Microsoft Teams SDK. Application checks additionally require the configured tenant, exact Team GUID, exact channel ID, and operator object ID. Teams activities expose the Microsoft Graph Team GUID as `channelData.team.aadGroupId`; the parser deliberately prefers that field over the Teams thread identifier in `channelData.team.id`.
+Inbound Bot Connector JWT validation is owned by the maintained Microsoft Teams SDK. Channel checks require the configured tenant, exact Team GUID, exact channel ID, and operator object ID. Teams activities expose the Microsoft Graph Team GUID as `channelData.team.aadGroupId`; the parser deliberately prefers that field over the Teams thread identifier in `channelData.team.id`.
+
+Personal chat is a separate policy. It is disabled by default and defaults to the configured allowed user. An explicit `tenant` mode permits authenticated users from the configured Teams tenant; each tenant/user/conversation gets an isolated SRE route, one active turn, and a configurable hourly limit. Personal payloads must contain no Team/channel context. Cross-tenant requests and `groupChat` are rejected. This policy never changes the fixed channel used by autonomous notifications.
+
+## Conversational Answer Roundtrip
+
+User-initiated channel and personal turns are separate from autonomous incident timelines:
+
+1. A channel top-level at-mention or an unbound personal message creates an SRE thread.
+2. At-mentioned channel replies and normal personal messages continue the mapped SRE thread.
+3. Durable Functions polls the SRE messages endpoint every 10 seconds for up to 10 minutes.
+4. New complete `SREAgent` messages are returned to the same channel root or personal conversation in lossless, ordered chunks.
+5. Pending questions return to Teams and accept another text turn. Approvals remain portal-only. Failure, cancellation, unknown preview states, and timeout return a bounded status with the SRE thread ID.
+
+`status` is side-effect free. Personal `/new` starts a fresh route and `/clear` removes local routing without deleting SRE portal history. Prompts and answer bodies are excluded from Table Storage routing records, Durable orchestration outputs, and routine logs.
 
 Outbound MCP requires `x-mcp-key`, retains DNS-rebinding protection, and allows only the live Function hostname. The server exposes exactly:
 

@@ -23,6 +23,9 @@ readonly REQUIRED_PROFILE_VARS=(
   DEMO_TEAMS_TEAM_ID
   DEMO_TEAMS_CHANNEL_ID
   DEMO_TEAMS_ALLOWED_USER_OBJECT_ID
+  DEMO_TEAMS_PERSONAL_CHAT_ENABLED
+  DEMO_TEAMS_PERSONAL_CHAT_ACCESS_MODE
+  DEMO_TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR
   DEMO_OWNER_EMAIL
 )
 
@@ -136,6 +139,14 @@ done
 [[ "$DEMO_GITHUB_REPOSITORY_OWNER_ID" =~ ^[0-9]+$ ]] || fail "DEMO_GITHUB_REPOSITORY_OWNER_ID must be numeric"
 [[ "$DEMO_GITHUB_REPOSITORY_ID" =~ ^[0-9]+$ ]] || fail "DEMO_GITHUB_REPOSITORY_ID must be numeric"
 [[ "$DEMO_TEAMS_CHANNEL_ID" =~ $CHANNEL_PATTERN ]] || fail "DEMO_TEAMS_CHANNEL_ID must match 19:<id>@thread.tacv2"
+[[ "$DEMO_TEAMS_PERSONAL_CHAT_ENABLED" == "true" || "$DEMO_TEAMS_PERSONAL_CHAT_ENABLED" == "false" ]] \
+  || fail "DEMO_TEAMS_PERSONAL_CHAT_ENABLED must be true or false"
+[[ "$DEMO_TEAMS_PERSONAL_CHAT_ACCESS_MODE" == "allowed_user" || "$DEMO_TEAMS_PERSONAL_CHAT_ACCESS_MODE" == "tenant" ]] \
+  || fail "DEMO_TEAMS_PERSONAL_CHAT_ACCESS_MODE must be allowed_user or tenant"
+[[ "$DEMO_TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR" =~ ^[0-9]+$ ]] \
+  || fail "DEMO_TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR must be numeric"
+(( DEMO_TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR >= 1 && DEMO_TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR <= 100 )) \
+  || fail "DEMO_TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR must be between 1 and 100"
 [[ "$DEMO_LOCATION" =~ ^[a-z0-9-]+$ ]] || fail "DEMO_LOCATION must be a location slug"
 [[ "$DEMO_GITHUB_ENVIRONMENT" =~ ^[A-Za-z0-9._-]+$ ]] || fail "DEMO_GITHUB_ENVIRONMENT is invalid"
 
@@ -156,6 +167,9 @@ assert_tfvars_line "teams_tenant_id              = $(hcl_string "$DEMO_TEAMS_TEN
 assert_tfvars_line "teams_team_id                = $(hcl_string "$DEMO_TEAMS_TEAM_ID")"
 assert_tfvars_line "teams_channel_id             = $(hcl_string "$DEMO_TEAMS_CHANNEL_ID")"
 assert_tfvars_line "teams_allowed_user_object_id = $(hcl_string "$DEMO_TEAMS_ALLOWED_USER_OBJECT_ID")"
+assert_tfvars_line "teams_personal_chat_enabled        = $DEMO_TEAMS_PERSONAL_CHAT_ENABLED"
+assert_tfvars_line "teams_personal_chat_access_mode    = $(hcl_string "$DEMO_TEAMS_PERSONAL_CHAT_ACCESS_MODE")"
+assert_tfvars_line "teams_personal_chat_turns_per_hour = $DEMO_TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR"
 assert_tfvars_line "  Owner = $(hcl_string "$DEMO_OWNER_EMAIL")"
 
 grep -Fx 'tags = {' "$tfvars_path" >/dev/null || fail "tags block is missing"
