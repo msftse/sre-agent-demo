@@ -139,7 +139,7 @@ class TeamsBoundary:
 
         activity_id = str(activity.get("id", ""))
         conversation_id = str(conversation.get("id", ""))
-        reply_to_id = str(activity.get("replyToId", ""))
+        reply_to_id = str(activity.get("replyToId") or "")
         if reply_to_id == activity_id:
             reply_to_id = ""
         root_activity_id = (

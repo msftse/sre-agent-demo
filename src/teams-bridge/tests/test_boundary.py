@@ -57,6 +57,16 @@ def test_treats_self_referential_reply_id_as_channel_root() -> None:
     assert request.root_activity_id == "activity-1"
 
 
+def test_treats_null_reply_id_as_channel_root() -> None:
+    payload = activity()
+    payload["replyToId"] = None
+
+    request = boundary().require_allowed(payload)
+
+    assert request.reply_to_id == ""
+    assert request.root_activity_id == "activity-1"
+
+
 def test_does_not_treat_channel_conversation_message_id_as_reply() -> None:
     payload = activity()
     payload["conversation"] = {
