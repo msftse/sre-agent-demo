@@ -30,6 +30,7 @@ def test_local_frontend_cors_preflight() -> None:
 
     assert preflight.status_code == 200
     assert preflight.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
+    assert response.status_code == 200
     assert response.headers["access-control-expose-headers"] == (
         "X-Build-SHA, X-Operation-ID, X-Trace-ID"
     )
