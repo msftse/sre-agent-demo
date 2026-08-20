@@ -77,12 +77,6 @@ def checkout(request: CheckoutRequest) -> CheckoutResponse:
         )
         if not quote.valid:
             raise DomainError(code="discount_invalid", message=quote.message)
-        if quote.code == "FIELD20":
-            raise DomainError(
-                code="discount_calculation_failed",
-                message="The field kit discount could not be applied.",
-                status_code=500,
-            )
         discount_cents = quote.discount_cents
 
     discounted_subtotal = subtotal_cents - discount_cents
