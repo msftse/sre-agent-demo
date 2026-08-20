@@ -2,6 +2,15 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-20 - Expand first-use fork and workflow guidance
+
+- Documented that fresh forks inherit both tracked GitHub Actions workflow files but not Actions settings, environments, secrets, branch protection, webhooks, Azure resources, Teams installation, run history, or upstream PR records.
+- Added a workflow responsibility table, visibility checks, first-use readiness gate, exact **Start Demo** execution sequence, and workflow-specific troubleshooting to `docs/colleague-setup.md` and `README.md`.
+- Corrected setup ordering so repository secret `STAGE17_GITHUB_TOKEN` is created before `verify-github-environment.sh`, matching the verifier's actual contract.
+- Added a copy-paste coding-agent handoff and an internal first-run contract so agents preserve fork isolation, follow the ordered gates, avoid recreating workflows, and never bypass human merge or secret boundaries.
+- Documented the current deferred-RCA limitation: alert resolution does not automatically resume the GitHub-driven continuation, recovery totals are validated inside the Helm test rather than exported as telemetry, and operators must continue the existing SRE thread after recovery evidence is complete.
+- Removed the legacy local ACR image-publish step from the colleague path; the supported healthy baseline is built, pushed, and digest-deployed by **Deliver Demo to AKS** through environment-bound GitHub OIDC.
+
 ### 2026-08-19 - Merge and qualify Teams SRE answer roundtrip
 
 - Merged the channel and personal Azure SRE Agent answer-roundtrip feature through PR #15 and deployed the exact merged `main` source to the Teams bridge.

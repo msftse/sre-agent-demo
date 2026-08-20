@@ -38,6 +38,8 @@ Stages 1-18 are complete. Stage 17 proved the live alert, SRE investigation, Tea
 
 > **First time? Start here.** Each presenter must use their own fork, Azure subscription, local Terraform state, GitHub environment, webhook, and Teams destination. Do not deploy from the canonical repository unless you are its maintainer. The expanded explanations and troubleshooting steps are in [Run the demo from your own fork](docs/colleague-setup.md).
 
+When using a coding agent for setup, begin with the [first-run coding-agent handoff](docs/colleague-setup.md#using-a-coding-agent-for-first-setup). It requires the agent to verify the fork, identities, inherited workflows, and secret boundaries before running provisioning commands.
+
 ### 1. Fork, clone, and authenticate
 
 Fork `msftse/sre-agent-demo` in GitHub, then clone **your fork**:
@@ -51,6 +53,23 @@ az login
 az account set --subscription <your-subscription-id-or-name>
 gh auth login
 gh auth status
+```
+
+A fresh fork inherits both tracked GitHub Actions workflows from `main`:
+
+| Workflow | How it starts | Purpose |
+| --- | --- | --- |
+| **Start Demo** (`start-demo.yml`) | Manual `workflow_dispatch` with confirmation | Creates and validates the intentional FIELD20 regression, temporarily switches branch protection, pushes the incident commit to the fork's `main`, and dispatches incident delivery. |
+| **Deliver Demo to AKS** (`deliver-demo.yml`) | Manual baseline dispatch, pull-request validation, or merged SRE remediation PR | Validates source, builds and scans images, deploys immutable digests to AKS, and verifies the release. |
+
+Do not copy or recreate these workflows in the fork. GitHub does **not** copy repository settings, Actions enablement, environments, variables, secrets, branch protection, webhook registrations, Azure resources, Teams installation, workflow history, or upstream pull-request records. The setup steps below create those fork-specific dependencies. An older fork must first sync `main` from upstream so both workflow files exist on the fork's default branch.
+
+After enabling Actions in step 6, confirm both inherited workflows are visible:
+
+```bash
+gh workflow list --all
+gh workflow view start-demo.yml
+gh workflow view deliver-demo.yml
 ```
 
 Required local tools are Azure CLI, GitHub CLI, Terraform, Docker, `jq`, `kubectl`, `kubelogin`, Helm, Node.js/npm, `uv`, Azure Functions Core Tools, OpenSSL, and ShellCheck. You need Owner access on the Azure subscription and Admin access on your fork. Review the [pricing guide](azure-sre-agent/pricing/azure-sre-agent-pricing.md) before provisioning.
@@ -175,6 +194,8 @@ Store it as the **repository-level Actions secret** `STAGE17_GITHUB_TOKEN` under
 ./scripts/verify-github-environment.sh
 ```
 
+The verifier intentionally fails until all eight environment variables, the environment-scoped `APPLICATIONINSIGHTS_CONNECTION_STRING`, and the repository-scoped `STAGE17_GITHUB_TOKEN` are present. Do not run **Start Demo** until this verifier passes.
+
 ### 7. Create the Teams bridge secrets and deploy the bridge
 
 ```bash
@@ -275,8 +296,8 @@ During the demo:
 6. Azure SRE Agent opens the only PR in the flow. Review the code and required check. Reject/reopen it if demonstrating governance, or merge it when ready. The agent cannot merge or deploy.
 7. Merge starts `Deliver Demo to AKS` automatically; there is no separate environment-review approval in this demo. Recovery commonly takes several minutes.
 8. Confirm the new merge SHA is deployed, backend/frontend return to `2/2`, FIELD20 succeeds, and the traffic-generator deployment is absent.
-9. Alert auto-resolution is configured for five clean minutes, so the final RCA can arrive several minutes after deployment succeeds.
-10. Show the same canonical RCA in the remediation PR comments and the existing Teams incident thread.
+9. Alert auto-resolution is configured for five clean minutes. The workflow-completion callback can reach the agent before that window closes; if so, the agent posts a deferred recovery update rather than claiming resolution.
+10. A deferred update does not currently resume automatically when Azure Monitor later resolves because alert recovery is not a GitHub continuation event. Confirm the alert is resolved, then continue the same SRE thread in the portal and request recovery re-verification. Do not start another demo until the final RCA appears in both the remediation PR and the existing Teams incident thread, or until the operator explicitly accepts the deferred-RCA limitation.
 
 For a repeat customer demo, no state reset or table cleanup is required after a successful recovery. Wait until the alert is resolved, no PR is open, delivery is idle, and the prior RCA is complete; then run **Start Demo** again. It discovers the latest fork-local remediation, or the inherited remediation on the first run in a fresh fork.
 
@@ -289,7 +310,7 @@ If a checkpoint stalls:
 | Alert does not fire | Confirm `northstar-sre-demo-traffic` is ready and review `NorthstarCheckoutFailureRatioHigh` in Azure Monitor |
 | No remediation PR appears | Run the response-plan and GitHub connector verifiers; inspect the newest SRE thread |
 | Merge succeeds but recovery does not start | Check `Deliver Demo to AKS`, webhook delivery, and `./scripts/verify-github-continuation.sh` |
-| Deployment succeeds but RCA is deferred | Wait for the five-minute alert recovery window and confirm post-deployment checkout requests are HTTP 200 |
+| Deployment succeeds but RCA is deferred | Confirm the five-minute alert recovery completed, inspect the recovery Helm test and telemetry, then continue the same SRE thread in the portal. Waiting alone does not create another continuation event. |
 
 ### 11. Tear down after the customer session
 

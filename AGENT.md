@@ -213,6 +213,21 @@ Internal project tracker for a deterministic, end-to-end Azure SRE Agent inciden
 - Build application images on the local/runner Docker daemon and publish them with `docker push`; do not use `az acr build`, `az acr import`, or remote ACR tasks.
 - Keep `.demo-profile.env`, `iac/terraform.tfvars`, Terraform state, and plan outputs local and untracked.
 
+## First-Run Contract for Coding Agents
+
+When helping a colleague use a fresh fork, treat [docs/colleague-setup.md](docs/colleague-setup.md) as the authoritative ordered runbook and enforce these rules:
+
+1. Confirm `origin` is the colleague's fork, `upstream` is `msftse/sre-agent-demo`, the active branch is the fork's `main`, and the GitHub viewer has `ADMIN` permission. Never target the canonical repository unless the maintainer explicitly uses `--allow-canonical`.
+2. A fork inherits `.github/workflows/start-demo.yml` and `.github/workflows/deliver-demo.yml` as tracked files. It does not inherit Actions enablement, environments, secrets, protection, webhooks, Azure resources, Teams installation, workflow history, or PR history. Do not generate replacement workflow files.
+3. For an older fork, fast-forward from upstream before setup. The manual **Start Demo** button exists only when `start-demo.yml` is present on the fork's default branch and Actions are enabled.
+4. Follow this order without skipping gates: authenticate -> collect Teams IDs -> `setup-colleague.sh` -> preflight/profile verification -> enable and inspect workflows -> Terraform apply -> configure GitHub environment -> create repository `STAGE17_GITHUB_TOKEN` -> verify GitHub environment -> provision bot secrets -> deploy Teams bridge -> run all live verifiers -> configure `incident-demo` protection -> deploy healthy baseline -> run **Start Demo**.
+5. `verify-github-environment.sh` must run only after `STAGE17_GITHUB_TOKEN` exists. It checks the fixed `demo` environment, eight environment variables, `APPLICATIONINSIGHTS_CONNECTION_STRING`, and repository secret metadata.
+6. **Start Demo** is the only supported incident starter. It validates and directly publishes one intentional regression, then dispatches **Deliver Demo to AKS** with traffic enabled. Do not create the regression manually, dispatch overlapping incidents, bypass branch protection, or force-push.
+7. **Deliver Demo to AKS** owns baseline deployment, PR validation, and automatic recovery after a human merges a same-repository `sre/field20-checkout-*` PR. The SRE Agent must never merge or dispatch it.
+8. Stop on any failed verifier. Never print or request PAT, bot, webhook, MCP, or connection-string values through chat. Secret values belong only in GitHub Secrets or Key Vault.
+9. Before **Start Demo**, prove a healthy baseline, disabled traffic, no open PR, no active delivery, Teams readiness, all control-plane verifiers, and `incident-demo` protection.
+10. After recovery, wait for alert resolution and a completed RCA before another run. A deferred RCA is not a successful end state. GitHub events are the only current continuation sources, so Azure Monitor recovery does not automatically wake the SRE thread; use the portal to continue the same thread after confirming alert resolution and recovery evidence.
+
 ## Application Contract
 
 - `GET /health/live` and `GET /health/ready` expose process health.
