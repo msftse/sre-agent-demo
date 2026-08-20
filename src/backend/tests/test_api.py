@@ -30,7 +30,6 @@ def test_local_frontend_cors_preflight() -> None:
 
     assert preflight.status_code == 200
     assert preflight.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
-    assert response.status_code == 200
     assert response.headers["access-control-expose-headers"] == (
         "X-Build-SHA, X-Operation-ID, X-Trace-ID"
     )
@@ -93,6 +92,28 @@ def test_checkout_reprices_items_and_applies_free_shipping() -> None:
         "discount_cents": 1900,
         "shipping_cents": 0,
         "total_cents": 17100,
+    }
+
+
+def test_checkout_applies_valid_field20_discount() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/checkout",
+            json={
+                "email": "explorer@example.com",
+                "discount_code": "FIELD20",
+                "items": [{"product_id": "field-pack-28", "quantity": 2}],
+            },
+        )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["status"] == "confirmed"
+    assert body["totals"] == {
+        "subtotal_cents": 29600,
+        "discount_cents": 5920,
+        "shipping_cents": 0,
+        "total_cents": 23680,
     }
 
 
