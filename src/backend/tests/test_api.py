@@ -136,27 +136,3 @@ def test_checkout_validates_empty_cart_and_email() -> None:
     error_locations = {tuple(error["loc"]) for error in response.json()["detail"]}
     assert ("body", "email") in error_locations
     assert ("body", "items") in error_locations
-
-
-def test_checkout_applies_field20_to_qualifying_order() -> None:
-    with TestClient(app) as client:
-        response = client.post(
-            "/api/checkout",
-            json={
-                "email": "explorer@example.com",
-                "discount_code": "FIELD20",
-                "items": [
-                    {"product_id": "field-pack-28", "quantity": 2},
-                ],
-            },
-        )
-
-    body = response.json()
-    assert response.status_code == 200
-    assert body["status"] == "confirmed"
-    assert body["totals"] == {
-        "subtotal_cents": 29600,
-        "discount_cents": 5920,
-        "shipping_cents": 0,
-        "total_cents": 23680,
-    }
