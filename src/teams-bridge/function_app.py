@@ -380,6 +380,7 @@ def alert_resolution_orchestrator(
 
 @app.activity_trigger(input_name="request")
 async def deliver_github_continuation(request: Any) -> dict[str, Any]:
+    await runtime.initialize_teams()
     result = await runtime.continuation.deliver(cast(dict[str, Any], request))
     return result.to_dict()
 

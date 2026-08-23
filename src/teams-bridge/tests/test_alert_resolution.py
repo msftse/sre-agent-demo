@@ -30,6 +30,7 @@ from bridge.alert_management import (  # noqa: E402
     AlertManagementTerminalError,
     AlertSnapshot,
 )
+from bridge.github_continuation import ContinuationResult  # noqa: E402
 
 
 class OrchestrationContext:
@@ -248,6 +249,32 @@ class FakeNotifications:
     async def reply_update(self, thread_id: str, message: str) -> dict[str, str]:
         self.messages.append((thread_id, message))
         return {"thread_id": thread_id, "teams_activity_id": "activity-1"}
+
+
+class FakeContinuation:
+    async def deliver(self, request: dict[str, Any]) -> ContinuationResult:
+        return ContinuationResult(status="processed", event_key=str(request["event_key"]))
+
+
+async def test_github_delivery_initializes_teams_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    initialized = False
+
+    async def initialize_teams() -> None:
+        nonlocal initialized
+        initialized = True
+
+    fake = SimpleNamespace(
+        initialize_teams=initialize_teams,
+        continuation=FakeContinuation(),
+    )
+    monkeypatch.setattr(function_app, "runtime", fake)
+
+    result = await function_app.deliver_github_continuation({"event_key": "event-1"})
+
+    assert initialized is True
+    assert result["status"] == "processed"
 
 
 @pytest.mark.parametrize(
