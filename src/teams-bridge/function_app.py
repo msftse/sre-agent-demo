@@ -34,9 +34,12 @@ async def start_orchestration(
     existing = await client.get_status(instance_id)
     if existing is not None:
         runtime_status = getattr(existing, "runtime_status", "")
-        status_value = str(getattr(runtime_status, "value", runtime_status)).casefold()
-        if status_value not in {"failed", "terminated", "canceled"}:
-            return instance_id
+        if runtime_status is not None:
+            status_value = str(
+                getattr(runtime_status, "value", runtime_status)
+            ).casefold()
+            if status_value and status_value not in {"failed", "terminated", "canceled"}:
+                return instance_id
     return await client.start_new(
         orchestration_function_name=function_name,
         instance_id=instance_id,

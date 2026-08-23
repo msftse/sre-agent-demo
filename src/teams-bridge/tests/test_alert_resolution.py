@@ -334,3 +334,30 @@ async def test_start_orchestration_reuses_running_instance(
 
     assert result == "instance-1"
     assert client.started is False
+
+
+async def test_start_orchestration_starts_when_status_object_is_empty() -> None:
+    class Client:
+        started = False
+
+        async def get_status(self, instance_id: str) -> object:
+            assert instance_id == "instance-1"
+            return SimpleNamespace(runtime_status=None)
+
+        async def start_new(self, **kwargs: object) -> str:
+            self.started = True
+            return str(kwargs["instance_id"])
+
+    client = Client()
+    token = function_app.durable_client.set(client)  # type: ignore[arg-type]
+    try:
+        result = await function_app.start_orchestration(
+            "orchestrator",
+            "instance-1",
+            {"value": "safe"},
+        )
+    finally:
+        function_app.durable_client.reset(token)
+
+    assert result == "instance-1"
+    assert client.started is True
