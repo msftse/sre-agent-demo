@@ -60,7 +60,7 @@ The skill stops after opening the PR and returns `Awaiting human PR review; no m
 
 ## RCA Contract
 
-After a successful human merge and recovery deployment, the skill renders the bundled canonical template. It preserves every heading, uses UTC timestamps, replaces unsupported values with `Not observed` or `Not applicable`, and publishes the same rendered body to the PR and Teams. Status is `Resolved` only when alert, release, workload, FIELD20 checkout, telemetry, and human-decision evidence all pass; otherwise the skill posts a concise deferred update and withholds the final RCA.
+After a successful human merge and recovery deployment, the skill waits for the bridge's trusted alert-resolved continuation. It then independently rechecks alert, release, workload, FIELD20 checkout, telemetry, and human-decision evidence. The signed successful workflow is proof that the checked-in recovery Helm test passed HTTP 200 and exact totals. Only after every check passes does the skill render the bundled canonical template and publish the identical body once to the existing PR and Teams incident thread. Otherwise it posts one concise deferred update and withholds the final RCA.
 
 ## Validation
 

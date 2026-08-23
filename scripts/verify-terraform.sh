@@ -192,6 +192,10 @@ jq -e '
     and (.app_settings.TEAMS_PERSONAL_CHAT_ACCESS_MODE as $mode | ["allowed_user", "tenant"] | index($mode))
     and ((.app_settings.TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR | tonumber) >= 1)
     and ((.app_settings.TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR | tonumber) <= 100)
+    and (.app_settings.AZURE_SUBSCRIPTION_ID | type == "string" and length > 0)
+    and (.app_settings.ALERT_RESOLUTION_POLL_SECONDS == "30")
+    and (.app_settings.ALERT_RESOLUTION_TIMEOUT_MINUTES == "30")
+    and (.app_settings.ALERT_RESOLUTION_RETRY_MINUTES == "10")
 ' "$FULL_JSON" >/dev/null
 
 jq -e '
@@ -208,6 +212,7 @@ jq -e '
     .resource_changes[]
     | select(.module_address == "module.teams_bridge[0]")
     | select(.type == "azurerm_role_assignment")
+    | select(.change.after.role_definition_name != null)
     | .change.after.role_definition_name
   ] as $roles
   | [
@@ -228,6 +233,25 @@ jq -e '
       or . == "Storage Queue Data Contributor"
       or . == "Storage Table Data Contributor"
     ))
+' "$FULL_JSON" >/dev/null
+
+jq -e '
+  .resource_changes[]
+  | select(.address == "module.teams_bridge[0].azurerm_role_definition.alert_reader")
+  | .change.after
+  | .scope == ("/subscriptions/" + env.TF_VAR_subscription_id)
+    and .assignable_scopes == [("/subscriptions/" + env.TF_VAR_subscription_id)]
+    and .permissions[0].actions == ["Microsoft.AlertsManagement/alerts/read"]
+    and .permissions[0].not_actions == []
+' "$FULL_JSON" >/dev/null
+
+jq -e '
+  .resource_changes[]
+  | select(.address == "module.teams_bridge[0].azurerm_role_assignment.alert_reader")
+  | .change.after
+  | .scope == ("/subscriptions/" + env.TF_VAR_subscription_id)
+    and .principal_type == "ServicePrincipal"
+    and .skip_service_principal_aad_check == true
 ' "$FULL_JSON" >/dev/null
 
 jq -e '

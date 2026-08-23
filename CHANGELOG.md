@@ -2,6 +2,15 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-23 - Add automatic alert-resolution RCA continuation
+
+- Added Durable processing for signed terminal GitHub continuation events so transient workflow/deployment noise is ignored and downstream Teams/SRE retries no longer block webhook acceptance.
+- Added a deterministic alert monitor per recovery merge SHA: poll every 30 seconds for 30 minutes, extend once for 10 minutes, then post one manual-check Teams message if unresolved.
+- Added atomic alert-monitor ownership keyed by merge SHA so same-delivery retries continue but separate terminal deliveries cannot start duplicate RCA monitors.
+- Added a strict AlertsManagement client and a subscription-scoped custom role containing only `Microsoft.AlertsManagement/alerts/read` for the existing bridge identity.
+- Changed finalization so successful deployment is only a milestone; alert state `Resolved` wakes the existing SRE thread, which independently verifies recovery and publishes one identical canonical RCA to the existing Teams incident thread and existing remediation PR.
+- Added deterministic alert, webhook, timeout, SRE-finalization, RBAC, and exact Function-registration tests while preserving the human-only merge/deployment boundary.
+
 ### 2026-08-20 - Expand first-use fork and workflow guidance
 
 - Documented that fresh forks inherit both tracked GitHub Actions workflow files but not Actions settings, environments, secrets, branch protection, webhooks, Azure resources, Teams installation, run history, or upstream PR records.

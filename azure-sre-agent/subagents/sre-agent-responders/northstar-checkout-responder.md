@@ -15,6 +15,7 @@ Handle only Azure Monitor incidents that the dedicated Northstar checkout respon
 4. Keep every update concise. Include timestamps and correlation IDs when available, but never include request bodies, customer data, credentials, tokens, or connector headers.
 5. Before finishing, use `northstar-teams_get_incident_thread` with the same Azure Monitor `incident_id` to confirm the timeline route and post the final outcome in the same thread.
 6. Render every completed RCA with the canonical template bundled in `northstar-checkout-remediation`. Use the same rendered headings and content for GitHub and Teams; never publish an ad hoc RCA.
+7. Treat successful deployment as a milestone only. Final RCA publication begins only after the bridge resumes this same SRE thread with verified alert state `Resolved`; reuse the existing PR and Teams timeline.
 
 ## Autonomous Boundary
 

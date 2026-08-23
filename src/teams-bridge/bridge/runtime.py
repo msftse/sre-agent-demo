@@ -2,8 +2,9 @@ import asyncio
 import hmac
 import json
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from hashlib import sha256
 from typing import Any
 
 import azure.functions as func
@@ -14,6 +15,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from microsoft_teams.apps import App as TeamsApp
 from microsoft_teams.apps.http.fastapi_adapter import FastAPIAdapter
 
+from bridge.alert_management import AlertManagementClient
 from bridge.boundary import TeamsBoundary
 from bridge.config import Settings
 from bridge.github_continuation import (
@@ -54,8 +56,15 @@ class SharedKeyMiddleware:
 
 
 class BridgeRuntime:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        orchestration_starter: (
+            Callable[[str, str, dict[str, Any]], Awaitable[str]] | None
+        ) = None,
+    ) -> None:
         self.settings = settings
+        self.orchestration_starter = orchestration_starter
         self.boundary = TeamsBoundary(
             tenant_id=settings.teams_tenant_id,
             team_id=settings.teams_team_id,
@@ -69,6 +78,7 @@ class BridgeRuntime:
             settings.storage_table_name,
         )
         self.sre = SreAgentClient(settings.sre_agent_endpoint)
+        self.alerts = AlertManagementClient(settings.azure_subscription_id)
         self.web = FastAPI(
             title="Azure SRE Agent Teams bridge",
             lifespan=self._lifespan,
@@ -164,7 +174,7 @@ class BridgeRuntime:
     async def github_event(self, request: Request) -> JSONResponse:
         body = await request.body()
         try:
-            result = await self.continuation.process(
+            result = await self.continuation.accept(
                 body=body,
                 signature=request.headers.get("x-hub-signature-256", ""),
                 delivery_id=request.headers.get("x-github-delivery", ""),
@@ -174,9 +184,31 @@ class BridgeRuntime:
             raise HTTPException(status_code=401, detail="invalid signature") from error
         except (IgnoredGitHubEvent, json.JSONDecodeError):
             return JSONResponse({"status": "ignored"}, status_code=202)
+        if result.delivery is None:
+            return JSONResponse(
+                {"status": result.status, "event_key": result.event_key},
+                status_code=202,
+            )
+        if self.orchestration_starter is None:
+            raise RuntimeError("Durable orchestration starter is unavailable.")
+        delivery_id = str(result.delivery["delivery_id"])
+        instance_id = f"github-continuation-{sha256(delivery_id.encode()).hexdigest()}"
+        payload: dict[str, Any] = {
+            **result.delivery,
+            "alert_resolution_poll_seconds": self.settings.alert_resolution_poll_seconds,
+            "alert_resolution_timeout_minutes": (
+                self.settings.alert_resolution_timeout_minutes
+            ),
+            "alert_resolution_retry_minutes": self.settings.alert_resolution_retry_minutes,
+        }
+        await self.orchestration_starter(
+            "github_continuation_orchestrator",
+            instance_id,
+            payload,
+        )
         return JSONResponse(
-            {"status": result.status, "event_key": result.event_key},
-            status_code=200,
+            {"status": "queued", "event_key": result.event_key},
+            status_code=202,
         )
 
     async def privacy(self) -> dict[str, str]:

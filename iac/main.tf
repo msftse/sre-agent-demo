@@ -196,6 +196,7 @@ module "teams_bridge" {
   sre_agent_endpoint                     = module.sre_agent[0].endpoint
   sre_agent_id                           = module.sre_agent[0].id
   storage_account_name                   = local.teams_bridge_storage_name
+  subscription_id                        = var.subscription_id
   tags                                   = local.common_tags
   teams_channel_id                       = var.teams_channel_id
   teams_personal_chat_access_mode        = var.teams_personal_chat_access_mode

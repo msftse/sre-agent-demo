@@ -226,7 +226,7 @@ When helping a colleague use a fresh fork, treat [docs/colleague-setup.md](docs/
 7. **Deliver Demo to AKS** owns baseline deployment, PR validation, and automatic recovery after a human merges a same-repository `sre/field20-checkout-*` PR. The SRE Agent must never merge or dispatch it.
 8. Stop on any failed verifier. Never print or request PAT, bot, webhook, MCP, or connection-string values through chat. Secret values belong only in GitHub Secrets or Key Vault.
 9. Before **Start Demo**, prove a healthy baseline, disabled traffic, no open PR, no active delivery, Teams readiness, all control-plane verifiers, and `incident-demo` protection.
-10. After recovery, wait for alert resolution and a completed RCA before another run. A deferred RCA is not a successful end state. GitHub events are the only current continuation sources, so Azure Monitor recovery does not automatically wake the SRE thread; use the portal to continue the same thread after confirming alert resolution and recovery evidence.
+10. After recovery workflow success, the bridge monitors the correlated alert for 30 minutes plus one 10-minute extension. `Resolved` wakes the same SRE thread; the SRE Agent independently verifies and publishes one canonical RCA to the existing Teams thread and PR. A timeout/manual-check message is not a successful end state.
 
 ## Application Contract
 
@@ -401,11 +401,14 @@ When helping a colleague use a fresh fork, treat [docs/colleague-setup.md](docs/
 
 - Autonomous Teams root creation resolves the Azure incident ID to exactly one canonical SRE chat thread, persists both IDs, and returns `sre_thread_id` for the PR continuation marker.
 - A public `/api/github/events` route validates GitHub HMAC signatures from the Key Vault-backed `github-webhook-secret`; unsigned requests return 401.
-- One repository hook exposes exactly `pull_request`, `workflow_run`, and `deployment_status`; a live GitHub-signed ping returns 202.
+- One repository hook exposes exactly `pull_request`, `workflow_run`, and `deployment_status`; a live GitHub-signed ping returns 202. Transient workflow and deployment-status events are accepted but do not wake SRE.
 - Public-repository PR events require the same repository on both sides, base `main`, an `sre/field20-checkout-*` head branch, and exactly one SRE thread marker.
 - Workflow/deployment events require the exact delivery workflow, manual dispatch on `main`, `demo` environment, and a previously correlated merge SHA.
 - Table Storage persists PR and merge-SHA correlation plus delivery IDs with independent Teams/SRE completion flags for retry-safe deduplication.
-- The Function UAMI appends verified events to the original SRE thread and replies in the original Teams thread; successful delivery instructs the agent to verify release/health/FIELD20/telemetry/alert recovery and publish the final PR/Teams RCA.
+- An `alert-monitor` ownership record keyed by merge SHA allows retries of the same delivery while preventing another terminal delivery from starting a duplicate monitor.
+- Terminal events are queued through Durable processing so downstream Teams/SRE failures do not escape the webhook request as HTTP 500. Per-delivery destination flags retain retry-safe partial progress.
+- Successful recovery workflow completion starts one deterministic monitor per merge SHA. The Function UAMI uses a subscription-scoped custom role containing only `Microsoft.AlertsManagement/alerts/read`, polls for 30+10 minutes, and wakes SRE only after `Resolved`.
+- The Function never authors the RCA. The SRE Agent independently verifies recovery and publishes the identical canonical RCA once to the existing Teams thread and existing PR.
 - GitHub continuation added only `pull_request_read` and `add_issue_comment`; merge, review, mutation, dispatch, and deployment tools remain absent.
 - Function publishing is hardened to remove Core Tools' empty classic `AzureWebJobsStorage` override and restart before health checks, preserving managed-identity storage.
 - Thirty-one tests, live hook/security checks, and a 60-resource no-drift plan passed; incident traffic remains disabled with zero alerts and open PRs.

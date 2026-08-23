@@ -54,6 +54,11 @@ variable "resource_group_id" {
   type        = string
 }
 
+variable "subscription_id" {
+  description = "Azure subscription ID containing alerts monitored by the bridge."
+  type        = string
+}
+
 variable "bot_client_id" {
   description = "Client ID of the corporate-tenant single-tenant bot application."
   type        = string

@@ -34,6 +34,13 @@ grep -F 'sre/field20-checkout-' "$ROOT_DIR/src/teams-bridge/bridge/github_events
 grep -F 'pull_request_target' "$ROOT_DIR/src/teams-bridge/bridge/github_events.py" >/dev/null
 grep -F 'workflow_dispatch' "$ROOT_DIR/src/teams-bridge/bridge/github_events.py" >/dev/null
 grep -F 'github-delivery' "$ROOT_DIR/src/teams-bridge/bridge/state.py" >/dev/null
+grep -F 'github_continuation_orchestrator' "$ROOT_DIR/src/teams-bridge/function_app.py" >/dev/null
+grep -F 'alert_resolution_orchestrator' "$ROOT_DIR/src/teams-bridge/function_app.py" >/dev/null
+grep -F 'poll_alert_status' "$ROOT_DIR/src/teams-bridge/function_app.py" >/dev/null
+grep -F 'wake_sre_for_final_rca' "$ROOT_DIR/src/teams-bridge/function_app.py" >/dev/null
+grep -F 'Microsoft.AlertsManagement/alerts/read' "$ROOT_DIR/iac/modules/teams-bridge/main.tf" >/dev/null
+grep -F 'event.action != "completed"' "$ROOT_DIR/src/teams-bridge/bridge/github_continuation.py" >/dev/null
+grep -F 'event.event_type == "deployment_status"' "$ROOT_DIR/src/teams-bridge/bridge/github_continuation.py" >/dev/null
 grep -F '/api/v1/threads/{thread_id}/messages' "$ROOT_DIR/src/teams-bridge/bridge/sre_client.py" >/dev/null
 grep -F 'deploy_sha:' "$DELIVERY_WORKFLOW" >/dev/null
 grep -F "git merge-base --is-ancestor \"\$DEPLOY_SHA\" origin/main" "$DELIVERY_WORKFLOW" >/dev/null

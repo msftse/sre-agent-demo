@@ -19,6 +19,7 @@ def test_from_environment_requires_github_repository(
         "SRE_AGENT_ENDPOINT": "https://agent.example",
         "MCP_SHARED_KEY": "mcp-shared-key",
         "GITHUB_WEBHOOK_SECRET": "webhook-secret",
+        "AZURE_SUBSCRIPTION_ID": "00000000-0000-0000-0000-000000000006",
     }
     for key, value in env.items():
         monkeypatch.setenv(key, value)
@@ -45,9 +46,13 @@ def test_parses_personal_chat_policy(monkeypatch: pytest.MonkeyPatch) -> None:
         "MCP_SHARED_KEY": "mcp-key",
         "GITHUB_WEBHOOK_SECRET": "webhook",
         "GITHUB_REPOSITORY": "owner/repository",
+        "AZURE_SUBSCRIPTION_ID": "subscription",
         "TEAMS_PERSONAL_CHAT_ENABLED": "true",
         "TEAMS_PERSONAL_CHAT_ACCESS_MODE": "tenant",
         "TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR": "12",
+        "ALERT_RESOLUTION_POLL_SECONDS": "45",
+        "ALERT_RESOLUTION_TIMEOUT_MINUTES": "35",
+        "ALERT_RESOLUTION_RETRY_MINUTES": "15",
     }
     for key, value in env.items():
         monkeypatch.setenv(key, value)
@@ -57,6 +62,9 @@ def test_parses_personal_chat_policy(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.teams_personal_chat_enabled is True
     assert settings.teams_personal_chat_access_mode == "tenant"
     assert settings.teams_personal_chat_turns_per_hour == 12
+    assert settings.alert_resolution_poll_seconds == 45
+    assert settings.alert_resolution_timeout_minutes == 35
+    assert settings.alert_resolution_retry_minutes == 15
 
 
 @pytest.mark.parametrize(
@@ -65,6 +73,9 @@ def test_parses_personal_chat_policy(monkeypatch: pytest.MonkeyPatch) -> None:
         ("TEAMS_PERSONAL_CHAT_ENABLED", "yes", "must be true or false"),
         ("TEAMS_PERSONAL_CHAT_ACCESS_MODE", "everyone", "allowed_user or tenant"),
         ("TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR", "0", "between 1 and 100"),
+        ("ALERT_RESOLUTION_POLL_SECONDS", "5", "between 10 and 300"),
+        ("ALERT_RESOLUTION_TIMEOUT_MINUTES", "121", "between 5 and 120"),
+        ("ALERT_RESOLUTION_RETRY_MINUTES", "0", "between 1 and 60"),
     ],
 )
 def test_rejects_invalid_personal_chat_policy(

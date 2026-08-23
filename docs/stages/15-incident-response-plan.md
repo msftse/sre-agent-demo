@@ -29,7 +29,7 @@ Material milestones use replies in the same thread:
 4. Pull-request URL and human approval status.
 5. Failure/blocker or completed RCA.
 
-Completed RCAs use the canonical template bundled by `northstar-checkout-remediation`. GitHub and Teams receive the same rendered headings and evidence; incomplete alert or recovery evidence produces a deferred status instead of an ad hoc success summary.
+Completed RCAs use the canonical template bundled by `northstar-checkout-remediation`. GitHub and Teams receive the same rendered headings and evidence. Successful deployment is only a milestone; finalization starts after the bridge resumes the same SRE thread with verified alert state `Resolved`. Incomplete final evidence produces one deferred status instead of an ad hoc success summary.
 
 If the initial Teams post fails after one retry, the responder may continue read-only evidence collection but must not create a branch, commit, or PR. It reports the notification-boundary failure and stops.
 

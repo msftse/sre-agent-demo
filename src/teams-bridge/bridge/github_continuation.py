@@ -41,6 +41,8 @@ class ContinuationState(Protocol):
 
     async def get_head_correlation(self, head_sha: str) -> dict[str, Any]: ...
 
+    async def claim_alert_monitor(self, merge_sha: str, delivery_id: str) -> bool: ...
+
 
 class SreContinuation(Protocol):
     async def send_message(self, *, thread_id: str, text: str) -> None: ...
@@ -58,6 +60,16 @@ class InvalidGitHubSignature(ValueError):
 class ContinuationResult:
     status: str
     event_key: str = ""
+    delivery: dict[str, str | int] | None = None
+    start_alert_monitor: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "event_key": self.event_key,
+            "delivery": self.delivery,
+            "start_alert_monitor": self.start_alert_monitor,
+        }
 
 
 class GitHubContinuationService:
@@ -76,7 +88,7 @@ class GitHubContinuationService:
         self.sre = sre
         self.teams = teams
 
-    async def process(
+    async def accept(
         self,
         *,
         body: bytes,
@@ -97,12 +109,10 @@ class GitHubContinuationService:
             expected_repository=self.expected_repository,
             correlation=correlation,
         )
-        claimed = await self.state.claim_delivery(delivery_id)
-        delivery = {} if claimed else await self.state.get_delivery(delivery_id)
-        teams_sent = bool(delivery.get("TeamsSent", False))
-        sre_sent = bool(delivery.get("SreSent", False))
-        if teams_sent and sre_sent:
-            return ContinuationResult(status="duplicate", event_key=event.event_key)
+        if event.event_type == "workflow_run" and event.action != "completed":
+            return ContinuationResult(status="ignored", event_key=event.event_key)
+        if event.event_type == "deployment_status":
+            return ContinuationResult(status="ignored", event_key=event.event_key)
 
         if event.event_type == "pull_request":
             await self.state.save_pull_request(
@@ -113,17 +123,82 @@ class GitHubContinuationService:
                 head_sha=event.head_sha,
                 merge_sha=event.merge_sha,
             )
+        return ContinuationResult(
+            status="accepted",
+            event_key=event.event_key,
+            delivery=event.to_dict(),
+        )
+
+    async def deliver(self, delivery_payload: dict[str, Any]) -> ContinuationResult:
+        event = ContinuationEvent.from_dict(delivery_payload)
+        start_alert_monitor = False
+        if event.event_type == "pull_request":
+            await self.state.save_pull_request(
+                thread_id=event.sre_thread_id,
+                teams_thread_id=event.teams_thread_id,
+                pr_number=event.pr_number,
+                pr_url=event.pr_url,
+                head_sha=event.head_sha,
+                merge_sha=event.merge_sha,
+            )
+        claimed = await self.state.claim_delivery(event.delivery_id)
+        delivery = {} if claimed else await self.state.get_delivery(event.delivery_id)
+        teams_sent = bool(delivery.get("TeamsSent", False))
+        sre_sent = bool(delivery.get("SreSent", False))
+        if teams_sent and sre_sent:
+            if _starts_alert_monitor(event):
+                start_alert_monitor = await self.state.claim_alert_monitor(
+                    event.merge_sha,
+                    event.delivery_id,
+                )
+            return ContinuationResult(
+                status="duplicate",
+                event_key=event.event_key,
+                delivery=event.to_dict(),
+                start_alert_monitor=start_alert_monitor,
+            )
+
         teams_message, sre_message = _messages(event)
         if not teams_sent:
-            await self.teams.reply_update(event.teams_thread_id, teams_message)
-            await self.state.mark_delivery(delivery_id, teams_sent=True)
+            if teams_message:
+                await self.teams.reply_update(event.teams_thread_id, teams_message)
+            await self.state.mark_delivery(event.delivery_id, teams_sent=True)
         if not sre_sent:
-            await self.sre.send_message(
-                thread_id=event.sre_thread_id,
-                text=sre_message,
+            if sre_message:
+                await self.sre.send_message(
+                    thread_id=event.sre_thread_id,
+                    text=sre_message,
+                )
+            await self.state.mark_delivery(event.delivery_id, sre_sent=True)
+        if _starts_alert_monitor(event):
+            start_alert_monitor = await self.state.claim_alert_monitor(
+                event.merge_sha,
+                event.delivery_id,
             )
-            await self.state.mark_delivery(delivery_id, sre_sent=True)
-        return ContinuationResult(status="processed", event_key=event.event_key)
+        return ContinuationResult(
+            status="processed",
+            event_key=event.event_key,
+            delivery=event.to_dict(),
+            start_alert_monitor=start_alert_monitor,
+        )
+
+    async def process(
+        self,
+        *,
+        body: bytes,
+        signature: str,
+        delivery_id: str,
+        event_type: str,
+    ) -> ContinuationResult:
+        accepted = await self.accept(
+            body=body,
+            signature=signature,
+            delivery_id=delivery_id,
+            event_type=event_type,
+        )
+        if accepted.delivery is None:
+            return accepted
+        return await self.deliver(accepted.delivery)
 
     def _require_signature(self, body: bytes, signature: str) -> None:
         expected = "sha256=" + hmac.new(self.secret, body, hashlib.sha256).hexdigest()
@@ -172,9 +247,6 @@ def _messages(event: ContinuationEvent) -> tuple[str, str]:
     elif event.event_type == "pull_request":
         milestone = f"Pull request #{event.pr_number} was closed without merge."
         boundary = "Remediation rejected; no deployment will be performed."
-    elif event.event_type == "deployment_status":
-        milestone = f"Protected demo deployment status: {event.conclusion}."
-        boundary = f"Release SHA: {event.merge_sha}."
     else:
         milestone = f"Delivery workflow {event.action}: {event.conclusion or 'pending'}."
         boundary = f"Release SHA: {event.merge_sha}."
@@ -186,10 +258,14 @@ def _messages(event: ContinuationEvent) -> tuple[str, str]:
         "The Teams timeline already contains this milestone. "
         "Continue the existing investigation without merging, approving, or dispatching a workflow."
     )
-    if event.event_type == "workflow_run" and event.action == "completed":
-        sre_message += (
-            " If the conclusion is success, verify the deployed SHA, workload health, "
-            "FIELD20 checkout, telemetry, and alert recovery, then publish the final RCA "
-            "to the existing Teams thread and pull request."
-        )
+    if event.event_type == "workflow_run" and event.conclusion == "success":
+        sre_message = ""
     return teams_message, sre_message
+
+
+def _starts_alert_monitor(event: ContinuationEvent) -> bool:
+    return (
+        event.event_type == "workflow_run"
+        and event.action == "completed"
+        and event.conclusion == "success"
+    )

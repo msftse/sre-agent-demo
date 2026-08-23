@@ -350,3 +350,16 @@ class BridgeState:
         if sre_sent is not None:
             values["SreSent"] = sre_sent
         await self.table.update_entity(values, mode=UpdateMode.MERGE)
+
+    async def claim_alert_monitor(self, merge_sha: str, delivery_id: str) -> bool:
+        entity = {
+            "PartitionKey": "alert-monitor",
+            "RowKey": merge_sha,
+            "DeliveryId": delivery_id,
+        }
+        try:
+            await self.table.create_entity(entity)
+            return True
+        except ResourceExistsError:
+            existing = await self.table.get_entity("alert-monitor", merge_sha)
+            return str(existing.get("DeliveryId", "")) == delivery_id
