@@ -96,12 +96,12 @@ def test_checkout_reprices_items_and_applies_free_shipping() -> None:
     }
 
 
-def test_checkout_applies_field20_with_free_shipping() -> None:
+def test_checkout_applies_field20_discount() -> None:
     with TestClient(app) as client:
         response = client.post(
             "/api/checkout",
             json={
-                "email": "field20@example.com",
+                "email": "explorer@example.com",
                 "discount_code": "FIELD20",
                 "items": [{"product_id": "field-pack-28", "quantity": 2}],
             },
