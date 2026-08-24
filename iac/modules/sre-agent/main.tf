@@ -98,6 +98,29 @@ resource "azurerm_role_assignment" "aks_rbac_reader" {
   skip_service_principal_aad_check = true
 }
 
+resource "azurerm_role_definition" "aks_node_reader" {
+  name        = "${var.name}-aks-node-reader"
+  scope       = var.aks_id
+  description = "Read AKS Node objects for SRE infrastructure investigation."
+
+  permissions {
+    actions          = []
+    not_actions      = []
+    data_actions     = ["Microsoft.ContainerService/managedClusters/nodes/read"]
+    not_data_actions = []
+  }
+
+  assignable_scopes = [var.aks_id]
+}
+
+resource "azurerm_role_assignment" "aks_node_reader" {
+  scope                            = var.aks_id
+  role_definition_id               = azurerm_role_definition.aks_node_reader.role_definition_resource_id
+  principal_id                     = azurerm_user_assigned_identity.this.principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
 resource "azurerm_role_assignment" "operator_administrator" {
   count = var.operator_object_id == null ? 0 : 1
 

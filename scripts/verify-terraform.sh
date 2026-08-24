@@ -62,6 +62,15 @@ if grep -R 'resource "azurerm_key_vault_secret"' "$IAC_DIR" >/dev/null; then
   printf '%s\n' 'Terraform must not store bridge secret values in state.' >&2
   exit 1
 fi
+grep -A 25 -F 'resource "azurerm_role_definition" "aks_node_reader"' \
+  "$IAC_DIR/modules/sre-agent/main.tf" \
+  | grep -F 'scope       = var.aks_id' >/dev/null
+grep -A 25 -F 'resource "azurerm_role_definition" "aks_node_reader"' \
+  "$IAC_DIR/modules/sre-agent/main.tf" \
+  | grep -F 'assignable_scopes = [var.aks_id]' >/dev/null
+grep -A 10 -F 'resource "azurerm_role_assignment" "aks_node_reader"' \
+  "$IAC_DIR/modules/sre-agent/main.tf" \
+  | grep -F 'scope                            = var.aks_id' >/dev/null
 
 [[ -n "$EXPECTED_SUBSCRIPTION" ]] || {
   printf '%s\n' 'Set TF_VAR_subscription_id before running Terraform verification.' >&2
@@ -212,7 +221,7 @@ jq -e '
     .resource_changes[]
     | select(.module_address == "module.teams_bridge[0]")
     | select(.type == "azurerm_role_assignment")
-    | select(.change.after.role_definition_name != null)
+    | select(.name != "alert_reader")
     | .change.after.role_definition_name
   ] as $roles
   | [
@@ -259,6 +268,7 @@ jq -e '
     .resource_changes[]
     | select(.module_address == "module.sre_agent[0]")
     | select(.type == "azurerm_role_assignment")
+    | select(.name != "aks_node_reader")
     | .change.after.role_definition_name
   ] as $roles
   | [
@@ -281,6 +291,31 @@ jq -e '
     ))
 ' "$FULL_JSON" >/dev/null
 
+jq -e '
+  .resource_changes[]
+  | select(.address == "module.sre_agent[0].azurerm_role_definition.aks_node_reader")
+  | .change
+  | .after.permissions[0].actions == []
+    and .after.permissions[0].not_actions == []
+    and .after.permissions[0].data_actions == ["Microsoft.ContainerService/managedClusters/nodes/read"]
+    and (.after.permissions[0].not_data_actions // []) == []
+    and (
+      (.after.scope == null and .after.assignable_scopes == null)
+      or (
+        (.after.scope | type) == "string"
+        and .after.assignable_scopes == [.after.scope]
+      )
+    )
+' "$FULL_JSON" >/dev/null
+
+jq -e '
+  .resource_changes[]
+  | select(.address == "module.sre_agent[0].azurerm_role_assignment.aks_node_reader")
+  | .change.after
+  | .principal_type == "ServicePrincipal"
+    and .skip_service_principal_aad_check == true
+' "$FULL_JSON" >/dev/null
+
 core_resources=$(jq '[.resource_changes[] | select(.change.actions != ["no-op"])] | length' "$CORE_JSON")
 full_resources=$(jq '[.resource_changes[] | select(.change.actions != ["no-op"])] | length' "$FULL_JSON")
 observability_resources=$(jq '[.resource_changes[] | select(.module_address == "module.observability[0]")] | length' "$FULL_JSON")
@@ -290,7 +325,7 @@ teams_bridge_resources=$(jq '[.resource_changes[] | select(.module_address == "m
 
 [[ "$observability_resources" == "5" ]]
 [[ "$aks_monitoring_resources" == "9" ]]
-[[ "$sre_agent_resources" == "9" ]]
+[[ "$sre_agent_resources" == "11" ]]
 (( teams_bridge_resources >= 18 && teams_bridge_resources <= 19 ))
 (( full_resources >= core_resources ))
 

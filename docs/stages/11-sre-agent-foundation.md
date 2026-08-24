@@ -41,8 +41,9 @@ The UAMI receives exactly:
 | Demo resource group | Log Analytics Reader |
 | AKS cluster | Azure Kubernetes Service Cluster User Role |
 | AKS cluster | Azure Kubernetes Service RBAC Reader |
+| AKS cluster | Custom role: `Microsoft.ContainerService/managedClusters/nodes/read` only |
 
-Subscription-scoped Monitoring Contributor is required by the native Azure Monitor scanner to acknowledge and synchronize alert lifecycle state. The identity has no Contributor, Owner, AKS administrator, or general Azure mutation role. The configured operator receives SRE Agent Administrator on the agent resource only.
+Subscription-scoped Monitoring Contributor is required by the native Azure Monitor scanner to acknowledge and synchronize alert lifecycle state. Cluster User retrieves user kubeconfig, and RBAC Reader covers namespace-scoped workload objects and node metrics. RBAC Reader does not include the core cluster-scoped Node data action used by `kubectl get nodes`, so the custom role adds exactly that read and nothing else. The identity has no Contributor, Owner, AKS administrator, Kubernetes write, secret-read, exec, RBAC-mutation, or general Azure mutation role. The configured operator receives SRE Agent Administrator on the agent resource only.
 
 ## Native Alert Discovery
 
@@ -53,6 +54,8 @@ Direct ARM creation connected `AzMonitor` without creating a quickstart response
 ## Deployment Note
 
 The first agent PUT returned `InvalidIdentity` because the initial payload omitted `knowledgeGraphConfiguration.identity`. Live 2026 resource inspection confirmed that Azure SRE Agent uses a UAMI resource ID for action and knowledge access. Terraform was corrected to create and attach that UAMI before the agent, then a zero-destroy recovery plan completed successfully.
+
+A later live investigation showed an OBO permission card for `kubectl get nodes -o wide` even though Cluster User and RBAC Reader were assigned. Inspection of the live built-in role proved it contains `metrics.k8s.io/nodes/read` but not `managedClusters/nodes/read`. Terraform now supplies the missing read as a dedicated AKS-scoped custom role. Azure RBAC propagation can take several minutes; cancel any OBO card created before propagation and retry in the same thread rather than granting operator credentials.
 
 ## Verification
 
@@ -70,6 +73,8 @@ Checkout alert instances: 0
 AKS: backend 2/2, frontend 2/2, all four pods Ready
 Traffic generator: disabled
 ```
+
+The node-read correction was separately validated with Checkov `30 passed, 0 failed`, an exact two-create/zero-destroy plan, live role/assignment inspection, and a zero-change feature plan after apply. A fresh isolated SRE diagnostic then completed `kubectl get nodes -o wide`, returned managed-identity output, reported no error, and created no approval or OBO record.
 
 ## Outcome
 
