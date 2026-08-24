@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-24 - Qualify automatic RCA finalization end to end
+
+- Proved a fresh `Fired` to `Resolved` incident path: the human-merged remediation deployed successfully, one deterministic Durable monitor resumed the same SRE thread, and the SRE Agent reused the existing remediation PR and Teams incident thread.
+- Verified that the SRE Agent, not the Function, authored both final destinations and sent byte-identical 6,840-character RCA bodies; the monitor completed with status `finalized`.
+- Fixed two live-only Durable worker behaviors found during qualification: an empty SDK status object no longer suppresses a missing orchestration start, and GitHub delivery activities initialize the Teams SDK before proactive sends.
+- Added regression coverage for both worker behaviors and completed 134 bridge tests, Ruff, strict mypy, exact 15-Function registration, all continuation/security verifiers, required GitHub CI, and feature Terraform no-drift validation.
+- Preserved the governance boundary: Azure SRE Agent still cannot approve, merge, dispatch workflows, deploy, or perform general Azure writes; the alert-reader role contains only `Microsoft.AlertsManagement/alerts/read`.
+
 ### 2026-08-23 - Add automatic alert-resolution RCA continuation
 
 - Added Durable processing for signed terminal GitHub continuation events so transient workflow/deployment noise is ignored and downstream Teams/SRE retries no longer block webhook acceptance.

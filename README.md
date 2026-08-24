@@ -26,13 +26,13 @@ The project closes an incident from detection through verified recovery while pr
 4. **Propose:** the constrained remediation skill creates a branch, adds a regression test, applies the minimum fix, and opens a GitHub pull request.
 5. **Authorize:** a person reviews and merges the SRE remediation pull request. The validated merge automatically authorizes deployment to the main-only `demo` environment.
 6. **Deploy:** GitHub Actions exchanges an environment-bound OIDC token for short-lived Azure access, publishes immutable image digests, and deploys them to AKS with Helm.
-7. **Verify and close:** signed GitHub events resume the original investigation. The agent verifies the deployed SHA and digest, ready replicas, successful `FIELD20` checkout, signal recovery, and alert resolution before posting the final RCA to Teams and GitHub.
+7. **Verify and close:** a signed successful recovery event starts a bounded alert monitor. When the correlated alert reports `Resolved`, the bridge resumes the original investigation; the agent verifies the deployed SHA and digest, ready replicas, successful `FIELD20` checkout, and recovered signals before posting the same final RCA to the existing Teams thread and remediation PR.
 
 > **Human authorization boundary:** Azure SRE Agent can investigate and prepare a tested pull request, but it has no merge, review, workflow-dispatch, deployment, or Azure-write tool.
 
 ## Current Status
 
-Stages 1-18 are complete. Stage 17 proved the live alert, SRE investigation, Teams timeline, automatic remediation PR, rejection, reopen, user merge, protected recovery deployment, alert resolution, and final RCA. The Teams bridge now also supports complete multi-turn Azure SRE Agent answers in the fixed channel and isolated personal chats. Merge, review, workflow dispatch, and deployment tools remain unavailable to the agent. The application is healthy on the FIELD20 fix with traffic disabled. See the [Stage 17 rehearsal record](docs/stages/17-approval-rejection-rehearsal.md) and the user-owned Stage 18 [architecture proposal](docs/architecture/sre-agent-demo-architecture.html).
+Stages 1-18 are complete. Stage 17 proved the live alert, SRE investigation, Teams timeline, automatic remediation PR, rejection, reopen, user merge, protected recovery deployment, alert resolution, and final RCA. A later fresh qualification also proved the bounded automatic alert monitor from `Fired` to `Resolved`, same-thread SRE continuation, and byte-identical SRE-authored RCA delivery to the existing Teams incident thread and remediation PR. The Teams bridge supports complete multi-turn Azure SRE Agent answers in the fixed channel and isolated personal chats. Merge, review, workflow dispatch, deployment, and general Azure-write tools remain unavailable to the agent. The application is healthy on the FIELD20 fix with traffic disabled. See the [Stage 17 rehearsal record](docs/stages/17-approval-rejection-rehearsal.md), the [Stage 16 continuation design and qualification](docs/stages/16-continuation-loop.md), and the user-owned Stage 18 [architecture proposal](docs/architecture/sre-agent-demo-architecture.html).
 
 ## Quick Start: Run the Demo from Your Fork
 
@@ -696,6 +696,8 @@ See [docs/stages/15-incident-response-plan.md](docs/stages/15-incident-response-
 Stage 16 adds a signed GitHub webhook at the Teams bridge. Pull-request and terminal workflow events correlate through PR number and merge SHA to the original SRE thread and Teams root activity stored in Table Storage. Valid terminal events are accepted quickly and processed through Durable retries; transient workflow and redundant deployment-status events do not wake SRE.
 
 After a successful remediation workflow, a deterministic Durable monitor polls the exact Azure Monitor alert for 30 minutes plus one 10-minute extension. Only `Resolved` wakes the existing SRE thread for independent final verification. The SRE Agent, not the Function, renders the RCA and publishes the identical body to the existing Teams incident thread and remediation PR.
+
+The final live qualification exercised a fresh `Fired` to `Resolved` incident and completed the monitor as `finalized`. It confirmed that the same SRE thread, Teams incident thread, and remediation PR were reused and that both RCA payloads were byte-identical. Regression coverage also protects two Durable runtime details found during rehearsal: a missing orchestration can be represented by an SDK status object whose runtime status is empty, and a fresh delivery worker must initialize Teams before proactive sends.
 
 Public-repository callbacks are accepted only for same-repository `sre/field20-checkout-*` branches targeting `main`, the exact delivery workflow/environment, and exactly one hidden SRE thread marker. Delivery IDs and per-destination completion flags prevent duplicate Teams and SRE updates while allowing partial failures to resume safely.
 
