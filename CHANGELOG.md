@@ -2,6 +2,14 @@
 
 This append-only log records implementation changes by date.
 
+### 2026-08-24 - Allow read-only SRE Agent node inspection
+
+- Added an AKS-scoped custom role for the existing SRE Agent UAMI containing only `Microsoft.ContainerService/managedClusters/nodes/read`.
+- Preserved the built-in AKS Cluster User and RBAC Reader assignments; the custom role fills the specific cluster-scoped Node-object gap without granting Kubernetes writes, secrets, exec, RBAC mutation, or cluster administration.
+- Extended Terraform verification to require the exact custom data action, AKS scope, service-principal assignment, and updated SRE resource count while excluding separately validated custom roles from built-in-role allowlists.
+- Applied exactly one role definition and one role assignment, then verified the live principal, scope, permission set, Checkov `30 passed / 0 failed`, zero destroys, and feature no-drift.
+- Proved the correction in a fresh isolated SRE thread: `kubectl get nodes -o wide` completed with managed-identity output, no error, and no approval or OBO record.
+
 ### 2026-08-24 - Qualify automatic RCA finalization end to end
 
 - Proved a fresh `Fired` to `Resolved` incident path: the human-merged remediation deployed successfully, one deterministic Durable monitor resumed the same SRE thread, and the SRE Agent reused the existing remediation PR and Teams incident thread.
