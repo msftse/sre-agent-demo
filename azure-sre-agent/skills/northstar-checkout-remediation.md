@@ -65,9 +65,12 @@ Verified GitHub continuation events can resume this thread after the initial PR 
 2. If the PR closes without merge, post the rejected outcome to the existing Teams thread and stop. Do not deploy or create another remediation branch.
 3. If a human merges the PR, post the merge SHA to Teams and wait for the automatic main-only deployment. Never dispatch the workflow.
 4. For deployment failure or cancellation, preserve evidence, reply in Teams, and stop without claiming recovery.
-5. After a successful delivery-workflow callback, verify the deployed Git SHA and image digest, healthy replicas, successful valid FIELD20 checkout, correlated logs/traces, falling failure ratio, and alert recovery. The recovery-only Helm test uses operation ID `helm-field20-recovery-<deployed-git-sha>` and submits two `field-pack-28` items; correlate its HTTP 200 request/log with the `checkout.calculate` span attribute `checkout.discount_code == "FIELD20"`, then verify totals `29600 / 5920 / 0 / 23680`. Do not require or query customer email or request bodies.
-6. Render the canonical template under `## Bundled RCA Template` after every recovery check passes. Preserve every heading and heading order, replace every placeholder, and add the rendered RCA as one final PR comment with `add_issue_comment`. Do not modify the PR otherwise.
-7. Post the same rendered RCA to the existing Teams incident thread and return explicit resolution status. If any required recovery check is incomplete, post a concise deferred-status update instead of a final RCA.
+5. A successful delivery-workflow callback is a deployment milestone, not permission to perform final recovery verification. Wait for the trusted bridge continuation stating that the correlated Azure Monitor alert now reports `Resolved`. Do not post repeated deferred updates while the bridge is monitoring the normal recovery window.
+6. After the alert-resolved continuation, independently verify the same alert is `Resolved`, the deployed Git SHA and image digest match the human merge, replicas and probes are healthy, the valid FIELD20 checkout and correlated logs/traces succeed, the failure ratio recovered, and no post-rollout `discount_calculation_failed` event remains. The signed successful delivery workflow proves the checked-in recovery Helm test passed HTTP 200 and exact totals `29600 / 5920 / 0 / 23680`; correlate its `helm-field20-recovery-<deployed-git-sha>` operation with the `checkout.calculate` span attribute `checkout.discount_code == "FIELD20"`. Do not require or query customer email or request bodies.
+7. Reuse the existing remediation PR, canonical SRE thread, and Teams incident thread. Never create, reopen, move, or update another PR during finalization.
+8. Render the canonical template under `## Bundled RCA Template` only after every recovery check passes. Preserve every heading and heading order, replace every placeholder, and call `add_issue_comment` exactly once for the existing PR. Do not modify the PR otherwise.
+9. Call `reply_incident_thread` exactly once with the current incident ID and the identical rendered RCA body. Return explicit resolution status. If independent verification fails after the alert-resolved continuation, post one concise deferred-status update instead of a final RCA.
+10. If no alert-resolved continuation arrives within 45 minutes of the successful recovery deployment, do not create another PR or workflow. Report the missing continuation and require an operator to inspect Azure Monitor and continue this existing SRE thread manually.
 
 ## RCA Format Contract
 
@@ -76,6 +79,7 @@ Verified GitHub continuation events can resume this thread after the initial PR 
 - Preserve all template headings in their original order; never omit a section.
 - Replace unsupported values with `Not observed` or `Not applicable`; never invent evidence.
 - Use UTC ISO 8601 timestamps and the same rendered RCA body for GitHub and Teams.
+- Publish the canonical RCA exactly once to the existing PR and exactly once to the existing Teams incident thread.
 - Set status to `Resolved` only after alert, release, workload, checkout, telemetry, and human-decision evidence are complete. Otherwise use `Deferred` and identify the blocker.
 
 ## Required Evidence

@@ -74,19 +74,25 @@ grep -F '"\($connector)_" + .' "$ROOT_DIR/scripts/configure-sre-teams-connector.
     SRE_AGENT_ENDPOINT='https://agent.example' \
     MCP_SHARED_KEY='test-key' \
     GITHUB_WEBHOOK_SECRET='webhook-secret' \
+    AZURE_SUBSCRIPTION_ID='00000000-0000-0000-0000-000000000005' \
     uv run python -c '
 import function_app
 expected = {
+  "alert_resolution_orchestrator",
   "complete_sre_turn",
+  "deliver_github_continuation",
   "fail_sre_turn",
-    "http_entrypoint",
+  "github_continuation_orchestrator",
+  "http_entrypoint",
+  "poll_alert_status",
   "poll_sre_turn",
   "teams_chat_turn_orchestrator",
-    "teams_message_orchestrator",
-    "persist_teams_activity",
-    "start_sre_investigation",
-    "reply_with_sre_thread",
+  "teams_message_orchestrator",
+  "persist_teams_activity",
+  "start_sre_investigation",
+  "reply_with_sre_thread",
   "timeout_sre_turn",
+  "wake_sre_for_final_rca",
 }
 actual = {item.get_function_name() for item in function_app.app.get_functions()}
 assert actual == expected, actual

@@ -1,4 +1,5 @@
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -30,6 +31,37 @@ class ContinuationEvent:
     @property
     def event_key(self) -> str:
         return f"{self.event_type}:{self.action}:{self.delivery_id}"
+
+    def to_dict(self) -> dict[str, str | int]:
+        return {
+            "delivery_id": self.delivery_id,
+            "event_type": self.event_type,
+            "action": self.action,
+            "repository": self.repository,
+            "sre_thread_id": self.sre_thread_id,
+            "teams_thread_id": self.teams_thread_id,
+            "pr_number": self.pr_number,
+            "pr_url": self.pr_url,
+            "head_sha": self.head_sha,
+            "merge_sha": self.merge_sha,
+            "conclusion": self.conclusion,
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ContinuationEvent":
+        return cls(
+            delivery_id=str(value["delivery_id"]),
+            event_type=str(value["event_type"]),
+            action=str(value["action"]),
+            repository=str(value["repository"]),
+            sre_thread_id=str(value["sre_thread_id"]),
+            teams_thread_id=str(value["teams_thread_id"]),
+            pr_number=int(value["pr_number"]),
+            pr_url=str(value["pr_url"]),
+            head_sha=str(value["head_sha"]),
+            merge_sha=str(value["merge_sha"]),
+            conclusion=str(value["conclusion"]),
+        )
 
 
 def parse_github_event(

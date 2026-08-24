@@ -21,6 +21,7 @@ for name, value in {
     "MCP_SHARED_KEY": "mcp-key",
     "GITHUB_WEBHOOK_SECRET": "webhook",
     "GITHUB_REPOSITORY": "owner/repository",
+    "AZURE_SUBSCRIPTION_ID": "subscription-1",
 }.items():
     os.environ.setdefault(name, value)
 

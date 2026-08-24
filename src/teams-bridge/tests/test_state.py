@@ -152,6 +152,15 @@ async def test_enforces_personal_rate_window() -> None:
     )
 
 
+async def test_claims_one_alert_monitor_owner_per_merge() -> None:
+    bridge_state = state()
+
+    assert await bridge_state.claim_alert_monitor("merge-1", "delivery-1") is True
+    assert await bridge_state.claim_alert_monitor("merge-1", "delivery-1") is True
+    assert await bridge_state.claim_alert_monitor("merge-1", "delivery-2") is False
+    assert await bridge_state.claim_alert_monitor("merge-2", "delivery-2") is True
+
+
 async def test_retries_personal_rate_counter_after_etag_conflict() -> None:
     bridge_state = state()
     table = bridge_state.table

@@ -12,7 +12,7 @@ The endpoint:
 
 - Requires `X-Hub-Signature-256` and uses constant-time comparison.
 - Requires `X-GitHub-Delivery` for deduplication.
-- Accepts only `pull_request`, `workflow_run`, and `deployment_status` events.
+- Accepts only `pull_request`, `workflow_run`, and `deployment_status` events. Requested/in-progress workflow events and deployment-status events are acknowledged without downstream SRE work; terminal workflow completion is authoritative.
 - Returns HTTP 401 for unsigned or invalid signatures.
 - Returns HTTP 202 for valid but out-of-scope events such as GitHub `ping`.
 
@@ -39,8 +39,9 @@ The existing Azure Table Storage state now stores:
 | `pull-request` | PR number to SRE thread, PR URL, head SHA, and merge SHA |
 | `merge-sha` | Merge SHA to PR and SRE thread lookup |
 | `github-delivery` | GitHub delivery ID plus per-destination completion flags |
+| `alert-monitor` | Merge SHA to the one GitHub delivery allowed to start alert monitoring |
 
-Delivery processing is resumable. `TeamsSent` and `SreSent` are marked independently, so GitHub retries continue only the missing destination instead of duplicating a completed Teams or SRE message.
+Accepted terminal events are processed by `github_continuation_orchestrator` with Durable activity retries. `TeamsSent` and `SreSent` are marked independently, so retries continue only the missing destination instead of duplicating a completed Teams or SRE message.
 
 ## Continuation Flow
 
@@ -48,10 +49,11 @@ Delivery processing is resumable. `TeamsSent` and `SreSent` are marked independe
 2. PR opened/reopened events map the PR to the existing SRE and Teams threads and report the human-review wait state.
 3. PR closed without merge reports rejection and stops.
 4. Human merge stores the merge SHA and reports that protected deployment is still pending.
-5. Deployment and workflow events correlated by merge SHA report progress, failure, cancellation, or success.
-6. A successful workflow callback appends a verified message to the original SRE thread through `POST /api/v1/threads/{threadId}/messages`.
-7. The agent verifies deployed SHA/digest, replicas, FIELD20 checkout, logs/traces, failure ratio, and alert recovery.
-8. The agent adds one final RCA comment to the PR and posts the same resolution to the existing Teams thread.
+5. Terminal workflow completion correlated by merge SHA reports failure/cancellation or successful deployment. Transient and redundant deployment events do not wake SRE.
+6. Successful recovery starts one `alert_resolution_orchestrator` instance keyed by merge SHA. It polls the exact alert every 30 seconds for 30 minutes and extends once for 10 minutes.
+7. On `Resolved`, the bridge appends trusted merge, PR, workflow, and alert evidence to the original SRE thread. The checked-in Helm test's successful workflow result proves HTTP 200 and exact total assertions passed.
+8. The agent independently verifies deployed SHA/digest, replicas, FIELD20 telemetry, residual failures, and alert resolution.
+9. The agent adds one canonical RCA comment to the existing PR and posts the identical body to the existing Teams thread. If monitoring or finalization times out, Teams receives one manual-check message and no RCA is claimed.
 
 ## GitHub Tool Boundary
 
@@ -69,7 +71,7 @@ The `northstar-github` allowlist now contains seven tools:
 
 ## Deployment
 
-Terraform adds only a Key Vault reference named `GITHUB_WEBHOOK_SECRET`; it never manages the secret value. The reviewed plan applied one Function App update with zero resource additions or deletions.
+Terraform keeps the Key Vault reference named `GITHUB_WEBHOOK_SECRET` and adds a subscription-scoped custom alert-reader role containing only `Microsoft.AlertsManagement/alerts/read`. It never manages the webhook secret value.
 
 `scripts/deploy-teams-bridge.sh` now:
 
@@ -82,22 +84,28 @@ Terraform adds only a Key Vault reference named `GITHUB_WEBHOOK_SECRET`; it neve
 
 The first Stage 16 publish exposed this Core Tools behavior with `AccountKey` empty. Removing the injected key and restarting restored the host. The hardened deployment then completed end to end.
 
+Final live qualification exposed two additional worker-lifecycle details. The installed Durable SDK returns a non-null status object with an empty `runtime_status` for a missing instance, so orchestration startup must treat that result as not found. A GitHub delivery activity can also run on a fresh worker that has never initialized the Teams SDK through the HTTP path, so the activity initializes Teams before proactive delivery. Both cases have focused regression tests.
+
 ## Validation
 
 Validated outcomes:
 
 - Ruff and strict mypy passed.
-- Thirty-one bridge tests passed, including HMAC rejection, event boundaries, merge/rejection, deployment/workflow correlation, delivery deduplication, asymmetric retry resumption, and SRE message payloads.
+- 134 bridge tests passed, including HMAC rejection, event boundaries, merge/rejection, deployment/workflow correlation, delivery deduplication, asymmetric retry resumption, alert polling, 30+10-minute virtual timing, SRE finalization, missing-instance startup, fresh-worker Teams initialization, and SRE message payloads.
 - Unsigned live webhook request returned 401.
-- GitHub-signed `ping` returned 202.
+- GitHub-signed terminal redeliveries returned 202 and started one deterministic monitor for the correlated recovery merge SHA.
 - Exactly one active hook exposes exactly three event types.
 - Function uses a Key Vault secret reference and has no classic storage override.
-- Function host is healthy and all five Functions are registered.
-- Terraform reports 60 no-op resources and zero drift.
+- Function host is healthy and all 15 Functions are registered.
+- The feature-scoped Terraform plan reports zero changes. A separate refreshed full plan identified only 14 pre-existing tag updates outside the Teams bridge; they were not mixed into this feature.
 - GitHub connector has exactly seven allowed tools; forbidden merge/review/mutation tools remain absent.
 - Checkout skill has eleven tools and matches repository source.
-- Incident traffic is disabled, checkout alert count is zero, and no PR was created.
+- Required GitHub validation passed on exact qualified feature source, branch protection remained enforced, and auto-merge remained disabled during qualification.
+- An immediate-resolved rehearsal reused an existing SRE thread, Teams incident thread, and PR and delivered byte-identical 6,624-character RCA bodies.
+- A fresh end-to-end rehearsal fired the checkout alert, created a human-merged remediation PR, deployed recovery with traffic disabled, observed `Resolved`, and completed the deterministic monitor with status `finalized` on the same SRE thread.
+- In the fresh rehearsal, `add_issue_comment` and `reply_incident_thread` completed once against the existing destinations with byte-identical 6,840-character RCA bodies. The Function supplied trusted continuation evidence but did not author the RCA.
+- Incident traffic is disabled and no checkout alert remains fired.
 
 ## Outcome
 
-Stage 16 is complete. Verified GitHub decisions and delivery events can now resume the exact SRE investigation and Teams timeline without weakening the human remediation-merge boundary or main-only deployment restriction. Stage 17 can activate the deterministic incident and rehearse success and rejection paths end to end.
+Stage 16 is complete and qualified end to end. Verified GitHub decisions and delivery events resume the exact SRE investigation and Teams timeline without weakening the human remediation-merge boundary or main-only deployment restriction. Alert resolution now reliably completes the existing incident with an SRE-authored canonical RCA rather than requiring a second PR, thread, or Function-authored summary.

@@ -31,6 +31,8 @@ for clause in \
   'Mandatory Teams Timeline' \
   'incident_id` set to the current Azure Monitor incident ID' \
   'Render every completed RCA with the canonical template' \
+  'Final RCA publication begins only after the bridge resumes this same SRE thread with verified alert state `Resolved`' \
+  'reuse the existing PR and Teams timeline' \
   'do not create a branch, commit, or pull request' \
   'Never approve or merge a pull request' \
   'Awaiting human PR review; no merge or deployment performed.'; do

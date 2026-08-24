@@ -170,6 +170,27 @@ resource "azurerm_role_assignment" "sre_agent_user" {
   skip_service_principal_aad_check = true
 }
 
+resource "azurerm_role_definition" "alert_reader" {
+  name        = "${var.function_app_name}-alert-reader"
+  scope       = "/subscriptions/${var.subscription_id}"
+  description = "Read Azure Monitor alert status for SRE recovery finalization."
+
+  permissions {
+    actions     = ["Microsoft.AlertsManagement/alerts/read"]
+    not_actions = []
+  }
+
+  assignable_scopes = ["/subscriptions/${var.subscription_id}"]
+}
+
+resource "azurerm_role_assignment" "alert_reader" {
+  scope                            = "/subscriptions/${var.subscription_id}"
+  role_definition_id               = azurerm_role_definition.alert_reader.role_definition_resource_id
+  principal_id                     = azurerm_user_assigned_identity.this.principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
 resource "azurerm_function_app_flex_consumption" "this" {
   name                = var.function_app_name
   resource_group_name = var.resource_group_name
@@ -215,6 +236,10 @@ resource "azurerm_function_app_flex_consumption" "this" {
     STORAGE_ACCOUNT_NAME               = azapi_resource.storage_account.name
     STORAGE_TABLE_NAME                 = azapi_resource.state_table.name
     GITHUB_REPOSITORY                  = var.github_repository
+    AZURE_SUBSCRIPTION_ID              = var.subscription_id
+    ALERT_RESOLUTION_POLL_SECONDS      = "30"
+    ALERT_RESOLUTION_TIMEOUT_MINUTES   = "30"
+    ALERT_RESOLUTION_RETRY_MINUTES     = "10"
     SRE_AGENT_ENDPOINT                 = var.sre_agent_endpoint
     MCP_SHARED_KEY                     = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=mcp-shared-key)"
     GITHUB_WEBHOOK_SECRET              = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.this.name};SecretName=github-webhook-secret)"
@@ -238,6 +263,7 @@ resource "azurerm_function_app_flex_consumption" "this" {
     azurerm_role_assignment.runtime_table,
     azurerm_role_assignment.key_vault_secrets,
     azurerm_role_assignment.sre_agent_user,
+    azurerm_role_assignment.alert_reader,
   ]
 
   lifecycle {

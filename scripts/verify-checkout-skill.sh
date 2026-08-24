@@ -106,7 +106,14 @@ for clause in \
   'an empty auxiliary SRE incident thread is not valid SRE correlation' \
   'wait for the automatic main-only deployment' \
   'starts automatic deployment from the main-only `demo` environment' \
-  'After a successful delivery-workflow callback' \
+  'successful delivery-workflow callback is a deployment milestone' \
+  'trusted bridge continuation stating that the correlated Azure Monitor alert now reports `Resolved`' \
+  'The signed successful delivery workflow proves the checked-in recovery Helm test passed HTTP 200 and exact totals' \
+  'Reuse the existing remediation PR, canonical SRE thread, and Teams incident thread' \
+  'Never create, reopen, move, or update another PR during finalization' \
+  'call `add_issue_comment` exactly once for the existing PR' \
+  'Call `reply_incident_thread` exactly once with the current incident ID and the identical rendered RCA body' \
+  'If no alert-resolved continuation arrives within 45 minutes' \
   'Awaiting human PR review; no merge or deployment performed.'; do
   grep -F "$clause" "$SKILL_FILE" >/dev/null
 done

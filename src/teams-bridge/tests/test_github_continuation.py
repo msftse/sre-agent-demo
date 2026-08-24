@@ -20,6 +20,7 @@ class FakeState:
         self.claimed: set[str] = set()
         self.saved: list[dict[str, Any]] = []
         self.deliveries: dict[str, dict[str, bool]] = {}
+        self.monitor_owners: dict[str, str] = {}
 
     async def claim_delivery(self, delivery_id: str) -> bool:
         if delivery_id in self.claimed:
@@ -68,6 +69,10 @@ class FakeState:
             "HeadSha": "head-123",
             "MergeSha": "merge-123",
         }
+
+    async def claim_alert_monitor(self, merge_sha: str, delivery_id: str) -> bool:
+        owner = self.monitor_owners.setdefault(merge_sha, delivery_id)
+        return owner == delivery_id
 
 
 class FakeSre:
@@ -250,7 +255,10 @@ async def test_continues_successful_workflow_for_correlated_merge() -> None:
     )
 
     assert result.status == "processed"
-    assert "verify the deployed SHA" in sre.messages[0][1]
+    assert result.start_alert_monitor is True
+    assert result.delivery is not None
+    assert result.delivery["merge_sha"] == "merge-123"
+    assert sre.messages == []
 
 
 async def test_continues_automatic_workflow_from_correlated_pr_head() -> None:
@@ -286,7 +294,87 @@ async def test_continues_automatic_workflow_from_correlated_pr_head() -> None:
     )
 
     assert result.status == "processed"
-    assert "Release SHA: merge-123" in sre.messages[0][1]
+    assert result.start_alert_monitor is True
+    assert result.delivery is not None
+    assert result.delivery["merge_sha"] == "merge-123"
+    assert sre.messages == []
+
+
+async def test_different_delivery_cannot_start_second_monitor_for_merge() -> None:
+    state = FakeState()
+    service = GitHubContinuationService(
+        secret="secret",
+        expected_repository=EXPECTED_REPOSITORY,
+        state=state,
+        sre=FakeSre(),
+        teams=FakeTeams(),
+    )
+    body = json.dumps(
+        {
+            "action": "completed",
+            "repository": {"full_name": EXPECTED_REPOSITORY},
+            "workflow_run": {
+                "name": "Deliver Demo to AKS",
+                "event": "workflow_dispatch",
+                "head_branch": "main",
+                "head_sha": "merge-123",
+                "conclusion": "success",
+            },
+        },
+        separators=(",", ":"),
+    ).encode()
+
+    first = await service.process(
+        body=body,
+        signature=signed(body),
+        delivery_id="delivery-monitor-1",
+        event_type="workflow_run",
+    )
+    second = await service.process(
+        body=body,
+        signature=signed(body),
+        delivery_id="delivery-monitor-2",
+        event_type="workflow_run",
+    )
+
+    assert first.start_alert_monitor is True
+    assert second.start_alert_monitor is False
+
+
+async def test_ignores_transient_workflow_event() -> None:
+    state = FakeState()
+    service = GitHubContinuationService(
+        secret="secret",
+        expected_repository=EXPECTED_REPOSITORY,
+        state=state,
+        sre=FakeSre(),
+        teams=FakeTeams(),
+    )
+    body = json.dumps(
+        {
+            "action": "in_progress",
+            "repository": {"full_name": EXPECTED_REPOSITORY},
+            "workflow_run": {
+                "name": "Deliver Demo to AKS",
+                "event": "workflow_dispatch",
+                "head_branch": "main",
+                "head_sha": "merge-123",
+                "conclusion": None,
+            },
+        },
+        separators=(",", ":"),
+    ).encode()
+
+    result = await service.process(
+        body=body,
+        signature=signed(body),
+        delivery_id="delivery-transient",
+        event_type="workflow_run",
+    )
+
+    assert result.status == "ignored"
+    assert result.delivery is None
+    assert state.claimed == set()
 
 
 async def test_redelivery_skips_teams_after_sre_failure() -> None:

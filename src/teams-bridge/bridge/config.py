@@ -20,9 +20,13 @@ class Settings:
     mcp_shared_key: str
     github_webhook_secret: str
     github_repository: str
+    azure_subscription_id: str
     teams_personal_chat_enabled: bool = False
     teams_personal_chat_access_mode: PersonalChatAccessMode = "allowed_user"
     teams_personal_chat_turns_per_hour: int = 10
+    alert_resolution_poll_seconds: int = 30
+    alert_resolution_timeout_minutes: int = 30
+    alert_resolution_retry_minutes: int = 10
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -40,6 +44,7 @@ class Settings:
             "mcp_shared_key": os.getenv("MCP_SHARED_KEY", ""),
             "github_webhook_secret": os.getenv("GITHUB_WEBHOOK_SECRET", ""),
             "github_repository": os.getenv("GITHUB_REPOSITORY", ""),
+            "azure_subscription_id": os.getenv("AZURE_SUBSCRIPTION_ID", ""),
         }
         missing = [name for name, value in values.items() if not value]
         if missing:
@@ -63,6 +68,22 @@ class Settings:
             raise RuntimeError(
                 "TEAMS_PERSONAL_CHAT_TURNS_PER_HOUR must be between 1 and 100."
             )
+        monitor_values: dict[str, tuple[int, int, int]] = {
+            "ALERT_RESOLUTION_POLL_SECONDS": (30, 10, 300),
+            "ALERT_RESOLUTION_TIMEOUT_MINUTES": (30, 5, 120),
+            "ALERT_RESOLUTION_RETRY_MINUTES": (10, 1, 60),
+        }
+        monitor_settings: dict[str, int] = {}
+        for name, (default, minimum, maximum) in monitor_values.items():
+            try:
+                parsed = int(os.getenv(name, str(default)))
+            except ValueError as error:
+                raise RuntimeError(f"{name} must be an integer.") from error
+            if parsed < minimum or parsed > maximum:
+                raise RuntimeError(
+                    f"{name} must be between {minimum} and {maximum}."
+                )
+            monitor_settings[name] = parsed
         enabled = os.getenv("TEAMS_PERSONAL_CHAT_ENABLED", "false").casefold()
         if enabled not in {"true", "false"}:
             raise RuntimeError("TEAMS_PERSONAL_CHAT_ENABLED must be true or false.")
@@ -71,4 +92,13 @@ class Settings:
             teams_personal_chat_enabled=enabled == "true",
             teams_personal_chat_access_mode=access_mode,  # type: ignore[arg-type]
             teams_personal_chat_turns_per_hour=turns_per_hour,
+            alert_resolution_poll_seconds=monitor_settings[
+                "ALERT_RESOLUTION_POLL_SECONDS"
+            ],
+            alert_resolution_timeout_minutes=monitor_settings[
+                "ALERT_RESOLUTION_TIMEOUT_MINUTES"
+            ],
+            alert_resolution_retry_minutes=monitor_settings[
+                "ALERT_RESOLUTION_RETRY_MINUTES"
+            ],
         )

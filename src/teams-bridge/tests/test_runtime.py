@@ -27,6 +27,7 @@ def settings() -> Settings:
         mcp_shared_key="test-key",
         github_webhook_secret="webhook-secret",
         github_repository="msftse/sre-agent-demo",
+        azure_subscription_id="subscription-1",
     )
 
 
@@ -101,24 +102,53 @@ class FakeContinuation:
     def __init__(self, outcome: ContinuationResult | Exception) -> None:
         self.outcome = outcome
 
-    async def process(self, **_: Any) -> ContinuationResult:
+    async def accept(self, **_: Any) -> ContinuationResult:
         if isinstance(self.outcome, Exception):
             raise self.outcome
         return self.outcome
 
 
 async def test_github_route_returns_processed_result() -> None:
-    runtime = BridgeRuntime(settings())
+    starts: list[tuple[str, str, dict[str, Any]]] = []
+
+    async def start(
+        function_name: str,
+        instance_id: str,
+        payload: dict[str, Any],
+    ) -> str:
+        starts.append((function_name, instance_id, payload))
+        return instance_id
+
+    runtime = BridgeRuntime(settings(), orchestration_starter=start)
     runtime.continuation = FakeContinuation(  # type: ignore[assignment]
-        ContinuationResult(status="processed", event_key="pull_request:opened:1")
+        ContinuationResult(
+            status="accepted",
+            event_key="pull_request:opened:delivery-1",
+            delivery={
+                "delivery_id": "delivery-1",
+                "event_type": "pull_request",
+                "action": "opened",
+                "repository": "msftse/sre-agent-demo",
+                "sre_thread_id": "thread-1",
+                "teams_thread_id": "alert-1",
+                "pr_number": 42,
+                "pr_url": "https://github.com/msftse/sre-agent-demo/pull/42",
+                "head_sha": "head-1",
+                "merge_sha": "",
+                "conclusion": "",
+            },
+        )
     )
     transport = httpx.ASGITransport(app=runtime.web)
 
     async with httpx.AsyncClient(transport=transport, base_url="https://test") as client:
         response = await client.post("/api/github/events", content=b"{}")
 
-    assert response.status_code == 200
-    assert response.json()["status"] == "processed"
+    assert response.status_code == 202
+    assert response.json()["status"] == "queued"
+    assert starts[0][0] == "github_continuation_orchestrator"
+    assert starts[0][1].startswith("github-continuation-")
+    assert starts[0][2]["alert_resolution_timeout_minutes"] == 30
 
 
 async def test_github_route_rejects_invalid_signature() -> None:

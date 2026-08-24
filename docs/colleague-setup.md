@@ -515,23 +515,21 @@ Required findings:
 7. Follow Teams evidence and review the generated `sre/field20-checkout-*` remediation PR. The agent cannot approve, merge, or deploy it.
 8. Merge the PR when ready. Its human merge automatically starts **Deliver Demo to AKS** with incident traffic disabled; this demo has no separate environment-review approval.
 9. Confirm the deployed merge SHA, healthy replicas, successful FIELD20 checkout, and absent traffic generator.
-10. Allow the five-minute alert auto-resolution window before expecting a final Teams and PR RCA. If evidence is incomplete, the agent posts a deferred update instead of claiming resolution.
+10. The bridge polls the correlated alert every 30 seconds for up to 30 minutes, followed by one automatic 10-minute extension. When the alert reports `Resolved`, it wakes the existing SRE thread for independent verification and final RCA publication to the existing PR and Teams thread.
 
-### Deferred RCA behavior
+### Alert-resolution monitor behavior
 
-The continuation bridge resumes the SRE thread from signed GitHub pull-request, workflow-run, and deployment-status events. Azure Monitor alert resolution is not currently a continuation source. A successful workflow callback can therefore reach the agent before the five clean minutes required for alert auto-resolution.
+The existing signed GitHub webhook starts one deterministic Durable monitor after the correlated recovery workflow completes successfully. It does not create another webhook, PR, SRE thread, or Teams thread. The bridge identity has a custom read-only role containing only `Microsoft.AlertsManagement/alerts/read`.
 
-If Teams reports **Recovery verification deferred**:
+Normal flow:
 
-1. Do not rerun **Start Demo** and do not create another remediation branch.
-2. Confirm **Deliver Demo to AKS** succeeded for the remediation merge SHA.
-3. Confirm backend and frontend replicas are ready, traffic generation is disabled, and the release SHA matches the merge.
-4. In Azure Monitor, wait until `NorthstarCheckoutFailureRatioHigh` shows `Resolved`.
-5. Review the recovery Helm test. It validates HTTP 200 and exact totals `29600 / 5920 / 0 / 23680` inside the short-lived test pod; current application telemetry records the recovery operation and FIELD20 classification but not those response totals.
-6. Open the existing SRE Agent thread in the portal and ask it to rerun recovery verification and publish the canonical RCA to the correlated PR and Teams thread. Approval decisions, if requested, remain portal-only.
-7. Confirm the same final `# Root Cause Analysis` appears in the remediation PR comments and the original Teams incident thread before declaring the demo complete.
+1. The recovery workflow succeeds and its signed terminal event is durably processed.
+2. The alert monitor waits through Azure Monitor's normal recovery window.
+3. On `Resolved`, the bridge wakes the same SRE thread with merge, PR, alert, and signed workflow evidence.
+4. The SRE Agent independently verifies release, workloads, FIELD20 telemetry, residual failures, and alert state.
+5. The SRE Agent publishes one identical canonical RCA to the existing PR and existing Teams incident thread.
 
-Waiting after the deferred message is not sufficient by itself: no alert-resolution callback currently wakes the SRE thread. Treat this as a known continuation/evidence limitation, not as a failed application recovery.
+If Teams reports that automatic monitoring ended without resolution, do not rerun **Start Demo** or create another remediation branch. Inspect Azure Monitor and continue the existing SRE thread manually. This message appears only after the 30-minute monitor and 10-minute extension expire, or when alert correlation/RBAC is terminally invalid.
 
 After a successful recovery, wait for alert resolution, no open PR, idle delivery, and a completed RCA before running **Start Demo** again. No manual Table Storage cleanup is required.
 
@@ -557,7 +555,7 @@ Workflow-specific failures:
 | Push to `main` is rejected | Verify the token has Contents and Administration write permissions and rerun `./scripts/configure-github-protection.sh incident-demo` after correcting access. Never force-push. |
 | Baseline dispatch fails before Azure login | Rerun `./scripts/verify-github-environment.sh` and compare environment values with Terraform outputs. |
 | Recovery merge does not deploy | Confirm the merged PR is same-repository, targets `main`, and its branch starts with `sre/field20-checkout-`; then inspect **Deliver Demo to AKS**. |
-| Recovery succeeds but only a deferred Teams update appears | Follow **Deferred RCA behavior** above. Alert resolution does not automatically resume the SRE thread. |
+| Recovery succeeds but automatic monitoring ends without an RCA | Follow **Alert-resolution monitor behavior** above. Inspect Azure Monitor and continue the existing SRE thread; do not create another PR. |
 
 ## Keep your fork synced with upstream
 

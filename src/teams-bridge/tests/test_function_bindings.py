@@ -16,6 +16,7 @@ TEST_SETTINGS = {
     "MCP_SHARED_KEY": "test-key",
     "GITHUB_WEBHOOK_SECRET": "webhook-secret",
     "GITHUB_REPOSITORY": "msftse/sre-agent-demo",
+    "AZURE_SUBSCRIPTION_ID": "subscription-1",
 }
 for name, value in TEST_SETTINGS.items():
     os.environ.setdefault(name, value)
@@ -23,6 +24,27 @@ for name, value in TEST_SETTINGS.items():
 import function_app  # noqa: E402
 
 REGISTERED_FUNCTIONS = function_app.app.get_functions()
+
+
+def test_registered_function_set_is_exact() -> None:
+    expected = {
+        "alert_resolution_orchestrator",
+        "complete_sre_turn",
+        "deliver_github_continuation",
+        "fail_sre_turn",
+        "github_continuation_orchestrator",
+        "http_entrypoint",
+        "persist_teams_activity",
+        "poll_alert_status",
+        "poll_sre_turn",
+        "reply_with_sre_thread",
+        "start_sre_investigation",
+        "teams_chat_turn_orchestrator",
+        "teams_message_orchestrator",
+        "timeout_sre_turn",
+        "wake_sre_for_final_rca",
+    }
+    assert {item.get_function_name() for item in REGISTERED_FUNCTIONS} == expected
 
 
 def test_binding_names_match_function_parameters() -> None:
@@ -46,12 +68,15 @@ def test_binding_names_match_function_parameters() -> None:
 def test_activity_bindings_use_worker_supported_annotation() -> None:
     activity_names = {
         "complete_sre_turn",
+        "deliver_github_continuation",
         "fail_sre_turn",
+        "poll_alert_status",
         "poll_sre_turn",
         "persist_teams_activity",
         "start_sre_investigation",
         "reply_with_sre_thread",
         "timeout_sre_turn",
+        "wake_sre_for_final_rca",
     }
 
     for registered in REGISTERED_FUNCTIONS:
